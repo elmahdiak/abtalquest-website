@@ -9,7 +9,6 @@ import {
   Moon, 
   Check, 
   Download,
-  Star,
   User as UserIcon,
   MessageSquare,
   ChevronRight
@@ -17,6 +16,7 @@ import {
 import AbtalQuestLogo from '../common/AbtalQuestLogo';
 import { cn } from '../../lib/utils';
 import { useTheme } from '../../context/ThemeContext';
+import { useLanguage } from '../../context/LanguageContext';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 
 export interface NavItem {
@@ -25,13 +25,6 @@ export interface NavItem {
   href: string;
   badge?: string;
 }
-
-const NAV_ITEMS: NavItem[] = [
-  { id: 'home', label: 'Home', href: '#universe' },
-  { id: 'blog', label: 'Blog', href: '#parenting-resources' },
-  { id: 'marketplace', label: 'Marketplace', href: '#marketplace', badge: 'Safe Shop' },
-  { id: 'about', label: 'About', href: '#vision-mission' },
-];
 
 export interface NavbarProps {
   currentView?: 'home' | 'marketplace' | 'admin';
@@ -54,11 +47,18 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [selectedNavTab, setSelectedNavTab] = useState<string>('home');
   const { theme, toggleTheme } = useTheme();
-  const [language, setLanguage] = useState<'en' | 'ar'>('en');
+  const { language, direction, setLanguage, t } = useLanguage();
   const [languageMenuOpen, setLanguageMenuOpen] = useState(false);
   const [downloadModalOpen, setDownloadModalOpen] = useState(false);
   
   const languageMenuRef = useRef<HTMLDivElement>(null);
+
+  const navItems: NavItem[] = [
+    { id: 'home', label: t('nav.home'), href: '#universe' },
+    { id: 'blog', label: t('nav.blog'), href: '#parenting-resources' },
+    { id: 'marketplace', label: t('nav.marketplace'), href: '#marketplace', badge: t('nav.badge_kits') },
+    { id: 'about', label: t('nav.about'), href: '#vision-mission' },
+  ];
 
   // Sync active navigation tab with current view
   const activeTab = currentView === 'marketplace' ? 'marketplace' : selectedNavTab;
@@ -118,7 +118,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               <ShieldCheck className="w-3.5 h-3.5" />
             </span>
             <span className="font-medium tracking-wide text-[11px] sm:text-xs truncate sm:whitespace-normal">
-              AbtalQuest Safe Zone: <strong className="text-amber-300">100% Ad-Free</strong> • <strong className="text-emerald-300">Zero Violence</strong> • Screen-Time Balanced
+              <strong className="text-amber-300">{t('nav.safety_ticker_bold_1')}</strong> • <strong className="text-emerald-300">{t('nav.safety_ticker_bold_2')}</strong> • {t('nav.safety_ticker_tail')}
             </span>
           </div>
 
@@ -129,11 +129,11 @@ export const Navbar: React.FC<NavbarProps> = ({
               className="hover:underline hover:text-amber-300 flex items-center gap-1 transition-colors"
             >
               <MessageSquare className="w-3 h-3" />
-              <span>Contact Support</span>
+              <span>{t('nav.contact_support')}</span>
             </button>
             <span className="text-white/40">|</span>
             <span className="text-white/80">
-              Curated for Ages 6–13 • COPPA & GDPR-K Compliant
+              {t('nav.compliance_notice')}
             </span>
           </div>
         </div>
@@ -170,13 +170,13 @@ export const Navbar: React.FC<NavbarProps> = ({
                   variant={theme === 'dark' ? 'dark' : 'light'}
                   size="md"
                   showText={true}
-                  tagline="Values-Based Digital Universe"
+                  tagline={t('nav.logo_tagline')}
                 />
               </a>
 
               {/* Desktop Navigation Links: "Home", "Blog", "Marketplace", "About" (Center-Left) */}
               <nav className="hidden md:flex items-center gap-6 lg:gap-8" aria-label="Main Navigation">
-                {NAV_ITEMS.map((item) => {
+                {navItems.map((item) => {
                   const isActive = activeTab === item.id;
                   return (
                     <a
@@ -225,18 +225,21 @@ export const Navbar: React.FC<NavbarProps> = ({
                     'shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#016ba5]',
                     languageMenuOpen && 'border-[#016ba5] ring-2 ring-[#016ba5]/20 bg-white dark:bg-slate-800 text-[#016ba5] dark:text-[#38BDF8]'
                   )}
-                  aria-label="Select Language"
-                  title="Language Selector"
+                  aria-label={t('nav.select_language')}
+                  title={t('nav.select_language')}
                   aria-expanded={languageMenuOpen}
                 >
                   <Globe className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 </button>
 
-                {/* Language Dropdown Menu */}
+                {/* Language Dropdown Menu (EN, AR, FR) */}
                 {languageMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-48 rounded-2xl bg-white/95 dark:bg-[#0A2540]/95 backdrop-blur-md shadow-xl border border-slate-200/80 dark:border-slate-700 py-2 z-50 animate-fadeIn">
+                  <div className={cn(
+                    'absolute mt-2 w-48 rounded-2xl bg-white/95 dark:bg-[#0A2540]/95 backdrop-blur-md shadow-xl border border-slate-200/80 dark:border-slate-700 py-2 z-50 animate-fadeIn',
+                    direction === 'rtl' ? 'left-0' : 'right-0'
+                  )}>
                     <div className="px-3 py-1.5 text-[11px] font-body text-slate-400 dark:text-slate-400 font-semibold border-b border-slate-100 dark:border-slate-700/80">
-                      Select Language
+                      {t('nav.select_language')}
                     </div>
                     <button
                       type="button"
@@ -251,7 +254,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                     >
                       <div className="flex items-center gap-2">
                         <span className="text-sm">🇺🇸</span>
-                        <span>English (US)</span>
+                        <span>{t('nav.lang_en')}</span>
                       </div>
                       {language === 'en' && <Check className="w-3.5 h-3.5 text-[#016ba5] dark:text-[#38BDF8]" />}
                     </button>
@@ -268,9 +271,26 @@ export const Navbar: React.FC<NavbarProps> = ({
                     >
                       <div className="flex items-center gap-2">
                         <span className="text-sm">🇦🇪</span>
-                        <span>العربية (Arabic)</span>
+                        <span>{t('nav.lang_ar')}</span>
                       </div>
                       {language === 'ar' && <Check className="w-3.5 h-3.5 text-[#016ba5] dark:text-[#38BDF8]" />}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLanguage('fr');
+                        setLanguageMenuOpen(false);
+                      }}
+                      className={cn(
+                        'w-full px-3.5 py-2 text-xs font-headline font-semibold flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/80 transition-colors',
+                        language === 'fr' ? 'text-[#016ba5] dark:text-[#38BDF8] bg-[#016ba5]/5 dark:bg-[#016ba5]/20' : 'text-slate-700 dark:text-slate-200'
+                      )}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm">🇫🇷</span>
+                        <span>{t('nav.lang_fr')}</span>
+                      </div>
+                      {language === 'fr' && <Check className="w-3.5 h-3.5 text-[#016ba5] dark:text-[#38BDF8]" />}
                     </button>
                   </div>
                 )}
@@ -339,8 +359,8 @@ export const Navbar: React.FC<NavbarProps> = ({
                   'transform hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 group'
                 )}
               >
-                <span>Download App</span>
-                <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1" />
+                <span>{t('nav.download_app')}</span>
+                <ArrowRight className="w-4 h-4 rtl-flip transition-transform duration-200 group-hover:translate-x-1" />
               </button>
 
               {/* Mobile Menu Toggle Button */}
@@ -363,7 +383,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         {mobileMenuOpen && (
           <div className="md:hidden border-t border-slate-200/80 dark:border-slate-700 bg-white/95 dark:bg-[#0A2540]/95 backdrop-blur-md shadow-xl px-4 pt-3 pb-6 animate-fadeIn">
             <nav className="flex flex-col gap-1.5" aria-label="Mobile Navigation">
-              {NAV_ITEMS.map((item) => {
+              {navItems.map((item) => {
                 const isActive = activeTab === item.id;
                 return (
                   <a
@@ -404,9 +424,9 @@ export const Navbar: React.FC<NavbarProps> = ({
               >
                 <div className="flex items-center gap-2">
                   <UserIcon className="w-4 h-4 text-[#016ba5] dark:text-[#38BDF8]" />
-                  <span>{user ? `Family Profile (${user.user_metadata?.full_name || user.email?.split('@')[0]})` : 'Sign In / Create Account'}</span>
+                  <span>{user ? `${t('nav.family_account')} (${user.user_metadata?.full_name || user.email?.split('@')[0]})` : t('nav.sign_in')}</span>
                 </div>
-                <ChevronRight className="w-4 h-4 text-slate-400" />
+                <ChevronRight className="w-4 h-4 text-slate-400 rtl-flip" />
               </button>
 
               {/* Mobile Contact Button */}
@@ -420,9 +440,9 @@ export const Navbar: React.FC<NavbarProps> = ({
               >
                 <div className="flex items-center gap-2">
                   <MessageSquare className="w-4 h-4 text-[#016ba5] dark:text-[#38BDF8]" />
-                  <span>Contact Support & Feedback</span>
+                  <span>{t('nav.contact_support')}</span>
                 </div>
-                <ChevronRight className="w-4 h-4 text-slate-400" />
+                <ChevronRight className="w-4 h-4 text-slate-400 rtl-flip" />
               </button>
 
               {/* Mobile CTA Button: Pill-Shaped #fa8221 with right arrow */}
@@ -439,8 +459,8 @@ export const Navbar: React.FC<NavbarProps> = ({
                   'shadow-[0_4px_14px_rgba(250,130,33,0.38)] transition-all'
                 )}
               >
-                <span>Download App</span>
-                <ArrowRight className="w-4 h-4" />
+                <span>{t('nav.download_app')}</span>
+                <ArrowRight className="w-4 h-4 rtl-flip" />
               </button>
             </div>
           </div>
@@ -457,7 +477,10 @@ export const Navbar: React.FC<NavbarProps> = ({
             <button
               type="button"
               onClick={() => setDownloadModalOpen(false)}
-              className="absolute top-4 right-4 p-2 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+              className={cn(
+                'absolute top-4 p-2 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors',
+                direction === 'rtl' ? 'left-4' : 'right-4'
+              )}
               aria-label="Close dialog"
             >
               <X className="w-5 h-5" />
@@ -469,11 +492,11 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
 
             <h3 className="font-headline text-2xl font-black text-[#1E293B] dark:text-white mb-2">
-              Download AbtalQuest
+              {t('nav.download_title')}
             </h3>
             
             <p className="font-body text-xs sm:text-sm text-[#64748B] dark:text-slate-300 leading-relaxed mb-6">
-              Join thousands of families in a safe, values-based digital universe. 100% ad-free, no violence, and certified child safe.
+              {t('nav.download_desc')}
             </p>
 
             <div className="space-y-3 mb-6">
@@ -481,37 +504,33 @@ export const Navbar: React.FC<NavbarProps> = ({
                 href="#app-store"
                 onClick={(e) => {
                   e.preventDefault();
-                  alert('AbtalQuest on Apple App Store: Releasing with Version 1.0! Early access invites active.');
+                  alert(t('nav.download_app_store'));
                   setDownloadModalOpen(false);
                 }}
                 className="w-full flex items-center justify-center gap-3 py-3 px-5 rounded-2xl bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 text-white font-headline font-semibold text-sm transition-all shadow-md"
               >
                 <Download className="w-4 h-4 text-emerald-400" />
-                <span>Download for iOS (App Store)</span>
+                <span>{t('nav.download_app_store')}</span>
               </a>
 
               <a
                 href="#google-play"
                 onClick={(e) => {
                   e.preventDefault();
-                  alert('AbtalQuest on Google Play Store: Android pre-registration live! 100% safe verified.');
+                  alert(t('nav.download_google_play'));
                   setDownloadModalOpen(false);
                 }}
                 className="w-full flex items-center justify-center gap-3 py-3 px-5 rounded-2xl bg-[#016ba5] hover:bg-[#015786] text-white font-headline font-semibold text-sm transition-all shadow-md"
               >
                 <Download className="w-4 h-4 text-amber-300" />
-                <span>Get on Google Play (Android)</span>
+                <span>{t('nav.download_google_play')}</span>
               </a>
             </div>
 
             {/* Reassurance Footer */}
             <div className="pt-4 border-t border-slate-100 dark:border-slate-700/80 flex items-center justify-center gap-4 text-xs font-body text-slate-500 dark:text-slate-400">
               <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-medium">
-                <ShieldCheck className="w-4 h-4" /> Child Safe Verified
-              </span>
-              <span>•</span>
-              <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400 font-medium">
-                <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" /> 4.9 Parent Rating
+                <ShieldCheck className="w-4 h-4" /> {t('nav.download_security')}
               </span>
             </div>
           </div>

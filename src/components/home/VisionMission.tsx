@@ -9,8 +9,11 @@ import {
   ArrowUpRight 
 } from 'lucide-react';
 import Badge from '../common/Badge';
+import { useLanguage } from '../../context/LanguageContext';
 
 export const VisionMission: React.FC = () => {
+  const { t } = useLanguage();
+
   return (
     <section id="vision-mission" className="py-20 sm:py-28 bg-white dark:bg-[#071727] relative overflow-hidden border-b border-slate-100 dark:border-slate-800">
       {/* Soft ambient background surface highlights */}
@@ -22,15 +25,15 @@ export const VisionMission: React.FC = () => {
         {/* Section Header */}
         <div className="text-center max-w-3xl mx-auto mb-16 sm:mb-20">
           <Badge variant="primary" size="md" icon={<Compass className="w-4 h-4" />}>
-            Purpose & Foundation
+            {t('vision.badge')}
           </Badge>
           
           <h2 className="font-headline text-3xl sm:text-4xl lg:text-5xl font-black text-[#1E293B] dark:text-white tracking-tight mt-4 mb-5">
-            Our Guiding Compass
+            {t('vision.title')}
           </h2>
 
           <p className="font-body text-sm sm:text-base text-[#64748B] dark:text-slate-300 leading-relaxed">
-            Every quest, interaction, and sound in AbtalQuest is designed with a singular, uncompromising purpose: protecting innocent childhood and inspiring noble growth.
+            {t('vision.subtitle')}
           </p>
         </div>
 
@@ -47,21 +50,21 @@ export const VisionMission: React.FC = () => {
                   <Telescope className="w-7 h-7" />
                 </div>
                 <Badge variant="primary" size="sm" icon={<Sparkles className="w-3.5 h-3.5" />}>
-                  The Horizon Ahead
+                  {t('vision.badge')}
                 </Badge>
               </div>
 
               {/* Title using Montserrat */}
               <h3 className="font-headline text-2xl sm:text-3xl font-extrabold text-[#1E293B] dark:text-white mb-4 tracking-tight flex items-center gap-2">
-                <span>Our Vision</span>
-                <ArrowUpRight className="w-5 h-5 text-[#016ba5] opacity-0 group-hover:opacity-100 transition-opacity" />
+                <span>{t('vision.vision_title')}</span>
+                <ArrowUpRight className="w-5 h-5 text-[#016ba5] opacity-0 group-hover:opacity-100 transition-opacity rtl-flip" />
               </h3>
 
               {/* Vision Statement Quote */}
               <blockquote className="font-body text-base sm:text-lg text-slate-800 dark:text-slate-100 leading-relaxed font-medium bg-white/80 dark:bg-slate-900/60 p-5 rounded-2xl border border-[#016ba5]/10 dark:border-[#016ba5]/30 shadow-sm mb-6 relative">
-                <span className="text-3xl text-[#016ba5] font-serif absolute -top-2 left-2 opacity-30 select-none">“</span>
-                <p className="relative z-10 pl-3">
-                  To create a world where every child becomes a hero of their own life, resilient, kind, and ready for real-world challenges...
+                <span className="text-3xl text-[#016ba5] font-serif absolute -top-2 left-2 rtl:left-auto rtl:right-2 opacity-30 select-none">“</span>
+                <p className="relative z-10 pl-3 rtl:pl-0 rtl:pr-3">
+                  {t('vision.vision_desc')}
                 </p>
               </blockquote>
 
@@ -71,10 +74,10 @@ export const VisionMission: React.FC = () => {
                   <CheckCircle2 className="w-5 h-5 text-[#016ba5] flex-shrink-0 mt-0.5" />
                   <div>
                     <span className="font-headline font-bold text-sm text-slate-800 dark:text-slate-200 block">
-                      Inner Resilience & Grit
+                      {t('vision.pillar_1_title')}
                     </span>
                     <span className="font-body text-xs text-[#64748B] dark:text-slate-400 leading-normal">
-                      Cultivating patience (Sabr) and courage to overcome daily hurdles without fear.
+                      {t('vision.pillar_1_desc')}
                     </span>
                   </div>
                 </div>
@@ -83,10 +86,10 @@ export const VisionMission: React.FC = () => {
                   <CheckCircle2 className="w-5 h-5 text-[#016ba5] flex-shrink-0 mt-0.5" />
                   <div>
                     <span className="font-headline font-bold text-sm text-slate-800 dark:text-slate-200 block">
-                      Kindness as Superpower
+                      {t('vision.pillar_2_title')}
                     </span>
                     <span className="font-body text-xs text-[#64748B] dark:text-slate-400 leading-normal">
-                      Rewarding empathy, truthfulness, and community solidarity over destructive competition.
+                      {t('vision.pillar_2_desc')}
                     </span>
                   </div>
                 </div>
@@ -95,10 +98,10 @@ export const VisionMission: React.FC = () => {
                   <CheckCircle2 className="w-5 h-5 text-[#016ba5] flex-shrink-0 mt-0.5" />
                   <div>
                     <span className="font-headline font-bold text-sm text-slate-800 dark:text-slate-200 block">
-                      Real-World Character Readiness
+                      {t('vision.pillar_3_title')}
                     </span>
                     <span className="font-body text-xs text-[#64748B] dark:text-slate-400 leading-normal">
-                      Nurturing curious thinkers who apply virtuous habits in family and school life.
+                      {t('vision.pillar_3_desc')}
                     </span>
                   </div>
                 </div>
@@ -107,8 +110,8 @@ export const VisionMission: React.FC = () => {
 
             {/* Bottom Footer Accent */}
             <div className="mt-8 pt-6 border-t border-slate-200/80 dark:border-slate-700/80 flex items-center justify-between text-xs font-body text-[#016ba5] dark:text-[#38BDF8] font-semibold">
-              <span>Goal: 10 Million Empowered Children</span>
-              <span className="font-gamification text-sm text-[#7C3AED]">Abtal Global Impact</span>
+              <span>{t('vision.quote_author')}</span>
+              <span className="font-gamification text-sm text-[#7C3AED]">{t('vision.pillar_4_title')}</span>
             </div>
 
           </div>
@@ -123,21 +126,21 @@ export const VisionMission: React.FC = () => {
                   <Target className="w-7 h-7" />
                 </div>
                 <Badge variant="secondary" size="sm" icon={<ShieldCheck className="w-3.5 h-3.5" />}>
-                  Our Daily Action
+                  {t('vision.mission_title')}
                 </Badge>
               </div>
 
               {/* Title using Montserrat */}
               <h3 className="font-headline text-2xl sm:text-3xl font-extrabold text-[#1E293B] dark:text-white mb-4 tracking-tight flex items-center gap-2">
-                <span>Our Mission</span>
-                <ArrowUpRight className="w-5 h-5 text-[#fa8221] opacity-0 group-hover:opacity-100 transition-opacity" />
+                <span>{t('vision.mission_title')}</span>
+                <ArrowUpRight className="w-5 h-5 text-[#fa8221] opacity-0 group-hover:opacity-100 transition-opacity rtl-flip" />
               </h3>
 
               {/* Mission Statement Quote */}
               <blockquote className="font-body text-base sm:text-lg text-slate-800 dark:text-slate-100 leading-relaxed font-medium bg-white/80 dark:bg-slate-900/60 p-5 rounded-2xl border border-[#fa8221]/15 dark:border-[#fa8221]/30 shadow-sm mb-6 relative">
-                <span className="text-3xl text-[#fa8221] font-serif absolute -top-2 left-2 opacity-30 select-none">“</span>
-                <p className="relative z-10 pl-3">
-                  To protect children from harmful content and empower them to grow through joyful, values-based challenges...
+                <span className="text-3xl text-[#fa8221] font-serif absolute -top-2 left-2 rtl:left-auto rtl:right-2 opacity-30 select-none">“</span>
+                <p className="relative z-10 pl-3 rtl:pl-0 rtl:pr-3">
+                  {t('vision.mission_desc')}
                 </p>
               </blockquote>
 
@@ -147,10 +150,10 @@ export const VisionMission: React.FC = () => {
                   <CheckCircle2 className="w-5 h-5 text-[#22C55E] flex-shrink-0 mt-0.5" />
                   <div>
                     <span className="font-headline font-bold text-sm text-slate-800 dark:text-slate-200 block">
-                      Impenetrable Digital Sanctuary
+                      {t('vision.pillar_1_title')}
                     </span>
                     <span className="font-body text-xs text-[#64748B] dark:text-slate-400 leading-normal">
-                      Zero commercial advertising, zero violence, zero dark patterns, and strict COPPA privacy compliance.
+                      {t('vision.pillar_1_desc')}
                     </span>
                   </div>
                 </div>
@@ -159,10 +162,10 @@ export const VisionMission: React.FC = () => {
                   <CheckCircle2 className="w-5 h-5 text-[#22C55E] flex-shrink-0 mt-0.5" />
                   <div>
                     <span className="font-headline font-bold text-sm text-slate-800 dark:text-slate-200 block">
-                      Joyful, Value-Driven Play
+                      {t('vision.pillar_2_title')}
                     </span>
                     <span className="font-body text-xs text-[#64748B] dark:text-slate-400 leading-normal">
-                      Turning moral choices, wisdom stories, and creative quests into delightfully rewarding achievements.
+                      {t('vision.pillar_2_desc')}
                     </span>
                   </div>
                 </div>
@@ -171,10 +174,10 @@ export const VisionMission: React.FC = () => {
                   <CheckCircle2 className="w-5 h-5 text-[#22C55E] flex-shrink-0 mt-0.5" />
                   <div>
                     <span className="font-headline font-bold text-sm text-slate-800 dark:text-slate-200 block">
-                      Parent Partnership & Peace of Mind
+                      {t('vision.pillar_4_title')}
                     </span>
                     <span className="font-body text-xs text-[#64748B] dark:text-slate-400 leading-normal">
-                      Transparent dashboards with healthy time boundaries that strengthen the family bond.
+                      {t('vision.pillar_4_desc')}
                     </span>
                   </div>
                 </div>
@@ -183,7 +186,7 @@ export const VisionMission: React.FC = () => {
 
             {/* Bottom Footer Accent */}
             <div className="mt-8 pt-6 border-t border-slate-200/80 dark:border-slate-700/80 flex items-center justify-between text-xs font-body text-[#fa8221] font-semibold">
-              <span>Standard: Zero Commercial Ads</span>
+              <span>{t('vision.quote')}</span>
               <span className="font-gamification text-sm text-[#22C55E]">100% Values-Safe</span>
             </div>
 

@@ -1,5 +1,5 @@
-/* Google Fonts: Montserrat (Headlines/Buttons), Roboto Mono (Body/UI), Baloo 2 (Gamified Badges/Rewards) */
-@import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Montserrat:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,700;1,800;1,900&family=Roboto+Mono:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap');
+/* Google Fonts: Montserrat (Headlines/Buttons), Roboto Mono (Body/UI), Baloo 2 (Gamified Badges/Rewards), Cairo & Tajawal (Arabic RTL) */
+@import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Cairo:wght@400;500;600;700;800;900&family=Montserrat:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,700;1,800;1,900&family=Roboto+Mono:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Tajawal:wght@400;500;700;800;900&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -51,7 +51,7 @@
     color: #F1F5F9;
   }
 
-  /* Rule 1: Set 'Montserrat' as the primary font family for all headings, titles, and button labels */
+  /* Rule 1: Set 'Montserrat' as the primary font family for all headings, titles, and button labels in LTR */
   h1, h2, h3, h4, h5, h6 {
     font-family: 'Montserrat', system-ui, sans-serif !important;
     color: #1E293B;
@@ -67,7 +67,7 @@
     color: #F8FAFC !important;
   }
 
-  /* Button labels strictly use Montserrat */
+  /* Button labels strictly use Montserrat in LTR */
   button, 
   [role="button"],
   input[type="button"],
@@ -76,7 +76,7 @@
     font-family: 'Montserrat', system-ui, sans-serif !important;
   }
 
-  /* Rule 2: Set 'Roboto Mono' as the secondary font family for all body paragraphs, descriptions, and UI text */
+  /* Rule 2: Set 'Roboto Mono' as the secondary font family for all body paragraphs, descriptions, and UI text in LTR */
   p, 
   span, 
   li, 
@@ -112,6 +112,51 @@
   .font-mono {
     font-family: 'Roboto Mono', ui-monospace, monospace !important;
   }
+
+  /* Arabic RTL Typography Engine: Beautiful, legible Arabic letterforms */
+  [dir="rtl"],
+  [dir="rtl"] body {
+    font-family: 'Tajawal', 'Cairo', system-ui, sans-serif !important;
+    text-align: right;
+  }
+
+  [dir="rtl"] h1,
+  [dir="rtl"] h2,
+  [dir="rtl"] h3,
+  [dir="rtl"] h4,
+  [dir="rtl"] h5,
+  [dir="rtl"] h6,
+  [dir="rtl"] .font-headline,
+  [dir="rtl"] .font-headline *,
+  [dir="rtl"] .font-heading,
+  [dir="rtl"] .font-heading * {
+    font-family: 'Cairo', 'Tajawal', system-ui, sans-serif !important;
+    letter-spacing: normal !important;
+  }
+
+  [dir="rtl"] button,
+  [dir="rtl"] [role="button"],
+  [dir="rtl"] input,
+  [dir="rtl"] textarea,
+  [dir="rtl"] select,
+  [dir="rtl"] label,
+  [dir="rtl"] p,
+  [dir="rtl"] span,
+  [dir="rtl"] li {
+    font-family: 'Tajawal', 'Cairo', system-ui, sans-serif !important;
+    letter-spacing: normal !important;
+  }
+
+  [dir="rtl"] .font-gamification,
+  [dir="rtl"] .font-gamification * {
+    font-family: 'Cairo', 'Baloo 2', system-ui, sans-serif !important;
+    font-weight: 700;
+  }
+}
+
+/* RTL icon mirroring utility */
+[dir="rtl"] .rtl-flip {
+  transform: scaleX(-1);
 }
 
 /* Custom animation utilities */

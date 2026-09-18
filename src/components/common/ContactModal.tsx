@@ -3,6 +3,8 @@ import { X, Send, ShieldCheck, Mail, CheckCircle2, Loader2, MessageSquare } from
 import Button from './Button';
 import Badge from './Badge';
 import { sendContactMessage } from '../../services/marketplaceService';
+import { useLanguage } from '../../context/LanguageContext';
+import { cn } from '../../lib/utils';
 
 export interface ContactModalProps {
   isOpen: boolean;
@@ -15,6 +17,7 @@ export const ContactModal: React.FC<ContactModalProps> = ({
   onClose,
   initialSubject = 'General Inquiry',
 }) => {
+  const { t, direction } = useLanguage();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [subject, setSubject] = useState(initialSubject);
@@ -27,9 +30,9 @@ export const ContactModal: React.FC<ContactModalProps> = ({
 
   const validate = () => {
     const errs: Record<string, string> = {};
-    if (!name.trim()) errs.name = 'Please provide your name';
-    if (!email.trim() || !email.includes('@')) errs.email = 'Valid email is required for a reply';
-    if (!message.trim() || message.length < 10) errs.message = 'Please provide a message with at least 10 characters';
+    if (!name.trim()) errs.name = t('auth.err_name');
+    if (!email.trim() || !email.includes('@')) errs.email = t('auth.err_email');
+    if (!message.trim() || message.length < 10) errs.message = t('auth.err_password_len');
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -69,8 +72,11 @@ export const ContactModal: React.FC<ContactModalProps> = ({
       >
         <button
           onClick={onClose}
-          className="absolute top-5 right-5 p-2 rounded-full text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-          aria-label="Close dialog"
+          className={cn(
+            'absolute top-5 p-2 rounded-full text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors',
+            direction === 'rtl' ? 'left-5' : 'right-5'
+          )}
+          aria-label={t('nav.close')}
         >
           <X className="w-5 h-5" />
         </button>
@@ -82,15 +88,15 @@ export const ContactModal: React.FC<ContactModalProps> = ({
             </div>
 
             <Badge variant="success" size="md" className="mb-2">
-              Message Sent
+              {t('contact.success_badge')}
             </Badge>
 
             <h3 className="font-headline text-2xl font-black text-[#1E293B] dark:text-white mb-2">
-              We Received Your Message!
+              {t('contact.success_title')}
             </h3>
 
             <p className="font-body text-xs sm:text-sm text-slate-600 dark:text-slate-300 mb-8 max-w-sm mx-auto leading-relaxed">
-              Our educational team reviews every inquiry carefully. You will receive a direct reply to your email address within 24 hours.
+              {t('contact.success_desc')}
             </p>
 
             <Button
@@ -101,7 +107,7 @@ export const ContactModal: React.FC<ContactModalProps> = ({
                 onClose();
               }}
             >
-              Back to Universe
+              {t('contact.btn_back')}
             </Button>
           </div>
         ) : (
@@ -111,22 +117,22 @@ export const ContactModal: React.FC<ContactModalProps> = ({
                 <MessageSquare className="w-4 h-4" />
               </div>
               <Badge variant="primary" size="sm">
-                Parent & Educator Support
+                {t('contact.badge')}
               </Badge>
             </div>
 
             <h3 className="font-headline text-2xl font-black text-[#1E293B] dark:text-white mb-1">
-              Contact AbtalQuest
+              {t('contact.title')}
             </h3>
 
             <p className="font-body text-xs text-slate-500 dark:text-slate-400 mb-6">
-              Have questions regarding our values-based learning kits, screen-time balance, or school programs? Write to us below.
+              {t('contact.subtitle')}
             </p>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-xs font-headline font-bold text-slate-700 dark:text-slate-200 mb-1">
-                  Your Full Name *
+                  {t('contact.full_name')}
                 </label>
                 <input
                   type="text"
@@ -142,16 +148,18 @@ export const ContactModal: React.FC<ContactModalProps> = ({
 
               <div>
                 <label className="block text-xs font-headline font-bold text-slate-700 dark:text-slate-200 mb-1">
-                  Email Address *
+                  {t('contact.email')}
                 </label>
                 <div className="relative">
-                  <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <Mail className={cn('w-4 h-4 text-slate-400 absolute top-1/2 -translate-y-1/2', direction === 'rtl' ? 'right-3' : 'left-3')} />
                   <input
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="parent@example.com"
-                    className={`w-full pl-9 pr-3.5 py-2.5 rounded-xl border font-body text-xs focus:outline-none focus:ring-2 focus:ring-[#016ba5] bg-white dark:bg-[#0A2540] text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 ${
+                    className={`w-full py-2.5 rounded-xl border font-body text-xs focus:outline-none focus:ring-2 focus:ring-[#016ba5] bg-white dark:bg-[#0A2540] text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 ${
+                      direction === 'rtl' ? 'pr-9 pl-3.5' : 'pl-9 pr-3.5'
+                    } ${
                       errors.email ? 'border-red-400 bg-red-50/20 dark:bg-red-950/20' : 'border-slate-300 dark:border-slate-600'
                     }`}
                   />
@@ -161,30 +169,30 @@ export const ContactModal: React.FC<ContactModalProps> = ({
 
               <div>
                 <label className="block text-xs font-headline font-bold text-slate-700 dark:text-slate-200 mb-1">
-                  Subject / Topic
+                  {t('contact.topic')}
                 </label>
                 <select
                   value={subject}
                   onChange={(e) => setSubject(e.target.value)}
                   className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-600 font-body text-xs bg-white dark:bg-[#0A2540] text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#016ba5] cursor-pointer"
                 >
-                  <option value="Learning Kits & Delivery">Learning Kits & Delivery</option>
-                  <option value="Parental Controls & Safety">Parental Controls & Safety</option>
-                  <option value="Curriculum & School Inquiries">Curriculum & School Inquiries</option>
-                  <option value="General Inquiry">General Inquiry</option>
-                  <option value="Partnership & Outreach">Partnership & Outreach</option>
+                  <option value="Learning Kits & Delivery">{t('contact.topic_1')}</option>
+                  <option value="Parental Controls & Safety">{t('contact.topic_2')}</option>
+                  <option value="Curriculum & School Inquiries">{t('contact.topic_3')}</option>
+                  <option value="General Inquiry">{t('contact.topic_4')}</option>
+                  <option value="Partnership & Outreach">{t('contact.topic_5')}</option>
                 </select>
               </div>
 
               <div>
                 <label className="block text-xs font-headline font-bold text-slate-700 dark:text-slate-200 mb-1">
-                  Message *
+                  {t('contact.message')}
                 </label>
                 <textarea
                   rows={4}
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
-                  placeholder="How can we help your family or educational institution?"
+                  placeholder={t('contact.message_placeholder')}
                   className={`w-full px-3.5 py-2.5 rounded-xl border font-body text-xs focus:outline-none focus:ring-2 focus:ring-[#016ba5] bg-white dark:bg-[#0A2540] text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 ${
                     errors.message ? 'border-red-400 bg-red-50/20 dark:bg-red-950/20' : 'border-slate-300 dark:border-slate-600'
                   }`}
@@ -194,7 +202,7 @@ export const ContactModal: React.FC<ContactModalProps> = ({
 
               <div className="p-3 bg-emerald-50/60 dark:bg-emerald-950/30 rounded-xl border border-emerald-200/80 dark:border-emerald-800/60 flex items-center gap-2 text-xs font-body text-emerald-800 dark:text-emerald-300">
                 <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
-                <span>Zero spam guarantee. Your details are never shared or commercialized.</span>
+                <span>{t('contact.spam_guarantee')}</span>
               </div>
 
               <div className="pt-2">
@@ -203,10 +211,10 @@ export const ContactModal: React.FC<ContactModalProps> = ({
                   size="lg"
                   fullWidth
                   disabled={isSubmitting}
-                  icon={isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                  icon={isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4 rtl-flip" />}
                   iconPosition="right"
                 >
-                  {isSubmitting ? 'Sending Message...' : 'Send Message'}
+                  {isSubmitting ? t('contact.btn_sending') : t('contact.btn_send')}
                 </Button>
               </div>
             </form>

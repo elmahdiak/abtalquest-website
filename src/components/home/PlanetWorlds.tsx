@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import Badge from '../common/Badge';
 import Button from '../common/Button';
+import { useLanguage } from '../../context/LanguageContext';
 
 export interface PlanetWorld {
   id: string;
@@ -152,8 +153,40 @@ const PLANETS: PlanetWorld[] = [
 ];
 
 export const PlanetWorlds: React.FC = () => {
+  const { t } = useLanguage();
   const [selectedPlanet, setSelectedPlanet] = useState<PlanetWorld | null>(null);
   const [activeTab, setActiveTab] = useState<string>('all');
+
+  const getPlanetData = (id: string, fallbackName: string, fallbackSub: string, fallbackDesc: string) => {
+    switch (id) {
+      case 'thinkers':
+        return {
+          name: t('planets.planet_thinkers'),
+          sub: t('planets.planet_thinkers_sub'),
+          desc: t('planets.planet_thinkers_desc')
+        };
+      case 'brave':
+        return {
+          name: t('planets.planet_brave'),
+          sub: t('planets.planet_brave_sub'),
+          desc: t('planets.planet_brave_desc')
+        };
+      case 'solvers':
+        return {
+          name: t('planets.planet_solvers'),
+          sub: t('planets.planet_solvers_sub'),
+          desc: t('planets.planet_solvers_desc')
+        };
+      case 'heart':
+        return {
+          name: t('planets.planet_heart'),
+          sub: t('planets.planet_heart_sub'),
+          desc: t('planets.planet_heart_desc')
+        };
+      default:
+        return { name: fallbackName, sub: fallbackSub, desc: fallbackDesc };
+    }
+  };
 
   const filteredPlanets = activeTab === 'all' 
     ? PLANETS 
@@ -175,15 +208,15 @@ export const PlanetWorlds: React.FC = () => {
             icon={<Sparkles className="w-4 h-4" />}
             className="mb-3"
           >
-            AbtalQuest Galaxy Map
+            {t('planets.badge')}
           </Badge>
 
           <h2 className="font-headline text-3xl sm:text-4xl lg:text-5xl font-black text-[#1E293B] dark:text-white tracking-tight mb-4">
-            Explore the Planet Worlds
+            {t('planets.title')}
           </h2>
 
           <p className="font-body text-sm sm:text-base text-[#64748B] dark:text-slate-300 leading-relaxed">
-            Four distinct life-skill realms crafted without violence, where every puzzle builds character, resilience, and compassionate wisdom.
+            {t('planets.subtitle')}
           </p>
 
           {/* Filter Pills */}
@@ -196,108 +229,114 @@ export const PlanetWorlds: React.FC = () => {
                   : 'bg-white dark:bg-[#0F2F4E] text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700'
               }`}
             >
-              All Worlds (4)
+              {t('planets.all_planets')}
             </button>
-            {PLANETS.map(p => (
-              <button
-                key={p.id}
-                onClick={() => setActiveTab(p.id)}
-                className={`font-headline text-xs font-bold px-4 py-2 rounded-xl transition-all ${
-                  activeTab === p.id
-                    ? 'bg-[#016ba5] text-white shadow-brand'
-                    : 'bg-white dark:bg-[#0F2F4E] text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700'
-                }`}
-              >
-                {p.name}
-              </button>
-            ))}
+            {PLANETS.map(p => {
+              const pData = getPlanetData(p.id, p.name, p.skill, p.shortDesc);
+              return (
+                <button
+                  key={p.id}
+                  onClick={() => setActiveTab(p.id)}
+                  className={`font-headline text-xs font-bold px-4 py-2 rounded-xl transition-all ${
+                    activeTab === p.id
+                      ? 'bg-[#016ba5] text-white shadow-brand'
+                      : 'bg-white dark:bg-[#0F2F4E] text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700'
+                  }`}
+                >
+                  {pData.name}
+                </button>
+              );
+            })}
           </div>
         </div>
 
         {/* 4 Interactive Planet Cards Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-6">
-          {filteredPlanets.map((planet) => (
-            <div
-              key={planet.id}
-              onClick={() => setSelectedPlanet(planet)}
-              className={`group relative bg-white dark:bg-[#0F2F4E] rounded-3xl p-6 sm:p-7 border-2 border-slate-200/90 dark:border-slate-700 transition-all duration-300 hover:-translate-y-2 cursor-pointer flex flex-col justify-between overflow-hidden ${planet.borderColor}`}
-            >
-              {/* Soft Gradient Aura at top of card */}
-              <div className={`absolute top-0 left-0 right-0 h-32 bg-gradient-to-b ${planet.colorGradient} pointer-events-none rounded-t-3xl`} />
+          {filteredPlanets.map((planet) => {
+            const pData = getPlanetData(planet.id, planet.name, planet.skill, planet.shortDesc);
+            return (
+              <div
+                key={planet.id}
+                onClick={() => setSelectedPlanet(planet)}
+                className={`group relative bg-white dark:bg-[#0F2F4E] rounded-3xl p-6 sm:p-7 border-2 border-slate-200/90 dark:border-slate-700 transition-all duration-300 hover:-translate-y-2 cursor-pointer flex flex-col justify-between overflow-hidden ${planet.borderColor}`}
+              >
+                {/* Soft Gradient Aura at top of card */}
+                <div className={`absolute top-0 left-0 right-0 h-32 bg-gradient-to-b ${planet.colorGradient} pointer-events-none rounded-t-3xl`} />
 
-              <div>
-                {/* Gamification Accent Level Badge (#7C3AED) */}
-                <div className="flex items-center justify-between gap-2 mb-5 relative z-10">
-                  <Badge 
-                    variant="gamification" 
-                    size="sm" 
-                    icon={<Star className="w-3.5 h-3.5 fill-current" />}
-                    className="shadow-sm font-gamification"
-                  >
-                    {planet.levelBadge}
-                  </Badge>
-                  
-                  <span className="font-gamification text-xs font-bold text-[#7C3AED] bg-[#7C3AED]/10 px-2 py-0.5 rounded-full">
-                    {planet.xpReward}
-                  </span>
-                </div>
+                <div>
+                  {/* Gamification Accent Level Badge (#7C3AED) */}
+                  <div className="flex items-center justify-between gap-2 mb-5 relative z-10">
+                    <Badge 
+                      variant="gamification" 
+                      size="sm" 
+                      icon={<Star className="w-3.5 h-3.5 fill-current" />}
+                      className="shadow-sm font-gamification"
+                    >
+                      {planet.levelBadge}
+                    </Badge>
+                    
+                    <span className="font-gamification text-xs font-bold text-[#7C3AED] bg-[#7C3AED]/10 px-2 py-0.5 rounded-full">
+                      {planet.xpReward}
+                    </span>
+                  </div>
 
-                {/* Planet Illustration & Icon */}
-                <div className="relative mb-5 flex items-center justify-center">
-                  <div className="w-20 h-20 rounded-3xl bg-slate-50 dark:bg-[#0A2540] border border-slate-100 dark:border-slate-700 shadow-sm flex items-center justify-center relative group-hover:scale-110 transition-transform duration-300">
-                    <div className={`w-14 h-14 rounded-2xl ${planet.iconBg} flex items-center justify-center shadow-inner`}>
-                      {planet.primaryIcon}
+                  {/* Planet Illustration & Icon */}
+                  <div className="relative mb-5 flex items-center justify-center">
+                    <div className="w-20 h-20 rounded-3xl bg-slate-50 dark:bg-[#0A2540] border border-slate-100 dark:border-slate-700 shadow-sm flex items-center justify-center relative group-hover:scale-110 transition-transform duration-300">
+                      <div className={`w-14 h-14 rounded-2xl ${planet.iconBg} flex items-center justify-center shadow-inner`}>
+                        {planet.primaryIcon}
+                      </div>
                     </div>
+                  </div>
+
+                  {/* Planet Name (Montserrat) */}
+                  <div className="text-center mb-3">
+                    <span className="font-body text-[11px] font-semibold uppercase tracking-wider text-[#016ba5] dark:text-[#38BDF8] block mb-1">
+                      {planet.category}
+                    </span>
+                    <h3 className="font-headline text-xl font-extrabold text-[#1E293B] dark:text-white group-hover:text-[#016ba5] dark:group-hover:text-[#fa8221] transition-colors">
+                      {pData.name}
+                    </h3>
+                  </div>
+
+                  {/* Primary Skill Callout */}
+                  <div className="bg-slate-50 dark:bg-[#0A2540] rounded-xl py-2 px-3 text-center border border-slate-100 dark:border-slate-700 mb-4">
+                    <span className="font-body text-xs text-slate-500 dark:text-slate-400 block">{pData.sub}</span>
+                    <span className="font-headline font-bold text-sm text-slate-800 dark:text-slate-200">
+                      {planet.skill}
+                    </span>
+                  </div>
+
+                  {/* Short Description (Roboto Mono) */}
+                  <p className="font-body text-xs text-[#64748B] dark:text-slate-300 leading-relaxed mb-4 text-center">
+                    {pData.desc}
+                  </p>
+
+                  {/* Visual thematic tags */}
+                  <div className="flex flex-wrap gap-1.5 justify-center mb-6">
+                    {planet.tags.map((tag, i) => (
+                      <span 
+                        key={i} 
+                        className="font-body text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded-md"
+                      >
+                        {tag}
+                      </span>
+                    ))}
                   </div>
                 </div>
 
-                {/* Planet Name (Montserrat) */}
-                <div className="text-center mb-3">
-                  <span className="font-body text-[11px] font-semibold uppercase tracking-wider text-[#016ba5] dark:text-[#38BDF8] block mb-1">
-                    {planet.category}
+                {/* Bottom Interactive CTA Button (#fa8221 Secondary CTA) */}
+                <div className="pt-4 border-t border-slate-100 dark:border-slate-700/80 flex items-center justify-between relative z-10">
+                  <span className="font-body text-[11px] text-slate-400 dark:text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-200 transition-colors">
+                    {t('planets.explore_planet')}
                   </span>
-                  <h3 className="font-headline text-xl font-extrabold text-[#1E293B] dark:text-white group-hover:text-[#016ba5] dark:group-hover:text-[#fa8221] transition-colors">
-                    {planet.name}
-                  </h3>
-                </div>
-
-                {/* Primary Skill Callout */}
-                <div className="bg-slate-50 dark:bg-[#0A2540] rounded-xl py-2 px-3 text-center border border-slate-100 dark:border-slate-700 mb-4">
-                  <span className="font-body text-xs text-slate-500 dark:text-slate-400 block">Core Life Skill</span>
-                  <span className="font-headline font-bold text-sm text-slate-800 dark:text-slate-200">
-                    {planet.skill}
+                  <span className="inline-flex items-center gap-1 font-headline text-xs font-bold text-[#fa8221] group-hover:translate-x-1 transition-transform rtl:group-hover:-translate-x-1">
+                    <ArrowRight className="w-3.5 h-3.5 rtl-flip" />
                   </span>
                 </div>
-
-                {/* Short Description (Roboto Mono) */}
-                <p className="font-body text-xs text-[#64748B] dark:text-slate-300 leading-relaxed mb-4 text-center">
-                  {planet.shortDesc}
-                </p>
-
-                {/* Visual thematic tags */}
-                <div className="flex flex-wrap gap-1.5 justify-center mb-6">
-                  {planet.tags.map((tag, i) => (
-                    <span 
-                      key={i} 
-                      className="font-body text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded-md"
-                    >
-                      {tag}
-                    </span>
-                  ))}
-                </div>
               </div>
-
-              {/* Bottom Interactive CTA Button (#fa8221 Secondary CTA) */}
-              <div className="pt-4 border-t border-slate-100 dark:border-slate-700/80 flex items-center justify-between relative z-10">
-                <span className="font-body text-[11px] text-slate-400 dark:text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-200 transition-colors">
-                  Tap to Inspect
-                </span>
-                <span className="inline-flex items-center gap-1 font-headline text-xs font-bold text-[#fa8221] group-hover:translate-x-1 transition-transform">
-                  Enter Planet <ArrowRight className="w-3.5 h-3.5" />
-                </span>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* Selected Planet Interactive Modal / Inspector Drawer */}
@@ -324,7 +363,7 @@ export const PlanetWorlds: React.FC = () => {
                       </span>
                     </div>
                     <h3 className="font-headline text-2xl sm:text-3xl font-black text-[#1E293B] dark:text-white">
-                      {selectedPlanet.name}
+                      {getPlanetData(selectedPlanet.id, selectedPlanet.name, selectedPlanet.skill, selectedPlanet.shortDesc).name}
                     </h3>
                     <span className="font-body text-xs text-slate-600 dark:text-slate-300">
                       Focus: <strong className="text-[#016ba5] dark:text-[#38BDF8]">{selectedPlanet.skill}</strong>
@@ -337,7 +376,7 @@ export const PlanetWorlds: React.FC = () => {
                   type="button"
                   onClick={() => setSelectedPlanet(null)}
                   className="p-2 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white hover:bg-white/80 dark:hover:bg-slate-800 transition-colors"
-                  aria-label="Close modal"
+                  aria-label={t('planets.planet_modal_close')}
                 >
                   <X className="w-6 h-6" />
                 </button>
@@ -349,7 +388,7 @@ export const PlanetWorlds: React.FC = () => {
                 {/* Description */}
                 <div>
                   <h4 className="font-headline text-sm font-bold text-[#1E293B] dark:text-white mb-2 uppercase tracking-wide">
-                    World Overview
+                    {t('planets.planet_modal_activities')}
                   </h4>
                   <p className="text-slate-600 dark:text-slate-300 text-sm leading-relaxed">
                     {selectedPlanet.fullDesc}
@@ -414,7 +453,7 @@ export const PlanetWorlds: React.FC = () => {
                   onClick={() => setSelectedPlanet(null)}
                   className="font-headline text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-800 dark:hover:text-white"
                 >
-                  Return to Galaxy Map
+                  {t('planets.planet_modal_close')}
                 </button>
 
                 <Button
@@ -428,7 +467,7 @@ export const PlanetWorlds: React.FC = () => {
                     el?.scrollIntoView({ behavior: 'smooth' });
                   }}
                 >
-                  Launch Quest on {selectedPlanet.name}
+                  {t('planets.explore_planet')}
                 </Button>
               </div>
 

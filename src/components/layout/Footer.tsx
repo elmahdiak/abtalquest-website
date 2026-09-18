@@ -9,12 +9,15 @@ import {
 } from 'lucide-react';
 import AbtalQuestLogo from '../common/AbtalQuestLogo';
 import Badge from '../common/Badge';
+import { useLanguage } from '../../context/LanguageContext';
 
 export interface FooterProps {
   onOpenContact?: () => void;
 }
 
 export const Footer: React.FC<FooterProps> = ({ onOpenContact }) => {
+  const { t } = useLanguage();
+
   return (
     // Deep Contrast Color (4%): #1C1C1C (Footer, overlays, strong contrast areas)
     <footer className="bg-[#1C1C1C] text-slate-300 pt-16 pb-12 border-t border-slate-800">
@@ -29,34 +32,34 @@ export const Footer: React.FC<FooterProps> = ({ onOpenContact }) => {
             <div className="lg:col-span-7">
               <div className="flex items-center gap-2 mb-3">
                 <Badge variant="success" size="sm" icon={<ShieldCheck className="w-3.5 h-3.5" />}>
-                  Official Safety Pledge
+                  {t('vision.badge')}
                 </Badge>
-                <span className="font-body text-xs text-emerald-400">Audited & Verified</span>
+                <span className="font-body text-xs text-emerald-400">{t('hero.badge_safe')}</span>
               </div>
               <h3 className="font-headline text-2xl sm:text-3xl font-extrabold text-white tracking-tight mb-2">
-                A Universe Where Children Thrive Safely.
+                {t('footer.pledge_title')}
               </h3>
               <p className="font-body text-sm text-slate-300 leading-relaxed max-w-2xl">
-                AbtalQuest is engineered from the ground up for children aged 6–13. We enforce a zero-compromise policy: absolutely no third-party ads, no micro-transactions designed to addict, and zero violent gameplay.
+                {t('footer.pledge_desc')}
               </p>
             </div>
 
             <div className="lg:col-span-5 grid grid-cols-1 sm:grid-cols-2 gap-3 font-body text-xs">
               <div className="flex items-center gap-2.5 bg-white/5 border border-white/10 rounded-xl p-3">
                 <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                <span className="text-slate-200">100% Ad-Free Guarantee</span>
+                <span className="text-slate-200">{t('footer.pledge_1')}</span>
               </div>
               <div className="flex items-center gap-2.5 bg-white/5 border border-white/10 rounded-xl p-3">
                 <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                <span className="text-slate-200">Zero Violence Content</span>
+                <span className="text-slate-200">{t('footer.pledge_2')}</span>
               </div>
               <div className="flex items-center gap-2.5 bg-white/5 border border-white/10 rounded-xl p-3">
                 <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                <span className="text-slate-200">Values & Empathy Quests</span>
+                <span className="text-slate-200">{t('footer.pledge_3')}</span>
               </div>
               <div className="flex items-center gap-2.5 bg-white/5 border border-white/10 rounded-xl p-3">
                 <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                <span className="text-slate-200">Parental Oversight Tools</span>
+                <span className="text-slate-200">{t('footer.pledge_4')}</span>
               </div>
             </div>
           </div>
@@ -71,27 +74,27 @@ export const Footer: React.FC<FooterProps> = ({ onOpenContact }) => {
               variant="dark"
               size="lg"
               showText={true}
-              tagline="Safe • Values-Driven • Kid Universe"
+              tagline={t('nav.logo_tagline')}
               clickable={true}
               href="#universe"
             />
             <p className="font-body text-xs text-slate-400 leading-relaxed max-w-sm mt-2">
-              Inspiring future heroes (Abtal) through immersive stories, ethical problem-solving, and heroic real-world quests. No ads. No violence. 100% joyful growth.
+              {t('footer.brand_desc')}
             </p>
 
             <div className="flex items-center gap-3 mt-2">
               <Badge variant="gamification" size="sm" icon={<Award className="w-3.5 h-3.5" />}>
-                Character Growth
+                {t('footer.badge_character')}
               </Badge>
               <Badge variant="info" size="sm" icon={<Lock className="w-3.5 h-3.5" />}>
-                COPPA Verified
+                {t('footer.badge_coppa')}
               </Badge>
             </div>
 
             {/* Social Media Channels */}
             <div className="mt-4">
               <span className="font-headline text-xs font-bold text-slate-400 uppercase tracking-wider block mb-3">
-                Follow the Adventure
+                {t('footer.follow_title')}
               </span>
               <div className="flex items-center gap-3 text-slate-300">
                 {/* YouTube */}
@@ -166,39 +169,39 @@ export const Footer: React.FC<FooterProps> = ({ onOpenContact }) => {
           {/* Column 2: Requested Quick Links (Cols 6-8) */}
           <div className="lg:col-span-3 flex flex-col gap-3">
             <h4 className="font-headline text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
-              <Compass className="w-4 h-4 text-[#016ba5]" /> Quick Links
+              <Compass className="w-4 h-4 text-[#016ba5]" /> {t('footer.col_universe')}
             </h4>
             <ul className="flex flex-col gap-2.5 font-body text-xs text-slate-400">
               <li>
                 <a href="#" className="hover:text-amber-400 transition-colors flex items-center gap-2">
-                  <span>Home</span>
+                  <span>{t('nav.home')}</span>
                 </a>
               </li>
               <li>
                 <a href="#vision-mission" className="hover:text-amber-400 transition-colors flex items-center gap-2">
-                  <span>About</span>
+                  <span>{t('nav.about')}</span>
                 </a>
               </li>
               <li>
                 <a href="#planet-worlds" className="hover:text-amber-400 transition-colors flex items-center gap-2">
-                  <span>Marketplace</span>
+                  <span>{t('nav.marketplace')}</span>
                   <span className="font-gamification text-[10px] bg-[#fa8221]/20 text-[#fa8221] px-1.5 py-0.2 rounded font-bold">
-                    Safe
+                    {t('hero.badge_safe')}
                   </span>
                 </a>
               </li>
               <li>
                 <a href="#parenting-resources" className="hover:text-amber-400 transition-colors flex items-center gap-2">
-                  <span>Blog</span>
+                  <span>{t('nav.blog')}</span>
                 </a>
               </li>
               <li>
                 <button
                   type="button"
                   onClick={onOpenContact}
-                  className="hover:text-amber-400 transition-colors flex items-center gap-2 text-left"
+                  className="hover:text-amber-400 transition-colors flex items-center gap-2 text-left rtl:text-right"
                 >
-                  <span>Contact</span>
+                  <span>{t('nav.contact_support')}</span>
                 </button>
               </li>
             </ul>
@@ -207,32 +210,32 @@ export const Footer: React.FC<FooterProps> = ({ onOpenContact }) => {
           {/* Column 3: Requested Legal Terms (Cols 9-12) */}
           <div className="lg:col-span-4 flex flex-col gap-3">
             <h4 className="font-headline text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
-              <FileText className="w-4 h-4 text-[#22C55E]" /> Legal & Safety Terms
+              <FileText className="w-4 h-4 text-[#22C55E]" /> {t('footer.col_safety')}
             </h4>
             <ul className="flex flex-col gap-2.5 font-body text-xs text-slate-400">
               <li>
                 <a href="#privacy" className="hover:text-amber-400 transition-colors">
-                  Privacy Policy (Child-Safe)
+                  {t('footer.col_safety_privacy')}
                 </a>
               </li>
               <li>
                 <a href="#terms" className="hover:text-amber-400 transition-colors">
-                  Terms of Adventure
+                  {t('footer.col_safety_pledge')}
                 </a>
               </li>
               <li>
                 <a href="#safety-pledge" className="hover:text-amber-400 transition-colors">
-                  Child Safety Standards & Architecture
+                  {t('footer.col_safety_ad_free')}
                 </a>
               </li>
               <li>
                 <a href="#coppa" className="hover:text-amber-400 transition-colors">
-                  COPPA & GDPR-K Compliance Notice
+                  {t('footer.col_safety_coppa')}
                 </a>
               </li>
               <li>
                 <a href="#parent-controls" className="hover:text-amber-400 transition-colors">
-                  Parental Consent Verification Protocol
+                  {t('footer.pledge_4')}
                 </a>
               </li>
             </ul>
@@ -243,15 +246,15 @@ export const Footer: React.FC<FooterProps> = ({ onOpenContact }) => {
         {/* Bottom Bar: Copyright for AbtalQuest */}
         <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 font-body text-xs text-slate-500">
           <div className="flex items-center gap-2">
-            <span>© 2026 AbtalQuest. All rights reserved. A safe universe for children.</span>
+            <span>© 2026 AbtalQuest. {t('footer.rights')}</span>
           </div>
 
           <div className="flex items-center gap-4 text-slate-400">
             <span className="text-emerald-400 flex items-center gap-1">
-              <CheckCircle2 className="w-3.5 h-3.5" /> 100% Ad-Free Verified
+              <CheckCircle2 className="w-3.5 h-3.5" /> {t('footer.pledge_1')}
             </span>
             <span>•</span>
-            <span className="text-amber-400">Zero Violence Guarantee</span>
+            <span className="text-amber-400">{t('footer.pledge_2')}</span>
           </div>
         </div>
 

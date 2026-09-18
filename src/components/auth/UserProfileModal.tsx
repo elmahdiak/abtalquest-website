@@ -9,6 +9,8 @@ import Button from '../common/Button';
 import Badge from '../common/Badge';
 import { getUserOrders, type AdminOrder } from '../../services/marketplaceService';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
+import { useLanguage } from '../../context/LanguageContext';
+import { cn } from '../../lib/utils';
 
 export interface UserProfileModalProps {
   isOpen: boolean;
@@ -23,6 +25,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
   user,
   onSignOut,
 }) => {
+  const { t, direction } = useLanguage();
   const [orders, setOrders] = useState<AdminOrder[]>([]);
   const [loadingOrders, setLoadingOrders] = useState<boolean>(true);
 
@@ -74,8 +77,11 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
       >
         <button
           onClick={onClose}
-          className="absolute top-5 right-5 p-2 rounded-full text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
-          aria-label="Close dialog"
+          className={cn(
+            "absolute top-5 p-2 rounded-full text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors",
+            direction === 'rtl' ? 'left-5' : 'right-5'
+          )}
+          aria-label={t('profile.close')}
         >
           <X className="w-5 h-5" />
         </button>
@@ -89,10 +95,10 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <Badge variant="primary" size="sm">
-                  Active Family Account
+                  {t('profile.badge_active')}
                 </Badge>
                 <Badge variant="gamification" size="sm">
-                  Hero Level {Math.max(1, Math.floor(totalXpEarned / 300) + 1)}
+                  {t('profile.badge_hero_level', { level: Math.max(1, Math.floor(totalXpEarned / 300) + 1) })}
                 </Badge>
               </div>
               <h3 className="font-headline text-2xl font-black text-slate-900 dark:text-white">
@@ -102,9 +108,13 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
             </div>
           </div>
 
-          <div className="text-right sm:border-l sm:border-slate-200 dark:sm:border-slate-700 sm:pl-6">
+          <div className={cn(
+            direction === 'rtl'
+              ? 'text-right sm:border-r sm:border-slate-200 dark:sm:border-slate-700 sm:pr-6'
+              : 'text-right sm:border-l sm:border-slate-200 dark:sm:border-slate-700 sm:pl-6'
+          )}>
             <span className="font-body text-[11px] text-slate-500 dark:text-slate-400 uppercase block font-semibold">
-              Accumulated XP
+              {t('profile.accumulated_xp')}
             </span>
             <span className="font-gamification text-2xl font-black text-[#7C3AED] dark:text-purple-400">
               +{totalXpEarned.toLocaleString()} XP ✨
@@ -118,7 +128,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
             <div className="flex items-center gap-2">
               <Package className="w-5 h-5 text-[#016ba5] dark:text-[#38BDF8]" />
               <h4 className="font-headline text-lg font-bold text-slate-900 dark:text-white">
-                Your Quest Orders ({orders.length})
+                {t('profile.orders_title', { count: orders.length })}
               </h4>
             </div>
           </div>
@@ -126,16 +136,16 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
           {loadingOrders ? (
             <div className="py-12 text-center">
               <Loader2 className="w-8 h-8 text-[#016ba5] dark:text-[#38BDF8] animate-spin mx-auto mb-2" />
-              <span className="font-body text-xs text-slate-400">Loading your orders...</span>
+              <span className="font-body text-xs text-slate-400">{t('profile.orders_loading')}</span>
             </div>
           ) : orders.length === 0 ? (
             <div className="py-10 text-center bg-slate-50 dark:bg-[#0A2540] rounded-2xl border border-dashed border-slate-200 dark:border-slate-700 p-6">
               <Package className="w-10 h-10 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
               <h5 className="font-headline font-bold text-sm text-slate-700 dark:text-slate-200 mb-1">
-                No orders placed yet
+                {t('profile.no_orders_title')}
               </h5>
               <p className="font-body text-xs text-slate-400 dark:text-slate-400 mb-4 max-w-xs mx-auto">
-                Explore our values-driven learning kits and earn your first family Quest XP!
+                {t('profile.no_orders_desc')}
               </p>
               <Button
                 variant="cta"
@@ -145,7 +155,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
                   window.location.hash = '#marketplace';
                 }}
               >
-                Explore Marketplace
+                {t('profile.explore_marketplace')}
               </Button>
             </div>
           ) : (
@@ -179,7 +189,10 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
                     </p>
                   </div>
 
-                  <div className="flex sm:flex-col items-center sm:items-end justify-between border-t sm:border-t-0 pt-2 sm:pt-0 border-slate-200 dark:border-slate-700">
+                  <div className={cn(
+                    "flex sm:flex-col items-center justify-between border-t sm:border-t-0 pt-2 sm:pt-0 border-slate-200 dark:border-slate-700",
+                    direction === 'rtl' ? 'sm:items-start' : 'sm:items-end'
+                  )}>
                     <span className="font-headline font-black text-sm text-slate-900 dark:text-white">
                       ${order.totalAmount.toFixed(2)}
                     </span>
@@ -202,12 +215,12 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
             }}
             className="flex items-center gap-1.5 text-xs font-headline font-semibold text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors"
           >
-            <LogOut className="w-4 h-4" />
-            <span>Sign Out</span>
+            <LogOut className={cn("w-4 h-4", direction === 'rtl' && 'rtl-flip')} />
+            <span>{t('profile.sign_out')}</span>
           </button>
 
           <Button variant="outline" size="sm" onClick={onClose}>
-            Close
+            {t('profile.close')}
           </Button>
         </div>
       </div>

@@ -15,6 +15,8 @@ import Badge from '../common/Badge';
 import AbtalQuestLogo from '../common/AbtalQuestLogo';
 import { signInUser, signUpUser } from '../../services/authService';
 import { useTheme } from '../../context/ThemeContext';
+import { useLanguage } from '../../context/LanguageContext';
+import { cn } from '../../lib/utils';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 
 export interface UserAuthModalProps {
@@ -29,6 +31,7 @@ export const UserAuthModal: React.FC<UserAuthModalProps> = ({
   onSuccess,
 }) => {
   const { theme } = useTheme();
+  const { t, direction } = useLanguage();
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -96,8 +99,11 @@ export const UserAuthModal: React.FC<UserAuthModalProps> = ({
       >
         <button
           onClick={onClose}
-          className="absolute top-5 right-5 p-2 rounded-full text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
-          aria-label="Close dialog"
+          className={cn(
+            'absolute top-5 p-2 rounded-full text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors',
+            direction === 'rtl' ? 'left-5' : 'right-5'
+          )}
+          aria-label={t('nav.close')}
         >
           <X className="w-5 h-5" />
         </button>
@@ -108,18 +114,18 @@ export const UserAuthModal: React.FC<UserAuthModalProps> = ({
 
         <div className="flex items-center gap-2 mb-2">
           <Badge variant="gamification" size="sm" icon={<Sparkles className="w-3.5 h-3.5" />}>
-            AbtalQuest Family Portal
+            {t('auth.badge')}
           </Badge>
         </div>
 
         <h3 className="font-headline text-2xl font-black text-[#1E293B] dark:text-white mb-1">
-          {mode === 'signin' ? 'Welcome Back!' : 'Create Family Account'}
+          {mode === 'signin' ? t('auth.welcome_back') : t('auth.create_account')}
         </h3>
 
         <p className="font-body text-xs text-slate-500 dark:text-slate-400 mb-6">
           {mode === 'signin'
-            ? 'Sign in to access your order history, special offers, and saved quest XP.'
-            : 'Join free to track orders, earn double quest XP bonuses, and access parental tools.'}
+            ? t('auth.signin_sub')
+            : t('auth.signup_sub')}
         </p>
 
         {errorMessage && (
@@ -140,17 +146,20 @@ export const UserAuthModal: React.FC<UserAuthModalProps> = ({
           {mode === 'signup' && (
             <div>
               <label className="block text-xs font-headline font-bold text-slate-700 dark:text-slate-200 mb-1">
-                Parent / Family Name
+                {t('auth.family_name')}
               </label>
               <div className="relative">
-                <User className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <User className={cn('w-4 h-4 text-slate-400 absolute top-1/2 -translate-y-1/2', direction === 'rtl' ? 'right-3' : 'left-3')} />
                 <input
                   type="text"
                   required
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  placeholder="e.g. Al-Mansoor Family"
-                  className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-[#0A2540] text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 font-body text-xs focus:outline-none focus:ring-2 focus:ring-[#016ba5]"
+                  placeholder={t('auth.family_name_placeholder')}
+                  className={cn(
+                    'w-full py-2.5 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-[#0A2540] text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 font-body text-xs focus:outline-none focus:ring-2 focus:ring-[#016ba5]',
+                    direction === 'rtl' ? 'pr-9 pl-3.5' : 'pl-9 pr-3.5'
+                  )}
                 />
               </div>
             </div>
@@ -158,27 +167,30 @@ export const UserAuthModal: React.FC<UserAuthModalProps> = ({
 
           <div>
             <label className="block text-xs font-headline font-bold text-slate-700 dark:text-slate-200 mb-1">
-              Email Address
+              {t('auth.email')}
             </label>
             <div className="relative">
-              <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <Mail className={cn('w-4 h-4 text-slate-400 absolute top-1/2 -translate-y-1/2', direction === 'rtl' ? 'right-3' : 'left-3')} />
               <input
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="parent@example.com"
-                className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-[#0A2540] text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 font-body text-xs focus:outline-none focus:ring-2 focus:ring-[#016ba5]"
+                className={cn(
+                  'w-full py-2.5 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-[#0A2540] text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 font-body text-xs focus:outline-none focus:ring-2 focus:ring-[#016ba5]',
+                  direction === 'rtl' ? 'pr-9 pl-3.5' : 'pl-9 pr-3.5'
+                )}
               />
             </div>
           </div>
 
           <div>
             <label className="block text-xs font-headline font-bold text-slate-700 dark:text-slate-200 mb-1">
-              Password
+              {t('auth.password')}
             </label>
             <div className="relative">
-              <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <Lock className={cn('w-4 h-4 text-slate-400 absolute top-1/2 -translate-y-1/2', direction === 'rtl' ? 'right-3' : 'left-3')} />
               <input
                 type="password"
                 required
@@ -186,7 +198,10 @@ export const UserAuthModal: React.FC<UserAuthModalProps> = ({
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-[#0A2540] text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 font-body text-xs focus:outline-none focus:ring-2 focus:ring-[#016ba5]"
+                className={cn(
+                  'w-full py-2.5 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-[#0A2540] text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 font-body text-xs focus:outline-none focus:ring-2 focus:ring-[#016ba5]',
+                  direction === 'rtl' ? 'pr-9 pl-3.5' : 'pl-9 pr-3.5'
+                )}
               />
             </div>
           </div>
@@ -194,15 +209,15 @@ export const UserAuthModal: React.FC<UserAuthModalProps> = ({
           {/* Member Perks Highlight */}
           <div className="p-3.5 rounded-2xl bg-[#016ba5]/5 dark:bg-[#016ba5]/15 border border-[#016ba5]/15 dark:border-[#016ba5]/30 space-y-1.5 text-[11px] font-body text-slate-600 dark:text-slate-300">
             <span className="font-headline font-bold text-[#016ba5] dark:text-[#38BDF8] block text-xs">
-              ✨ Family Membership Benefits:
+              {t('auth.benefits_title')}
             </span>
             <div className="flex items-center gap-1.5">
               <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
-              <span>Track physical kit delivery in real-time</span>
+              <span>{t('auth.benefit_1')}</span>
             </div>
             <div className="flex items-center gap-1.5">
               <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
-              <span>Save quest XP & achievements across devices</span>
+              <span>{t('auth.benefit_2')}</span>
             </div>
           </div>
 
@@ -216,10 +231,10 @@ export const UserAuthModal: React.FC<UserAuthModalProps> = ({
               iconPosition="right"
             >
               {submitting
-                ? 'Processing...'
+                ? t('auth.btn_processing')
                 : mode === 'signin'
-                ? 'Sign In to Family Hub'
-                : 'Create Family Account'}
+                ? t('auth.btn_signin')
+                : t('auth.btn_signup')}
             </Button>
           </div>
         </form>
@@ -234,13 +249,13 @@ export const UserAuthModal: React.FC<UserAuthModalProps> = ({
             className="font-headline text-xs font-semibold text-[#016ba5] dark:text-[#38BDF8] hover:underline"
           >
             {mode === 'signin'
-              ? "Don't have an account yet? Create one here"
-              : 'Already have an account? Sign In'}
+              ? t('auth.switch_to_signup')
+              : t('auth.switch_to_signin')}
           </button>
 
           <span className="text-[11px] font-body text-slate-400 dark:text-slate-500 flex items-center gap-1">
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-            100% Ad-Free • Safe & Secure
+            {t('auth.security_badge')}
           </span>
         </div>
       </div>

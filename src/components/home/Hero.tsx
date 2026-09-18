@@ -13,6 +13,7 @@ import {
 import Button from '../common/Button';
 import Badge from '../common/Badge';
 import AbtalQuestLogo from '../common/AbtalQuestLogo';
+import { useLanguage } from '../../context/LanguageContext';
 
 export interface HeroProps {
   onExploreClick?: () => void;
@@ -20,6 +21,8 @@ export interface HeroProps {
 }
 
 export const Hero: React.FC<HeroProps> = ({ onExploreClick, onDownloadClick }) => {
+  const { t } = useLanguage();
+
   return (
     <section className="relative overflow-hidden bg-gradient-to-b from-[#016ba5]/10 via-white to-slate-50/60 dark:from-[#0A2540] dark:via-[#071727] dark:to-[#0A2540] pt-12 pb-20 sm:pt-16 sm:pb-28 border-b border-slate-100 dark:border-slate-800">
       {/* Ambient background aura */}
@@ -30,36 +33,35 @@ export const Hero: React.FC<HeroProps> = ({ onExploreClick, onDownloadClick }) =
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
           
           {/* Left Column: Hero Text & Actions (Cols 1-7) */}
-          <div className="lg:col-span-7 flex flex-col items-start text-left">
+          <div className="lg:col-span-7 flex flex-col items-start text-left rtl:text-right">
             
-            {/* Top Security & Values Badges (Baloo 2 font) */}
+            {/* Top Security & Values Badges */}
             <div className="flex flex-wrap items-center gap-2.5 mb-6">
               <Badge variant="success" size="md" icon={<ShieldCheck className="w-4 h-4" />}>
-                100% Safe Universe
+                {t('hero.badge_safe')}
               </Badge>
               <Badge variant="warning" size="md" icon={<Lock className="w-3.5 h-3.5" />}>
-                No Ads • No Violence
+                {t('nav.safety_ticker_bold_1')} • {t('nav.safety_ticker_bold_2')}
               </Badge>
               <Badge variant="gamification" size="md" icon={<Sparkles className="w-3.5 h-3.5" />}>
-                Ages 6–13
+                {t('hero.badge_kids')}
               </Badge>
             </div>
 
-            {/* Main Headline (Montserrat Font, bold & strong) */}
+            {/* Main Headline */}
             <h1 className="font-headline text-3xl sm:text-5xl lg:text-6xl font-black text-[#1E293B] dark:text-white tracking-tight leading-[1.15] mb-6 break-words">
-              Protecting Childhood.{' '}
+              {t('hero.title_prefix')}{' '}
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#016ba5] via-[#0284c7] to-[#fa8221]">
-                Empowering Growth.
+                {t('hero.title_highlight')}
               </span>
             </h1>
 
-            {/* Sub-headline (Roboto Mono Font, readable & modern) */}
+            {/* Sub-headline */}
             <p className="font-body text-sm sm:text-lg text-[#64748B] dark:text-slate-300 leading-relaxed mb-8 max-w-2xl">
-              AbtalQuest is a safe universe where kids play, learn, and grow with joy.{' '}
-              <strong className="text-[#016ba5] dark:text-[#38BDF8] font-semibold">No ads. No violence!</strong>
+              {t('hero.subtitle')}
             </p>
 
-            {/* Primary Call-to-Action Buttons styled in secondary orange (#fa8221) */}
+            {/* Primary Call-to-Action Buttons */}
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 w-full sm:w-auto mb-10">
               {/* CTA Button 1: Explore the Quest */}
               <Button
@@ -70,10 +72,10 @@ export const Hero: React.FC<HeroProps> = ({ onExploreClick, onDownloadClick }) =
                 onClick={onExploreClick}
                 className="w-full sm:w-auto shadow-cta hover:shadow-cta-hover transform hover:-translate-y-0.5"
               >
-                Explore the Quest
+                {t('hero.cta_explore')}
               </Button>
 
-              {/* CTA Button 2: Download App (also in secondary orange #fa8221) */}
+              {/* CTA Button 2: Download App */}
               <Button
                 variant="cta"
                 size="lg"
@@ -82,7 +84,7 @@ export const Hero: React.FC<HeroProps> = ({ onExploreClick, onDownloadClick }) =
                 onClick={onDownloadClick}
                 className="w-full sm:w-auto bg-[#fa8221] hover:bg-[#e87313] shadow-cta hover:shadow-cta-hover transform hover:-translate-y-0.5"
               >
-                Download App
+                {t('nav.download_app')}
               </Button>
             </div>
 
@@ -90,15 +92,15 @@ export const Hero: React.FC<HeroProps> = ({ onExploreClick, onDownloadClick }) =
             <div className="flex flex-wrap items-center gap-y-2 gap-x-6 pt-6 border-t border-slate-200/80 dark:border-slate-800 w-full text-xs font-body text-[#64748B] dark:text-slate-300">
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-[#22C55E] flex-shrink-0" />
-                <span>Zero Commercial Trackers</span>
+                <span>{t('hero.stat_ad_free_desc')}</span>
               </div>
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-[#22C55E] flex-shrink-0" />
-                <span>Values & Empathy Centered</span>
+                <span>{t('hero.stat_values_desc')}</span>
               </div>
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-[#22C55E] flex-shrink-0" />
-                <span>Parental Screen-Time Balance</span>
+                <span>{t('hero.stat_offline_desc')}</span>
               </div>
             </div>
 
@@ -121,16 +123,16 @@ export const Hero: React.FC<HeroProps> = ({ onExploreClick, onDownloadClick }) =
                   </div>
                   <div>
                     <span className="font-headline text-xs font-bold text-[#016ba5] dark:text-[#38BDF8] uppercase tracking-wider block">
-                      Universe Gateway
+                      {t('hero.preview_badge')}
                     </span>
                     <span className="font-headline text-base font-extrabold text-[#1E293B] dark:text-white">
-                      Realm of Courage & Care
+                      {t('hero.preview_title')}
                     </span>
                   </div>
                 </div>
 
                 <Badge variant="gamification" size="sm" icon={<Star className="w-3.5 h-3.5 fill-current" />}>
-                  XP +450
+                  {t('hero.preview_xp')}
                 </Badge>
               </div>
 
@@ -154,17 +156,17 @@ export const Hero: React.FC<HeroProps> = ({ onExploreClick, onDownloadClick }) =
                   </div>
 
                   <span className="font-headline text-lg font-bold text-white mb-1">
-                    Young Hero: Amina
+                    {t('hero.preview_tag_1')}
                   </span>
                   <span className="font-body text-xs text-slate-300">
-                    Active Quest: "The Bridge of Honest Words"
+                    {t('hero.preview_tag_2')}
                   </span>
 
                   {/* Gamified progress bar */}
                   <div className="w-full mt-4 space-y-1">
                     <div className="flex justify-between font-body text-[11px] text-slate-300">
-                      <span>Kindness Level 4</span>
-                      <span className="text-[#38BDF8] font-semibold">80% to Guardian Badge</span>
+                      <span>{t('hero.stat_values')}</span>
+                      <span className="text-[#38BDF8] font-semibold">{t('hero.preview_xp')}</span>
                     </div>
                     <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
                       <div className="h-full bg-gradient-to-r from-[#016ba5] via-[#38BDF8] to-[#22C55E] rounded-full w-[80%]" />
@@ -180,8 +182,8 @@ export const Hero: React.FC<HeroProps> = ({ onExploreClick, onDownloadClick }) =
                     <ShieldCheck className="w-4 h-4" />
                   </div>
                   <div>
-                    <span className="font-semibold text-slate-800 dark:text-slate-100 block text-[11px]">Safe Content</span>
-                    <span className="text-slate-500 dark:text-slate-400 text-[10px]">Zero Ads & Popups</span>
+                    <span className="font-semibold text-slate-800 dark:text-slate-100 block text-[11px]">{t('hero.stat_ad_free')}</span>
+                    <span className="text-slate-500 dark:text-slate-400 text-[10px]">{t('nav.safety_ticker_bold_1')}</span>
                   </div>
                 </div>
 
@@ -190,8 +192,8 @@ export const Hero: React.FC<HeroProps> = ({ onExploreClick, onDownloadClick }) =
                     <Play className="w-4 h-4 fill-current" />
                   </div>
                   <div>
-                    <span className="font-semibold text-slate-800 dark:text-slate-100 block text-[11px]">Joyful Play</span>
-                    <span className="text-slate-500 dark:text-slate-400 text-[10px]">Values-Based XP</span>
+                    <span className="font-semibold text-slate-800 dark:text-slate-100 block text-[11px]">{t('hero.stat_values')}</span>
+                    <span className="text-slate-500 dark:text-slate-400 text-[10px]">{t('hero.stat_values_desc')}</span>
                   </div>
                 </div>
               </div>

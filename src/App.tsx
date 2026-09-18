@@ -15,6 +15,7 @@ import Button from './components/common/Button';
 import Badge from './components/common/Badge';
 import Card from './components/common/Card';
 import { subscribeToAuthChanges, signOutUser } from './services/authService';
+import { useLanguage } from './context/LanguageContext';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 import { 
   ShieldCheck, 
@@ -30,6 +31,7 @@ import {
 } from 'lucide-react';
 
 export function App() {
+  const { t } = useLanguage();
   const [currentView, setCurrentView] = useState<'home' | 'marketplace' | 'admin'>('home');
   const [activeFilter, setActiveFilter] = useState<'all' | 'courage' | 'kindness' | 'wisdom'>('all');
   const [completedQuest, setCompletedQuest] = useState<number | null>(null);
@@ -139,21 +141,21 @@ export function App() {
         />
       ) : (
         <>
-          {/* 1. HERO SECTION: Headline, Sub-headline & Secondary Orange CTA Buttons */}
+          {/* 1. HERO SECTION */}
           <Hero
             onExploreClick={() => {
               const el = document.getElementById('quests-section');
               el?.scrollIntoView({ behavior: 'smooth' });
             }}
             onDownloadClick={() => {
-              alert('AbtalQuest App: Available soon on App Store and Google Play! 100% Safe, Ad-Free & Violence-Free.');
+              alert('AbtalQuest App: 100% Safe, Ad-Free & Violence-Free.');
             }}
           />
 
-          {/* 2. VISION & MISSION SECTION: Clean card layouts with soft background surfaces */}
+          {/* 2. VISION & MISSION SECTION */}
           <VisionMission />
 
-          {/* 3. EXPLORE THE PLANET WORLDS: 4 Interactive Life-Skill Worlds with Gamification Accents */}
+          {/* 3. EXPLORE THE PLANET WORLDS */}
           <PlanetWorlds />
 
           {/* Marketplace Callout Banner on Home */}
@@ -165,21 +167,21 @@ export function App() {
                 </div>
                 <div>
                   <div className="flex items-center gap-2 mb-1">
-                    <Badge variant="secondary" size="sm">Safe Quest Shop</Badge>
-                    <span className="font-body text-xs text-slate-500 dark:text-slate-400">Screen-Free Kits & Gear</span>
+                    <Badge variant="secondary" size="sm">{t('nav.marketplace')}</Badge>
+                    <span className="font-body text-xs text-slate-500 dark:text-slate-400">{t('hero.stat_offline_desc')}</span>
                   </div>
                   <h3 className="font-headline text-xl sm:text-2xl font-black text-slate-900 dark:text-white">
-                    Looking for Physical Learning Kits & Storybooks?
+                    {t('quests.banner_marketplace_title')}
                   </h3>
                   <p className="font-body text-xs sm:text-sm text-slate-600 dark:text-slate-300 mt-1">
-                    Explore birchwood puzzle waterwheels, compass field journals, hydraulic robotic arms, and empathy games.
+                    {t('quests.banner_marketplace_desc')}
                   </p>
                 </div>
               </div>
               <Button
                 variant="cta"
                 size="lg"
-                icon={<ArrowRight className="w-4 h-4" />}
+                icon={<ArrowRight className="w-4 h-4 rtl-flip" />}
                 iconPosition="right"
                 onClick={() => {
                   setCurrentView('marketplace');
@@ -187,15 +189,15 @@ export function App() {
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
               >
-                Browse Marketplace
+                {t('quests.banner_marketplace_btn')}
               </Button>
             </div>
           </section>
 
-          {/* 4. CORE FEATURES: Values-Based Cartoons, Real-Life Quests, Safe Social Adventures & Quote Banner */}
+          {/* 4. CORE FEATURES */}
           <CoreFeatures />
 
-          {/* 5. PARENTING RESOURCES: 3 Blog/Resource Cards with Read Times and Read-More links */}
+          {/* 5. PARENTING RESOURCES */}
           <ParentingResources />
 
       {/* 6. OFFICIAL BRAND DESIGN SYSTEM & TOKENS INSPECTOR */}
@@ -547,13 +549,13 @@ export function App() {
           
           <div className="text-center max-w-3xl mx-auto mb-16">
             <Badge variant="success" size="lg" icon={<ShieldCheck className="w-5 h-5" />}>
-              The AbtalQuest Safety Covenant
+              {t('vision.badge')}
             </Badge>
             <h2 className="font-headline text-3xl sm:text-4xl font-extrabold text-[#1E293B] dark:text-white tracking-tight mt-4 mb-4">
-              Designed For Children. Trusted By Parents.
+              {t('features.title')}
             </h2>
             <p className="font-body text-sm sm:text-base text-[#64748B] dark:text-slate-300 leading-relaxed">
-              We eliminated the toxic formulas of modern mobile games. No sensory over-stimulation, no loot-boxes, no violent combat, and never any advertising.
+              {t('features.subtitle')}
             </p>
           </div>
 
@@ -565,10 +567,10 @@ export function App() {
                 <EyeOff className="w-6 h-6" />
               </div>
               <h3 className="font-headline text-lg font-bold text-slate-800 dark:text-white mb-2">
-                100% Ad-Free
+                {t('nav.safety_ticker_bold_1')}
               </h3>
               <p className="font-body text-xs text-slate-500 dark:text-slate-300 leading-relaxed">
-                Children are never targeted with commercial marketing, hidden trackers, or sponsored influencers.
+                {t('hero.stat_ad_free_desc')}
               </p>
             </Card>
 
@@ -578,10 +580,10 @@ export function App() {
                 <HeartHandshake className="w-6 h-6" />
               </div>
               <h3 className="font-headline text-lg font-bold text-slate-800 dark:text-white mb-2">
-                Zero Violence
+                {t('nav.safety_ticker_bold_2')}
               </h3>
               <p className="font-body text-xs text-slate-500 dark:text-slate-300 leading-relaxed">
-                Quests replace combat with cooperative problem solving, moral dilemmas, teamwork, and kindness.
+                {t('features.feat_2_desc')}
               </p>
             </Card>
 
@@ -591,10 +593,10 @@ export function App() {
                 <Award className="w-6 h-6" />
               </div>
               <h3 className="font-headline text-lg font-bold text-slate-800 dark:text-white mb-2">
-                Values-Driven XP
+                {t('hero.stat_values')}
               </h3>
               <p className="font-body text-xs text-slate-500 dark:text-slate-300 leading-relaxed">
-                Character traits like honesty, patience (Sabr), and respect are celebrated as the highest achievements.
+                {t('hero.stat_values_desc')}
               </p>
             </Card>
 
@@ -604,10 +606,10 @@ export function App() {
                 <Lock className="w-6 h-6" />
               </div>
               <h3 className="font-headline text-lg font-bold text-slate-800 dark:text-white mb-2">
-                Parental Harmony
+                {t('features.feat_1_title')}
               </h3>
               <p className="font-body text-xs text-slate-500 dark:text-slate-300 leading-relaxed">
-                Built-in daily limit timers and insightful weekly character journals sent directly to parent dashboards.
+                {t('features.feat_1_desc')}
               </p>
             </Card>
 
@@ -623,14 +625,13 @@ export function App() {
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
             <div>
               <div className="flex items-center gap-2 mb-2">
-                <Badge variant="gamification" size="sm">Interactive Quest Log</Badge>
-                <Badge variant="secondary" size="sm">Live Demo</Badge>
+                <Badge variant="gamification" size="sm">{t('quests.badge')}</Badge>
               </div>
               <h2 className="font-headline text-3xl sm:text-4xl font-extrabold text-[#1E293B] dark:text-white tracking-tight">
-                Embark on Moral Quests
+                {t('quests.title')}
               </h2>
               <p className="font-body text-xs sm:text-sm text-[#64748B] dark:text-slate-300 mt-1">
-                Explore how the design system balances Montserrat headlines, Roboto Mono body, and Baloo rewards.
+                {t('quests.subtitle')}
               </p>
             </div>
 
@@ -644,7 +645,7 @@ export function App() {
                     : 'text-slate-600 dark:text-slate-300 hover:text-[#016ba5] dark:hover:text-[#38BDF8]'
                 }`}
               >
-                All Quests
+                {t('quests.filter_all')}
               </button>
               <button
                 onClick={() => setActiveFilter('kindness')}
@@ -654,7 +655,7 @@ export function App() {
                     : 'text-slate-600 dark:text-slate-300 hover:text-[#016ba5] dark:hover:text-[#38BDF8]'
                 }`}
               >
-                Kindness
+                {t('quests.filter_kindness')}
               </button>
               <button
                 onClick={() => setActiveFilter('courage')}
@@ -664,7 +665,7 @@ export function App() {
                     : 'text-slate-600 dark:text-slate-300 hover:text-[#016ba5] dark:hover:text-[#38BDF8]'
                 }`}
               >
-                Courage
+                {t('quests.filter_courage')}
               </button>
               <button
                 onClick={() => setActiveFilter('wisdom')}
@@ -674,7 +675,7 @@ export function App() {
                     : 'text-slate-600 dark:text-slate-300 hover:text-[#016ba5] dark:hover:text-[#38BDF8]'
                 }`}
               >
-                Wisdom
+                {t('quests.filter_wisdom')}
               </button>
             </div>
           </div>
@@ -697,7 +698,7 @@ export function App() {
                         {quest.level}
                       </Badge>
                       <Badge variant={isDone ? 'success' : 'gamification'} size="sm">
-                        {isDone ? 'Earned ✨' : quest.xp}
+                        {isDone ? t('quests.btn_completed') : quest.xp}
                       </Badge>
                     </div>
 
@@ -722,7 +723,7 @@ export function App() {
                       size="sm"
                       onClick={() => handleCompleteQuest(quest.id)}
                     >
-                      {isDone ? 'Completed' : 'Accept Quest'}
+                      {isDone ? t('quests.btn_completed') : t('quests.btn_start_quest')}
                     </Button>
                   </div>
                 </Card>
@@ -733,22 +734,25 @@ export function App() {
         </div>
       </section>
 
-      {/* 6. CALL TO ACTION BANNER: Secondary Energy #fa8221 & Foundation #0A2540 */}
+      {/* 6. CALL TO ACTION BANNER */}
       <section id="explore-demo" className="py-20 bg-gradient-to-r from-[#0A2540] via-[#016ba5] to-[#0A2540] text-white relative overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(250,130,33,0.25),transparent_50%)]" />
         
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
           
           <Badge variant="secondary" size="lg" className="mb-6 shadow-cta">
-            Ready to Begin?
+            {t('hero.badge_safe')}
           </Badge>
 
           <h2 className="font-headline text-3xl sm:text-5xl font-black text-white tracking-tight mb-6">
-            Join the Next Generation of Values-Driven Heroes.
+            {t('hero.title_prefix')}{' '}
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#fa8221] via-amber-300 to-[#fa8221]">
+              {t('hero.title_highlight')}
+            </span>
           </h2>
 
           <p className="font-body text-sm sm:text-lg text-blue-100 max-w-2xl mx-auto leading-relaxed mb-10">
-            Create a family adventure profile today. Zero ads, zero violence, infinite imagination and noble values.
+            {t('hero.subtitle')}
           </p>
 
           <div className="flex flex-wrap items-center justify-center gap-4">
@@ -757,18 +761,21 @@ export function App() {
               size="xl"
               icon={<Sparkles className="w-5 h-5" />}
               iconPosition="right"
-              onClick={() => alert('Welcome to AbtalQuest! Registration flow initialized.')}
+              onClick={() => alert(t('parenting.newsletter_success'))}
             >
-              Start Free Adventure
+              {t('hero.cta_explore')}
             </Button>
 
             <Button
               variant="outline"
               size="xl"
               className="border-white text-white hover:bg-white/10"
-              onClick={() => alert('Parental guide loaded.')}
+              onClick={() => {
+                const el = document.getElementById('parenting-resources');
+                el?.scrollIntoView({ behavior: 'smooth' });
+              }}
             >
-              Download Parent Guide (PDF)
+              {t('parenting.badge')}
             </Button>
           </div>
 
