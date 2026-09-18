@@ -19,6 +19,11 @@
     --color-brand-text-secondary: #64748B;
   }
 
+  .dark {
+    --color-brand-text-primary: #F8FAFC;
+    --color-brand-text-secondary: #94A3B8;
+  }
+
   /* Global root typography defaults: 'Roboto Mono' for all body, descriptions, and UI text elements */
   html {
     font-family: 'Roboto Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
@@ -26,11 +31,24 @@
     scroll-behavior: smooth;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+    max-width: 100%;
+    width: 100%;
   }
 
   body {
     font-family: 'Roboto Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     color: #1E293B;
+    overflow-x: hidden;
+    max-width: 100%;
+    width: 100%;
+    position: relative;
+  }
+
+  html.dark,
+  html.dark body {
+    background-color: #071727;
+    color: #F1F5F9;
   }
 
   /* Rule 1: Set 'Montserrat' as the primary font family for all headings, titles, and button labels */
@@ -38,6 +56,15 @@
     font-family: 'Montserrat', system-ui, sans-serif !important;
     color: #1E293B;
     letter-spacing: -0.02em;
+  }
+
+  html.dark h1,
+  html.dark h2,
+  html.dark h3,
+  html.dark h4,
+  html.dark h5,
+  html.dark h6 {
+    color: #F8FAFC !important;
   }
 
   /* Button labels strictly use Montserrat */
@@ -130,5 +157,14 @@
 
   .animate-slideLeft {
     animation: slideLeft 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  /* Utility to hide scrollbar while preserving touch scrolling */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
   }
 }

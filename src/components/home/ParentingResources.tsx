@@ -73,7 +73,7 @@ const ARTICLES: ResourceArticle[] = [
 
 export const ParentingResources: React.FC = () => {
   return (
-    <section id="parenting-resources" className="py-20 sm:py-28 bg-slate-50/70 relative overflow-hidden border-b border-slate-200">
+    <section id="parenting-resources" className="py-20 sm:py-28 bg-slate-50/70 dark:bg-[#071727] relative overflow-hidden border-b border-slate-200 dark:border-slate-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         
         {/* Section Header */}
@@ -83,11 +83,11 @@ export const ParentingResources: React.FC = () => {
               Parenting & Family Hub
             </Badge>
 
-            <h2 className="font-headline text-3xl sm:text-4xl lg:text-5xl font-black text-[#1E293B] tracking-tight mt-3 mb-3">
+            <h2 className="font-headline text-3xl sm:text-4xl lg:text-5xl font-black text-[#1E293B] dark:text-white tracking-tight mt-3 mb-3">
               Guides for Guiding Young Heroes
             </h2>
 
-            <p className="font-body text-sm sm:text-base text-[#64748B] leading-relaxed">
+            <p className="font-body text-sm sm:text-base text-[#64748B] dark:text-slate-300 leading-relaxed">
               Research-backed developmental insights, cyber-safety alerts, and practical ideas to help you cultivate resilience, focus, and warmth at home.
             </p>
           </div>
@@ -95,7 +95,7 @@ export const ParentingResources: React.FC = () => {
           <div>
             <a
               href="#newsletter"
-              className="inline-flex items-center gap-2 font-headline text-sm font-bold text-[#016ba5] hover:text-[#015786] bg-white border border-slate-200 shadow-sm px-5 py-2.5 rounded-xl transition-all hover:shadow-md"
+              className="inline-flex items-center gap-2 font-headline text-sm font-bold text-[#016ba5] dark:text-[#38BDF8] hover:text-[#015786] bg-white dark:bg-[#0F2F4E] border border-slate-200 dark:border-slate-700 shadow-sm px-5 py-2.5 rounded-xl transition-all hover:shadow-md"
             >
               <BookmarkCheck className="w-4 h-4 text-[#fa8221]" />
               <span>Browse All Parent Resources</span>
@@ -108,7 +108,7 @@ export const ParentingResources: React.FC = () => {
           {ARTICLES.map((article) => (
             <article
               key={article.id}
-              className="group bg-white rounded-3xl p-7 border-2 border-slate-200/80 hover:border-[#016ba5]/30 hover:shadow-xl transition-all duration-300 hover:-translate-y-1.5 flex flex-col justify-between"
+              className="group bg-white dark:bg-[#0F2F4E] rounded-3xl p-7 border-2 border-slate-200/80 dark:border-slate-700 hover:border-[#016ba5]/30 dark:hover:border-[#38BDF8]/40 hover:shadow-xl transition-all duration-300 hover:-translate-y-1.5 flex flex-col justify-between"
             >
               <div>
                 {/* Header: Category and Read-Time Label (Roboto Mono) */}
@@ -118,7 +118,7 @@ export const ParentingResources: React.FC = () => {
                   </Badge>
 
                   {/* Read-Time Label in Roboto Mono */}
-                  <span className="font-body text-xs text-slate-500 font-medium flex items-center gap-1.5 bg-slate-50 border border-slate-200/70 px-2.5 py-0.5 rounded-full">
+                  <span className="font-body text-xs text-slate-500 dark:text-slate-400 font-medium flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200/70 dark:border-slate-700 px-2.5 py-0.5 rounded-full">
                     <Clock className="w-3.5 h-3.5 text-[#fa8221]" />
                     <span>{article.readTime}</span>
                   </span>
@@ -132,18 +132,18 @@ export const ParentingResources: React.FC = () => {
                 </div>
 
                 {/* Article Title (Montserrat) */}
-                <h3 className="font-headline text-xl font-extrabold text-[#1E293B] group-hover:text-[#016ba5] transition-colors tracking-tight leading-snug mb-3">
+                <h3 className="font-headline text-xl font-extrabold text-[#1E293B] dark:text-white group-hover:text-[#016ba5] dark:group-hover:text-[#fa8221] transition-colors tracking-tight leading-snug mb-3">
                   {article.title}
                 </h3>
 
                 {/* Summary Description (Roboto Mono) */}
-                <p className="font-body text-xs text-[#64748B] leading-relaxed mb-6">
+                <p className="font-body text-xs text-[#64748B] dark:text-slate-300 leading-relaxed mb-6">
                   {article.summary}
                 </p>
               </div>
 
               {/* Card Footer: Metadata & Read-More Link */}
-              <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
+              <div className="pt-4 border-t border-slate-100 dark:border-slate-700/80 flex items-center justify-between">
                 <div className="flex items-center gap-1.5 text-[11px] font-body text-slate-400">
                   <Calendar className="w-3.5 h-3.5" />
                   <span>{article.date}</span>
@@ -167,16 +167,16 @@ export const ParentingResources: React.FC = () => {
         </div>
 
         {/* Community Newsletter Box */}
-        <div className="mt-12 bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-6">
+        <div className="mt-12 bg-white dark:bg-[#0F2F4E] rounded-3xl p-6 sm:p-8 border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-2xl bg-[#016ba5]/10 text-[#016ba5] flex items-center justify-center flex-shrink-0">
               <BookOpen className="w-6 h-6" />
             </div>
             <div>
-              <h4 className="font-headline text-base font-bold text-slate-900">
+              <h4 className="font-headline text-base font-bold text-slate-900 dark:text-white">
                 Weekly Values Digest For Parents
               </h4>
-              <p className="font-body text-xs text-slate-500">
+              <p className="font-body text-xs text-slate-500 dark:text-slate-300">
                 Actionable tips, screen-free weekend games, and ethical conversation starters delivered every Friday.
               </p>
             </div>
@@ -186,7 +186,7 @@ export const ParentingResources: React.FC = () => {
             <input
               type="email"
               placeholder="Enter your email"
-              className="font-body text-xs px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-[#016ba5] focus:ring-1 focus:ring-[#016ba5] w-full sm:w-64"
+              className="font-body text-xs px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:border-[#016ba5] focus:ring-1 focus:ring-[#016ba5] w-full sm:w-64"
             />
             <button
               type="button"

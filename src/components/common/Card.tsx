@@ -16,11 +16,11 @@ export const Card: React.FC<CardProps> = ({
   const baseStyles = 'rounded-2xl transition-all duration-300 overflow-hidden';
 
   const variantStyles = {
-    default: 'bg-white border border-slate-200/80 shadow-sm hover:shadow-md text-slate-800',
+    default: 'bg-white dark:bg-[#0F2F4E] border border-slate-200/80 dark:border-slate-700 shadow-sm hover:shadow-md text-slate-800 dark:text-slate-100',
     // 2% Foundation (#0A2540) - Dark cosmic surface
     foundation: 'bg-[#0A2540] border border-[#016ba5]/30 text-white shadow-xl',
     interactive:
-      'bg-white border border-slate-200 hover:border-brand-primary/40 shadow-sm hover:shadow-xl hover:-translate-y-1 text-slate-800 cursor-pointer',
+      'bg-white dark:bg-[#0F2F4E] border border-slate-200 dark:border-slate-700 hover:border-[#016ba5]/40 dark:hover:border-[#38BDF8]/50 shadow-sm hover:shadow-xl hover:-translate-y-1 text-slate-800 dark:text-slate-100 cursor-pointer',
     // 4% Contrast (#1C1C1C) - Deep contrast surface
     contrast: 'bg-[#1C1C1C] border border-white/10 text-white shadow-2xl',
   };

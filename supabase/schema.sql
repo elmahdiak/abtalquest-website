@@ -61,9 +61,10 @@ CREATE POLICY "Allow all operations on session cart"
   USING (true)
   WITH CHECK (true);
 
--- 3. ORDERS TABLE
+-- 3. ORDERS TABLE (Supports both authenticated users and guest checkouts)
 CREATE TABLE IF NOT EXISTS public.orders (
   id TEXT PRIMARY KEY,
+  user_id UUID, -- Optional: links to auth.users if customer created an account
   session_id TEXT,
   customer_name TEXT NOT NULL,
   customer_email TEXT NOT NULL,
@@ -95,6 +96,13 @@ CREATE POLICY "Allow public read on orders"
   TO anon, authenticated
   USING (true);
 
+CREATE POLICY "Allow admin update on orders"
+  ON public.orders
+  FOR UPDATE
+  TO anon, authenticated
+  USING (true)
+  WITH CHECK (true);
+
 -- 4. ORDER ITEMS TABLE
 CREATE TABLE IF NOT EXISTS public.order_items (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -122,6 +130,79 @@ CREATE POLICY "Allow public read on order_items"
   FOR SELECT
   TO anon, authenticated
   USING (true);
+
+-- 5. CONTACT MESSAGES TABLE (Visitor Inquiries from "Contact Us")
+CREATE TABLE IF NOT EXISTS public.contact_messages (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  name TEXT NOT NULL,
+  email TEXT NOT NULL,
+  subject TEXT NOT NULL,
+  message TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'unread' CHECK (status IN ('unread', 'read', 'archived')),
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Enable RLS for contact_messages
+ALTER TABLE public.contact_messages ENABLE ROW LEVEL SECURITY;
+
+-- Allow public insert on contact_messages
+CREATE POLICY "Allow public insert on contact_messages"
+  ON public.contact_messages
+  FOR INSERT
+  TO anon, authenticated
+  WITH CHECK (true);
+
+-- Allow reading and updating contact_messages
+CREATE POLICY "Allow read on contact_messages"
+  ON public.contact_messages
+  FOR SELECT
+  TO anon, authenticated
+  USING (true);
+
+CREATE POLICY "Allow update on contact_messages"
+  ON public.contact_messages
+  FOR UPDATE
+  TO anon, authenticated
+  USING (true)
+  WITH CHECK (true);
+
+-- 6. ADMIN USERS TABLE (Authorized Administrator Directory)
+CREATE TABLE IF NOT EXISTS public.admin_users (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  email TEXT UNIQUE NOT NULL,
+  full_name TEXT NOT NULL DEFAULT 'Admin',
+  role TEXT NOT NULL DEFAULT 'admin' CHECK (role IN ('super_admin', 'admin', 'support_admin')),
+  is_super_admin BOOLEAN NOT NULL DEFAULT FALSE,
+  created_by TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Enable RLS for admin_users
+ALTER TABLE public.admin_users ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Allow read on admin_users"
+  ON public.admin_users
+  FOR SELECT
+  TO anon, authenticated
+  USING (true);
+
+CREATE POLICY "Allow insert on admin_users"
+  ON public.admin_users
+  FOR INSERT
+  TO anon, authenticated
+  WITH CHECK (true);
+
+CREATE POLICY "Allow delete on admin_users"
+  ON public.admin_users
+  FOR DELETE
+  TO anon, authenticated
+  USING (true);
+
+-- Seed ElMahdi Ak as the Primary Super Administrator
+INSERT INTO public.admin_users (email, full_name, role, is_super_admin, created_by)
+VALUES ('akmahdi085@gmail.com', 'ElMahdi Ak', 'super_admin', TRUE, 'System Initializer')
+ON CONFLICT (email) DO UPDATE 
+SET role = 'super_admin', is_super_admin = TRUE, full_name = 'ElMahdi Ak';
 
 -- ==============================================================================
 -- 5. SEED DATA: 8 Official AbtalQuest Products

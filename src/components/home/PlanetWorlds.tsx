@@ -160,7 +160,7 @@ export const PlanetWorlds: React.FC = () => {
     : PLANETS.filter(p => p.id === activeTab);
 
   return (
-    <section id="planet-worlds" className="py-20 sm:py-28 bg-slate-50/70 relative overflow-hidden border-b border-slate-200">
+    <section id="planet-worlds" className="py-20 sm:py-28 bg-slate-50/70 dark:bg-[#071727] relative overflow-hidden border-b border-slate-200 dark:border-slate-800">
       {/* Subtle cosmic decorative backdrop */}
       <div className="absolute top-1/4 -left-20 w-96 h-96 bg-[#016ba5]/10 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute bottom-10 -right-20 w-96 h-96 bg-[#7C3AED]/10 rounded-full blur-3xl pointer-events-none" />
@@ -178,11 +178,11 @@ export const PlanetWorlds: React.FC = () => {
             AbtalQuest Galaxy Map
           </Badge>
 
-          <h2 className="font-headline text-3xl sm:text-4xl lg:text-5xl font-black text-[#1E293B] tracking-tight mb-4">
+          <h2 className="font-headline text-3xl sm:text-4xl lg:text-5xl font-black text-[#1E293B] dark:text-white tracking-tight mb-4">
             Explore the Planet Worlds
           </h2>
 
-          <p className="font-body text-sm sm:text-base text-[#64748B] leading-relaxed">
+          <p className="font-body text-sm sm:text-base text-[#64748B] dark:text-slate-300 leading-relaxed">
             Four distinct life-skill realms crafted without violence, where every puzzle builds character, resilience, and compassionate wisdom.
           </p>
 
@@ -193,7 +193,7 @@ export const PlanetWorlds: React.FC = () => {
               className={`font-headline text-xs font-bold px-4 py-2 rounded-xl transition-all ${
                 activeTab === 'all'
                   ? 'bg-[#016ba5] text-white shadow-brand'
-                  : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+                  : 'bg-white dark:bg-[#0F2F4E] text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700'
               }`}
             >
               All Worlds (4)
@@ -205,7 +205,7 @@ export const PlanetWorlds: React.FC = () => {
                 className={`font-headline text-xs font-bold px-4 py-2 rounded-xl transition-all ${
                   activeTab === p.id
                     ? 'bg-[#016ba5] text-white shadow-brand'
-                    : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+                    : 'bg-white dark:bg-[#0F2F4E] text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700'
                 }`}
               >
                 {p.name}
@@ -220,7 +220,7 @@ export const PlanetWorlds: React.FC = () => {
             <div
               key={planet.id}
               onClick={() => setSelectedPlanet(planet)}
-              className={`group relative bg-white rounded-3xl p-6 sm:p-7 border-2 border-slate-200/90 transition-all duration-300 hover:-translate-y-2 cursor-pointer flex flex-col justify-between overflow-hidden ${planet.borderColor}`}
+              className={`group relative bg-white dark:bg-[#0F2F4E] rounded-3xl p-6 sm:p-7 border-2 border-slate-200/90 dark:border-slate-700 transition-all duration-300 hover:-translate-y-2 cursor-pointer flex flex-col justify-between overflow-hidden ${planet.borderColor}`}
             >
               {/* Soft Gradient Aura at top of card */}
               <div className={`absolute top-0 left-0 right-0 h-32 bg-gradient-to-b ${planet.colorGradient} pointer-events-none rounded-t-3xl`} />
@@ -244,7 +244,7 @@ export const PlanetWorlds: React.FC = () => {
 
                 {/* Planet Illustration & Icon */}
                 <div className="relative mb-5 flex items-center justify-center">
-                  <div className="w-20 h-20 rounded-3xl bg-slate-50 border border-slate-100 shadow-sm flex items-center justify-center relative group-hover:scale-110 transition-transform duration-300">
+                  <div className="w-20 h-20 rounded-3xl bg-slate-50 dark:bg-[#0A2540] border border-slate-100 dark:border-slate-700 shadow-sm flex items-center justify-center relative group-hover:scale-110 transition-transform duration-300">
                     <div className={`w-14 h-14 rounded-2xl ${planet.iconBg} flex items-center justify-center shadow-inner`}>
                       {planet.primaryIcon}
                     </div>
@@ -253,24 +253,24 @@ export const PlanetWorlds: React.FC = () => {
 
                 {/* Planet Name (Montserrat) */}
                 <div className="text-center mb-3">
-                  <span className="font-body text-[11px] font-semibold uppercase tracking-wider text-[#016ba5] block mb-1">
+                  <span className="font-body text-[11px] font-semibold uppercase tracking-wider text-[#016ba5] dark:text-[#38BDF8] block mb-1">
                     {planet.category}
                   </span>
-                  <h3 className="font-headline text-xl font-extrabold text-[#1E293B] group-hover:text-[#016ba5] transition-colors">
+                  <h3 className="font-headline text-xl font-extrabold text-[#1E293B] dark:text-white group-hover:text-[#016ba5] dark:group-hover:text-[#fa8221] transition-colors">
                     {planet.name}
                   </h3>
                 </div>
 
                 {/* Primary Skill Callout */}
-                <div className="bg-slate-50 rounded-xl py-2 px-3 text-center border border-slate-100 mb-4">
-                  <span className="font-body text-xs text-slate-500 block">Core Life Skill</span>
-                  <span className="font-headline font-bold text-sm text-slate-800">
+                <div className="bg-slate-50 dark:bg-[#0A2540] rounded-xl py-2 px-3 text-center border border-slate-100 dark:border-slate-700 mb-4">
+                  <span className="font-body text-xs text-slate-500 dark:text-slate-400 block">Core Life Skill</span>
+                  <span className="font-headline font-bold text-sm text-slate-800 dark:text-slate-200">
                     {planet.skill}
                   </span>
                 </div>
 
                 {/* Short Description (Roboto Mono) */}
-                <p className="font-body text-xs text-[#64748B] leading-relaxed mb-4 text-center">
+                <p className="font-body text-xs text-[#64748B] dark:text-slate-300 leading-relaxed mb-4 text-center">
                   {planet.shortDesc}
                 </p>
 
@@ -279,7 +279,7 @@ export const PlanetWorlds: React.FC = () => {
                   {planet.tags.map((tag, i) => (
                     <span 
                       key={i} 
-                      className="font-body text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md"
+                      className="font-body text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded-md"
                     >
                       {tag}
                     </span>
@@ -288,8 +288,8 @@ export const PlanetWorlds: React.FC = () => {
               </div>
 
               {/* Bottom Interactive CTA Button (#fa8221 Secondary CTA) */}
-              <div className="pt-4 border-t border-slate-100 flex items-center justify-between relative z-10">
-                <span className="font-body text-[11px] text-slate-400 group-hover:text-slate-600 transition-colors">
+              <div className="pt-4 border-t border-slate-100 dark:border-slate-700/80 flex items-center justify-between relative z-10">
+                <span className="font-body text-[11px] text-slate-400 dark:text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-200 transition-colors">
                   Tap to Inspect
                 </span>
                 <span className="inline-flex items-center gap-1 font-headline text-xs font-bold text-[#fa8221] group-hover:translate-x-1 transition-transform">
@@ -304,12 +304,12 @@ export const PlanetWorlds: React.FC = () => {
         {selectedPlanet && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
             <div 
-              className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[90vh]"
+              className="relative w-full max-w-2xl bg-white dark:bg-[#0F2F4E] rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden flex flex-col max-h-[90vh]"
               role="dialog"
               aria-modal="true"
             >
               {/* Modal Top Header with Planet Gradient */}
-              <div className={`p-6 sm:p-8 bg-gradient-to-r ${selectedPlanet.colorGradient} border-b border-slate-200 flex items-start justify-between relative`}>
+              <div className={`p-6 sm:p-8 bg-gradient-to-r ${selectedPlanet.colorGradient} border-b border-slate-200 dark:border-slate-700 flex items-start justify-between relative`}>
                 <div className="flex items-center gap-4">
                   <div className={`w-14 h-14 rounded-2xl ${selectedPlanet.iconBg} flex items-center justify-center shadow-md`}>
                     {selectedPlanet.primaryIcon}
@@ -323,11 +323,11 @@ export const PlanetWorlds: React.FC = () => {
                         {selectedPlanet.xpReward}
                       </span>
                     </div>
-                    <h3 className="font-headline text-2xl sm:text-3xl font-black text-[#1E293B]">
+                    <h3 className="font-headline text-2xl sm:text-3xl font-black text-[#1E293B] dark:text-white">
                       {selectedPlanet.name}
                     </h3>
-                    <span className="font-body text-xs text-slate-600">
-                      Focus: <strong className="text-[#016ba5]">{selectedPlanet.skill}</strong>
+                    <span className="font-body text-xs text-slate-600 dark:text-slate-300">
+                      Focus: <strong className="text-[#016ba5] dark:text-[#38BDF8]">{selectedPlanet.skill}</strong>
                     </span>
                   </div>
                 </div>
@@ -336,7 +336,7 @@ export const PlanetWorlds: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setSelectedPlanet(null)}
-                  className="p-2 rounded-xl text-slate-500 hover:text-slate-800 hover:bg-white/80 transition-colors"
+                  className="p-2 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white hover:bg-white/80 dark:hover:bg-slate-800 transition-colors"
                   aria-label="Close modal"
                 >
                   <X className="w-6 h-6" />
@@ -348,31 +348,31 @@ export const PlanetWorlds: React.FC = () => {
                 
                 {/* Description */}
                 <div>
-                  <h4 className="font-headline text-sm font-bold text-[#1E293B] mb-2 uppercase tracking-wide">
+                  <h4 className="font-headline text-sm font-bold text-[#1E293B] dark:text-white mb-2 uppercase tracking-wide">
                     World Overview
                   </h4>
-                  <p className="text-slate-600 text-sm leading-relaxed">
+                  <p className="text-slate-600 dark:text-slate-300 text-sm leading-relaxed">
                     {selectedPlanet.fullDesc}
                   </p>
                 </div>
 
                 {/* Key Gameplay Features */}
                 <div>
-                  <h4 className="font-headline text-sm font-bold text-[#1E293B] mb-3 uppercase tracking-wide">
+                  <h4 className="font-headline text-sm font-bold text-[#1E293B] dark:text-white mb-3 uppercase tracking-wide">
                     Thematic Challenges & Mechanics
                   </h4>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     {selectedPlanet.features.map((feat, idx) => (
-                      <div key={idx} className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col justify-between">
+                      <div key={idx} className="p-3.5 rounded-2xl bg-slate-50 dark:bg-[#0A2540] border border-slate-200 dark:border-slate-700 flex flex-col justify-between">
                         <div className="flex items-center gap-2 mb-2">
-                          <div className="p-1.5 rounded-lg bg-white shadow-sm flex-shrink-0">
+                          <div className="p-1.5 rounded-lg bg-white dark:bg-slate-800 shadow-sm flex-shrink-0">
                             {feat.icon}
                           </div>
-                          <span className="font-headline font-bold text-xs text-slate-800">
+                          <span className="font-headline font-bold text-xs text-slate-800 dark:text-slate-200">
                             {feat.title}
                           </span>
                         </div>
-                        <p className="text-[11px] text-slate-500 leading-snug">
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug">
                           {feat.desc}
                         </p>
                       </div>
@@ -408,11 +408,11 @@ export const PlanetWorlds: React.FC = () => {
               </div>
 
               {/* Modal Footer Actions */}
-              <div className="p-5 sm:p-6 bg-slate-50 border-t border-slate-200 flex items-center justify-between gap-4">
+              <div className="p-5 sm:p-6 bg-slate-50 dark:bg-[#0A2540] border-t border-slate-200 dark:border-slate-700 flex items-center justify-between gap-4">
                 <button
                   type="button"
                   onClick={() => setSelectedPlanet(null)}
-                  className="font-headline text-xs font-semibold text-slate-600 hover:text-slate-800"
+                  className="font-headline text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-800 dark:hover:text-white"
                 >
                   Return to Galaxy Map
                 </button>

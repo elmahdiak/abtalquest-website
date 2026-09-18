@@ -8,12 +8,16 @@ import {
   Sun, 
   Moon, 
   Check, 
-  Smartphone,
   Download,
-  Star
+  Star,
+  User as UserIcon,
+  MessageSquare,
+  ChevronRight
 } from 'lucide-react';
 import AbtalQuestLogo from '../common/AbtalQuestLogo';
 import { cn } from '../../lib/utils';
+import { useTheme } from '../../context/ThemeContext';
+import type { User as SupabaseUser } from '@supabase/supabase-js';
 
 export interface NavItem {
   id: string;
@@ -30,15 +34,26 @@ const NAV_ITEMS: NavItem[] = [
 ];
 
 export interface NavbarProps {
-  currentView?: 'home' | 'marketplace';
+  currentView?: 'home' | 'marketplace' | 'admin';
   onViewChange?: (view: 'home' | 'marketplace') => void;
+  user?: SupabaseUser | null;
+  onOpenAuth?: () => void;
+  onOpenProfile?: () => void;
+  onOpenContact?: () => void;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ currentView = 'home', onViewChange }) => {
+export const Navbar: React.FC<NavbarProps> = ({ 
+  currentView = 'home', 
+  onViewChange,
+  user,
+  onOpenAuth,
+  onOpenProfile,
+  onOpenContact,
+}) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [selectedNavTab, setSelectedNavTab] = useState<string>('home');
-  const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  const { theme, toggleTheme } = useTheme();
   const [language, setLanguage] = useState<'en' | 'ar'>('en');
   const [languageMenuOpen, setLanguageMenuOpen] = useState(false);
   const [downloadModalOpen, setDownloadModalOpen] = useState(false);
@@ -68,17 +83,6 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView = 'home', onViewChan
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Toggle dark/light theme
-  const toggleTheme = () => {
-    const nextTheme = theme === 'light' ? 'dark' : 'light';
-    setTheme(nextTheme);
-    if (nextTheme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  };
-
   // Handle navigation clicks
   const handleNavClick = (item: NavItem, e: React.MouseEvent) => {
     setSelectedNavTab(item.id);
@@ -107,24 +111,29 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView = 'home', onViewChan
   return (
     <>
       {/* Top Universal Safety Reassurance Ticker */}
-      <div className="bg-[#016ba5] text-white text-xs py-1.5 px-4 font-body border-b border-[#015786] transition-all">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="inline-flex items-center justify-center p-0.5 bg-emerald-500/20 rounded-full text-emerald-300">
+      <div className="bg-[#016ba5] text-white text-xs py-1.5 px-3 sm:px-4 font-body border-b border-[#015786] transition-all overflow-hidden w-full">
+        <div className="max-w-7xl mx-auto flex items-center justify-between min-w-0">
+          <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1">
+            <span className="inline-flex items-center justify-center p-0.5 bg-emerald-500/20 rounded-full text-emerald-300 flex-shrink-0">
               <ShieldCheck className="w-3.5 h-3.5" />
             </span>
-            <span className="font-medium tracking-wide">
+            <span className="font-medium tracking-wide text-[11px] sm:text-xs truncate sm:whitespace-normal">
               AbtalQuest Safe Zone: <strong className="text-amber-300">100% Ad-Free</strong> • <strong className="text-emerald-300">Zero Violence</strong> • Screen-Time Balanced
             </span>
           </div>
 
-          <div className="hidden sm:flex items-center gap-4 text-[11px] opacity-90">
+          <div className="hidden sm:flex items-center gap-4 text-[11px] opacity-90 flex-shrink-0">
+            <button
+              type="button"
+              onClick={() => onOpenContact?.()}
+              className="hover:underline hover:text-amber-300 flex items-center gap-1 transition-colors"
+            >
+              <MessageSquare className="w-3 h-3" />
+              <span>Contact Support</span>
+            </button>
+            <span className="text-white/40">|</span>
             <span className="text-white/80">
               Curated for Ages 6–13 • COPPA & GDPR-K Compliant
-            </span>
-            <span className="text-white/40">|</span>
-            <span className="text-amber-200 font-medium">
-              Verified by Child Psychologists
             </span>
           </div>
         </div>
@@ -134,17 +143,17 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView = 'home', onViewChan
       <header
         className={cn(
           'sticky top-0 z-50 w-full transition-all duration-300',
-          'bg-white/80 backdrop-blur-md supports-[backdrop-filter]:bg-white/75 border-b',
+          'bg-white/80 dark:bg-[#0A2540]/90 backdrop-blur-md supports-[backdrop-filter]:bg-white/75 supports-[backdrop-filter]:dark:bg-[#0A2540]/85 border-b',
           isScrolled
-            ? 'border-slate-200/90 shadow-sm py-3'
-            : 'border-slate-200/60 py-4'
+            ? 'border-slate-200/90 dark:border-slate-700/80 shadow-sm py-2.5 sm:py-3'
+            : 'border-slate-200/60 dark:border-slate-800/80 py-3 sm:py-4'
         )}
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between gap-4">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between gap-2 sm:gap-4">
             
             {/* Left & Center-Left: Logo and Horizontally Arranged Navigation Links */}
-            <div className="flex items-center gap-8 lg:gap-12">
+            <div className="flex items-center gap-4 lg:gap-12 min-w-0 flex-shrink">
               {/* AbtalQuest Official Logo */}
               <a
                 href="#universe"
@@ -154,11 +163,11 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView = 'home', onViewChan
                   setSelectedNavTab('home');
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
-                className="group flex items-center focus:outline-none focus-visible:ring-2 focus-visible:ring-[#016ba5] rounded-xl transition-transform hover:scale-[1.01]"
+                className="group flex items-center focus:outline-none focus-visible:ring-2 focus-visible:ring-[#016ba5] rounded-xl transition-transform hover:scale-[1.01] min-w-0"
                 aria-label="AbtalQuest Homepage"
               >
                 <AbtalQuestLogo
-                  variant="light"
+                  variant={theme === 'dark' ? 'dark' : 'light'}
                   size="md"
                   showText={true}
                   tagline="Values-Based Digital Universe"
@@ -177,8 +186,8 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView = 'home', onViewChan
                       className={cn(
                         'font-headline text-sm font-semibold transition-all duration-200 relative py-1 group select-none flex items-center gap-1.5',
                         isActive
-                          ? 'text-[#016ba5] font-bold'
-                          : 'text-slate-600 hover:text-[#016ba5]'
+                          ? 'text-[#016ba5] dark:text-[#38BDF8] font-bold'
+                          : 'text-slate-600 dark:text-slate-300 hover:text-[#016ba5] dark:hover:text-[#fa8221]'
                       )}
                     >
                       <span>{item.label}</span>
@@ -192,9 +201,9 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView = 'home', onViewChan
 
                       {/* Active indicator underline */}
                       {isActive ? (
-                        <span className="absolute -bottom-1 left-0 right-0 h-0.5 bg-[#016ba5] rounded-full transition-all duration-300" />
+                        <span className="absolute -bottom-1 left-0 right-0 h-0.5 bg-[#016ba5] dark:bg-[#38BDF8] rounded-full transition-all duration-300" />
                       ) : (
-                        <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-[#016ba5]/40 rounded-full transition-all duration-200 group-hover:w-full" />
+                        <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-[#016ba5]/40 dark:bg-[#38BDF8]/40 rounded-full transition-all duration-200 group-hover:w-full" />
                       )}
                     </a>
                   );
@@ -202,8 +211,8 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView = 'home', onViewChan
               </nav>
             </div>
 
-            {/* Right-Side Actions: Globe Selector, Theme Toggle, and Pill CTA "Download App" */}
-            <div className="flex items-center gap-3 sm:gap-3.5">
+            {/* Right-Side Actions: Globe Selector, Theme Toggle, Profile, and Pill CTA "Download App" */}
+            <div className="flex items-center gap-1.5 sm:gap-3 flex-shrink-0">
               
               {/* 1. Round Language / Globe Selector Button */}
               <div className="relative" ref={languageMenuRef}>
@@ -211,22 +220,22 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView = 'home', onViewChan
                   type="button"
                   onClick={() => setLanguageMenuOpen(!languageMenuOpen)}
                   className={cn(
-                    'w-10 h-10 rounded-full border flex items-center justify-center transition-all duration-200',
-                    'border-slate-200/80 bg-white/70 hover:bg-white text-slate-700 hover:text-[#016ba5] hover:border-[#016ba5]/40',
+                    'w-8 h-8 sm:w-10 sm:h-10 rounded-full border flex items-center justify-center transition-all duration-200',
+                    'border-slate-200/80 dark:border-slate-700 bg-white/70 dark:bg-slate-800/80 hover:bg-white dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 hover:text-[#016ba5] dark:hover:text-[#fa8221] hover:border-[#016ba5]/40',
                     'shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#016ba5]',
-                    languageMenuOpen && 'border-[#016ba5] ring-2 ring-[#016ba5]/20 bg-white text-[#016ba5]'
+                    languageMenuOpen && 'border-[#016ba5] ring-2 ring-[#016ba5]/20 bg-white dark:bg-slate-800 text-[#016ba5] dark:text-[#38BDF8]'
                   )}
                   aria-label="Select Language"
                   title="Language Selector"
                   aria-expanded={languageMenuOpen}
                 >
-                  <Globe className="w-4 h-4" />
+                  <Globe className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 </button>
 
                 {/* Language Dropdown Menu */}
                 {languageMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-48 rounded-2xl bg-white/95 backdrop-blur-md shadow-xl border border-slate-200/80 py-2 z-50 animate-fadeIn">
-                    <div className="px-3 py-1.5 text-[11px] font-body text-slate-400 font-semibold border-b border-slate-100">
+                  <div className="absolute right-0 mt-2 w-48 rounded-2xl bg-white/95 dark:bg-[#0A2540]/95 backdrop-blur-md shadow-xl border border-slate-200/80 dark:border-slate-700 py-2 z-50 animate-fadeIn">
+                    <div className="px-3 py-1.5 text-[11px] font-body text-slate-400 dark:text-slate-400 font-semibold border-b border-slate-100 dark:border-slate-700/80">
                       Select Language
                     </div>
                     <button
@@ -236,15 +245,15 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView = 'home', onViewChan
                         setLanguageMenuOpen(false);
                       }}
                       className={cn(
-                        'w-full px-3.5 py-2 text-xs font-headline font-semibold flex items-center justify-between hover:bg-slate-50 transition-colors',
-                        language === 'en' ? 'text-[#016ba5] bg-[#016ba5]/5' : 'text-slate-700'
+                        'w-full px-3.5 py-2 text-xs font-headline font-semibold flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/80 transition-colors',
+                        language === 'en' ? 'text-[#016ba5] dark:text-[#38BDF8] bg-[#016ba5]/5 dark:bg-[#016ba5]/20' : 'text-slate-700 dark:text-slate-200'
                       )}
                     >
                       <div className="flex items-center gap-2">
                         <span className="text-sm">🇺🇸</span>
                         <span>English (US)</span>
                       </div>
-                      {language === 'en' && <Check className="w-3.5 h-3.5 text-[#016ba5]" />}
+                      {language === 'en' && <Check className="w-3.5 h-3.5 text-[#016ba5] dark:text-[#38BDF8]" />}
                     </button>
                     <button
                       type="button"
@@ -253,15 +262,15 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView = 'home', onViewChan
                         setLanguageMenuOpen(false);
                       }}
                       className={cn(
-                        'w-full px-3.5 py-2 text-xs font-headline font-semibold flex items-center justify-between hover:bg-slate-50 transition-colors',
-                        language === 'ar' ? 'text-[#016ba5] bg-[#016ba5]/5' : 'text-slate-700'
+                        'w-full px-3.5 py-2 text-xs font-headline font-semibold flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/80 transition-colors',
+                        language === 'ar' ? 'text-[#016ba5] dark:text-[#38BDF8] bg-[#016ba5]/5 dark:bg-[#016ba5]/20' : 'text-slate-700 dark:text-slate-200'
                       )}
                     >
                       <div className="flex items-center gap-2">
                         <span className="text-sm">🇦🇪</span>
                         <span>العربية (Arabic)</span>
                       </div>
-                      {language === 'ar' && <Check className="w-3.5 h-3.5 text-[#016ba5]" />}
+                      {language === 'ar' && <Check className="w-3.5 h-3.5 text-[#016ba5] dark:text-[#38BDF8]" />}
                     </button>
                   </div>
                 )}
@@ -272,21 +281,53 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView = 'home', onViewChan
                 type="button"
                 onClick={toggleTheme}
                 className={cn(
-                  'w-10 h-10 rounded-full border flex items-center justify-center transition-all duration-200',
-                  'border-slate-200/80 bg-white/70 hover:bg-white text-slate-700 hover:text-[#fa8221] hover:border-[#fa8221]/40',
+                  'w-8 h-8 sm:w-10 sm:h-10 rounded-full border flex items-center justify-center transition-all duration-200',
+                  'border-slate-200/80 dark:border-slate-700 bg-white/70 dark:bg-slate-800/80 hover:bg-white dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 hover:text-[#fa8221] hover:border-[#fa8221]/40',
                   'shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#fa8221]'
                 )}
                 aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} theme`}
                 title={`Theme: ${theme === 'light' ? 'Light mode (click for Dark)' : 'Dark mode (click for Light)'}`}
               >
                 {theme === 'light' ? (
-                  <Sun className="w-4 h-4 text-amber-500 transition-transform duration-300 hover:rotate-45" />
+                  <Sun className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-500 transition-transform duration-300 hover:rotate-45" />
                 ) : (
-                  <Moon className="w-4 h-4 text-indigo-500 transition-transform duration-300 hover:-rotate-12" />
+                  <Moon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-sky-300 transition-transform duration-300 hover:-rotate-12" />
                 )}
               </button>
 
-              {/* 3. Prominent Pill-Shaped CTA Button (#fa8221 Secondary Orange, Montserrat, Right Arrow) */}
+              {/* 3. Round User Account / Family Portal Button */}
+              <button
+                type="button"
+                onClick={() => {
+                  if (user) {
+                    onOpenProfile?.();
+                  } else {
+                    onOpenAuth?.();
+                  }
+                }}
+                className={cn(
+                  'w-8 h-8 sm:w-10 sm:h-10 rounded-full border flex items-center justify-center transition-all duration-200 relative',
+                  user
+                    ? 'border-[#016ba5] dark:border-[#38BDF8] bg-[#016ba5]/10 dark:bg-[#016ba5]/30 text-[#016ba5] dark:text-[#38BDF8] hover:bg-[#016ba5] hover:text-white'
+                    : 'border-slate-200/80 dark:border-slate-700 bg-white/70 dark:bg-slate-800/80 hover:bg-white dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 hover:text-[#016ba5] dark:hover:text-[#fa8221] hover:border-[#016ba5]/40',
+                  'shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#016ba5]'
+                )}
+                aria-label={user ? 'Open Family Profile' : 'Sign In to Family Hub'}
+                title={user ? `Family Profile (${user.email})` : 'Sign In / Create Account'}
+              >
+                {user ? (
+                  <>
+                    <span className="font-headline font-black text-xs">
+                      {(user.user_metadata?.full_name || user.email || 'H').charAt(0).toUpperCase()}
+                    </span>
+                    <span className="absolute bottom-0.5 right-0.5 w-2 sm:w-2.5 h-2 sm:h-2.5 rounded-full bg-emerald-500 border-2 border-white" />
+                  </>
+                ) : (
+                  <UserIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                )}
+              </button>
+
+              {/* 4. Prominent Pill-Shaped CTA Button (#fa8221 Secondary Orange, Montserrat, Right Arrow) */}
               <button
                 type="button"
                 onClick={() => setDownloadModalOpen(true)}
@@ -306,11 +347,11 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView = 'home', onViewChan
               <button
                 type="button"
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="md:hidden p-2 rounded-xl text-slate-700 hover:text-[#016ba5] hover:bg-slate-100 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#016ba5]"
+                className="md:hidden p-1.5 sm:p-2 rounded-xl text-slate-700 dark:text-slate-200 hover:text-[#016ba5] dark:hover:text-[#fa8221] hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#016ba5]"
                 aria-label="Toggle navigation menu"
                 aria-expanded={mobileMenuOpen}
               >
-                {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+                {mobileMenuOpen ? <X className="w-5 h-5 sm:w-6 sm:h-6" /> : <Menu className="w-5 h-5 sm:w-6 sm:h-6" />}
               </button>
 
             </div>
@@ -320,7 +361,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView = 'home', onViewChan
 
         {/* Mobile Navigation Drawer */}
         {mobileMenuOpen && (
-          <div className="md:hidden border-t border-slate-200/80 bg-white/95 backdrop-blur-md shadow-xl px-4 pt-3 pb-6 animate-fadeIn">
+          <div className="md:hidden border-t border-slate-200/80 dark:border-slate-700 bg-white/95 dark:bg-[#0A2540]/95 backdrop-blur-md shadow-xl px-4 pt-3 pb-6 animate-fadeIn">
             <nav className="flex flex-col gap-1.5" aria-label="Mobile Navigation">
               {NAV_ITEMS.map((item) => {
                 const isActive = activeTab === item.id;
@@ -332,8 +373,8 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView = 'home', onViewChan
                     className={cn(
                       'font-headline text-base font-semibold px-4 py-3 rounded-2xl flex items-center justify-between transition-colors',
                       isActive
-                        ? 'text-[#016ba5] bg-[#016ba5]/10 font-bold'
-                        : 'text-slate-700 hover:text-[#016ba5] hover:bg-slate-50'
+                        ? 'text-[#016ba5] dark:text-[#38BDF8] bg-[#016ba5]/10 dark:bg-[#016ba5]/30 font-bold'
+                        : 'text-slate-700 dark:text-slate-200 hover:text-[#016ba5] dark:hover:text-[#fa8221] hover:bg-slate-50 dark:hover:bg-slate-800/80'
                     )}
                   >
                     <span>{item.label}</span>
@@ -347,7 +388,43 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView = 'home', onViewChan
               })}
             </nav>
 
-            <div className="mt-4 pt-4 border-t border-slate-100 flex flex-col gap-3">
+            <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-700/80 flex flex-col gap-2.5">
+              {/* Mobile Account Button */}
+              <button
+                type="button"
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  if (user) {
+                    onOpenProfile?.();
+                  } else {
+                    onOpenAuth?.();
+                  }
+                }}
+                className="w-full flex items-center justify-between py-3 px-4 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-xs font-headline font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+              >
+                <div className="flex items-center gap-2">
+                  <UserIcon className="w-4 h-4 text-[#016ba5] dark:text-[#38BDF8]" />
+                  <span>{user ? `Family Profile (${user.user_metadata?.full_name || user.email?.split('@')[0]})` : 'Sign In / Create Account'}</span>
+                </div>
+                <ChevronRight className="w-4 h-4 text-slate-400" />
+              </button>
+
+              {/* Mobile Contact Button */}
+              <button
+                type="button"
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  onOpenContact?.();
+                }}
+                className="w-full flex items-center justify-between py-3 px-4 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-xs font-headline font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+              >
+                <div className="flex items-center gap-2">
+                  <MessageSquare className="w-4 h-4 text-[#016ba5] dark:text-[#38BDF8]" />
+                  <span>Contact Support & Feedback</span>
+                </div>
+                <ChevronRight className="w-4 h-4 text-slate-400" />
+              </button>
+
               {/* Mobile CTA Button: Pill-Shaped #fa8221 with right arrow */}
               <button
                 type="button"
@@ -374,28 +451,28 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView = 'home', onViewChan
       {downloadModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
           <div 
-            className="relative w-full max-w-md bg-white rounded-3xl p-6 sm:p-8 shadow-2xl border border-slate-100 text-center"
+            className="relative w-full max-w-md bg-white dark:bg-[#0F2F4E] rounded-3xl p-6 sm:p-8 shadow-2xl border border-slate-100 dark:border-slate-700 text-center"
             onClick={(e) => e.stopPropagation()}
           >
             <button
               type="button"
               onClick={() => setDownloadModalOpen(false)}
-              className="absolute top-4 right-4 p-2 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+              className="absolute top-4 right-4 p-2 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
               aria-label="Close dialog"
             >
               <X className="w-5 h-5" />
             </button>
 
-            {/* Modal Content */}
-            <div className="w-16 h-16 rounded-2xl bg-[#fa8221]/10 text-[#fa8221] flex items-center justify-center mx-auto mb-4 shadow-sm">
-              <Smartphone className="w-8 h-8" />
+            {/* Branded Emblem Header */}
+            <div className="flex justify-center mb-4">
+              <AbtalQuestLogo mode="emblem" variant={theme === 'dark' ? 'dark' : 'light'} size="lg" showText={false} />
             </div>
 
-            <h3 className="font-headline text-2xl font-black text-[#1E293B] mb-2">
+            <h3 className="font-headline text-2xl font-black text-[#1E293B] dark:text-white mb-2">
               Download AbtalQuest
             </h3>
             
-            <p className="font-body text-xs sm:text-sm text-[#64748B] leading-relaxed mb-6">
+            <p className="font-body text-xs sm:text-sm text-[#64748B] dark:text-slate-300 leading-relaxed mb-6">
               Join thousands of families in a safe, values-based digital universe. 100% ad-free, no violence, and certified child safe.
             </p>
 
@@ -407,7 +484,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView = 'home', onViewChan
                   alert('AbtalQuest on Apple App Store: Releasing with Version 1.0! Early access invites active.');
                   setDownloadModalOpen(false);
                 }}
-                className="w-full flex items-center justify-center gap-3 py-3 px-5 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-headline font-semibold text-sm transition-all shadow-md"
+                className="w-full flex items-center justify-center gap-3 py-3 px-5 rounded-2xl bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 text-white font-headline font-semibold text-sm transition-all shadow-md"
               >
                 <Download className="w-4 h-4 text-emerald-400" />
                 <span>Download for iOS (App Store)</span>
@@ -428,12 +505,12 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView = 'home', onViewChan
             </div>
 
             {/* Reassurance Footer */}
-            <div className="pt-4 border-t border-slate-100 flex items-center justify-center gap-4 text-xs font-body text-slate-500">
-              <span className="flex items-center gap-1 text-emerald-600 font-medium">
+            <div className="pt-4 border-t border-slate-100 dark:border-slate-700/80 flex items-center justify-center gap-4 text-xs font-body text-slate-500 dark:text-slate-400">
+              <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-medium">
                 <ShieldCheck className="w-4 h-4" /> Child Safe Verified
               </span>
               <span>•</span>
-              <span className="flex items-center gap-1 text-amber-600 font-medium">
+              <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400 font-medium">
                 <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" /> 4.9 Parent Rating
               </span>
             </div>

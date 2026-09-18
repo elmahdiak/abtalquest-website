@@ -10,7 +10,11 @@ import {
 import AbtalQuestLogo from '../common/AbtalQuestLogo';
 import Badge from '../common/Badge';
 
-export const Footer: React.FC = () => {
+export interface FooterProps {
+  onOpenContact?: () => void;
+}
+
+export const Footer: React.FC<FooterProps> = ({ onOpenContact }) => {
   return (
     // Deep Contrast Color (4%): #1C1C1C (Footer, overlays, strong contrast areas)
     <footer className="bg-[#1C1C1C] text-slate-300 pt-16 pb-12 border-t border-slate-800">
@@ -68,6 +72,8 @@ export const Footer: React.FC = () => {
               size="lg"
               showText={true}
               tagline="Safe • Values-Driven • Kid Universe"
+              clickable={true}
+              href="#universe"
             />
             <p className="font-body text-xs text-slate-400 leading-relaxed max-w-sm mt-2">
               Inspiring future heroes (Abtal) through immersive stories, ethical problem-solving, and heroic real-world quests. No ads. No violence. 100% joyful growth.
@@ -187,9 +193,13 @@ export const Footer: React.FC = () => {
                 </a>
               </li>
               <li>
-                <a href="#parents" className="hover:text-amber-400 transition-colors flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={onOpenContact}
+                  className="hover:text-amber-400 transition-colors flex items-center gap-2 text-left"
+                >
                   <span>Contact</span>
-                </a>
+                </button>
               </li>
             </ul>
           </div>

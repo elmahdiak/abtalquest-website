@@ -82,7 +82,7 @@ const FEATURES: FeatureItem[] = [
 
 export const CoreFeatures: React.FC = () => {
   return (
-    <section id="core-features" className="py-20 sm:py-28 bg-white relative overflow-hidden border-b border-slate-200">
+    <section id="core-features" className="py-20 sm:py-28 bg-white dark:bg-[#071727] relative overflow-hidden border-b border-slate-200 dark:border-slate-800">
       {/* Soft ambient lighting */}
       <div className="absolute top-10 left-1/3 w-96 h-96 bg-[#016ba5]/5 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute bottom-10 right-1/4 w-96 h-96 bg-[#fa8221]/5 rounded-full blur-3xl pointer-events-none" />
@@ -95,11 +95,11 @@ export const CoreFeatures: React.FC = () => {
             Built Differently By Design
           </Badge>
 
-          <h2 className="font-headline text-3xl sm:text-4xl lg:text-5xl font-black text-[#1E293B] tracking-tight mt-4 mb-4">
+          <h2 className="font-headline text-3xl sm:text-4xl lg:text-5xl font-black text-[#1E293B] dark:text-white tracking-tight mt-4 mb-4">
             Core Features for Heroic Growth
           </h2>
 
-          <p className="font-body text-sm sm:text-base text-[#64748B] leading-relaxed">
+          <p className="font-body text-sm sm:text-base text-[#64748B] dark:text-slate-300 leading-relaxed">
             Every feature in AbtalQuest has been vetted by child psychologists and educators to foster genuine moral character rather than digital dopamine addiction.
           </p>
         </div>
@@ -109,7 +109,7 @@ export const CoreFeatures: React.FC = () => {
           {FEATURES.map((feat) => (
             <div
               key={feat.id}
-              className={`bg-white rounded-3xl p-8 border-2 border-slate-200/90 transition-all duration-300 hover:-translate-y-1.5 flex flex-col justify-between ${feat.accentBorder}`}
+              className={`bg-white dark:bg-[#0F2F4E] rounded-3xl p-8 border-2 border-slate-200/90 dark:border-slate-700 transition-all duration-300 hover:-translate-y-1.5 flex flex-col justify-between ${feat.accentBorder}`}
             >
               <div>
                 {/* Top Badge & Icon */}
@@ -123,22 +123,22 @@ export const CoreFeatures: React.FC = () => {
                 </div>
 
                 {/* Subtitle & Title (Montserrat) */}
-                <span className="font-body text-xs font-semibold text-[#016ba5] uppercase tracking-wider block mb-1">
+                <span className="font-body text-xs font-semibold text-[#016ba5] dark:text-[#38BDF8] uppercase tracking-wider block mb-1">
                   {feat.subtitle}
                 </span>
-                <h3 className="font-headline text-2xl font-extrabold text-[#1E293B] tracking-tight mb-4">
+                <h3 className="font-headline text-2xl font-extrabold text-[#1E293B] dark:text-white tracking-tight mb-4">
                   {feat.title}
                 </h3>
 
                 {/* Description (Roboto Mono) */}
-                <p className="font-body text-xs sm:text-sm text-[#64748B] leading-relaxed mb-6">
+                <p className="font-body text-xs sm:text-sm text-[#64748B] dark:text-slate-300 leading-relaxed mb-6">
                   {feat.description}
                 </p>
 
                 {/* Key Bullet Highlights */}
-                <div className="space-y-2.5 pt-2 border-t border-slate-100">
+                <div className="space-y-2.5 pt-2 border-t border-slate-100 dark:border-slate-700/80">
                   {feat.highlights.map((item, idx) => (
-                    <div key={idx} className="flex items-start gap-2.5 text-xs font-body text-slate-700">
+                    <div key={idx} className="flex items-start gap-2.5 text-xs font-body text-slate-700 dark:text-slate-200">
                       <CheckCircle2 className="w-4 h-4 text-[#22C55E] flex-shrink-0 mt-0.5" />
                       <span>{item}</span>
                     </div>
@@ -147,8 +147,8 @@ export const CoreFeatures: React.FC = () => {
               </div>
 
               {/* Bottom Action */}
-              <div className="pt-6 mt-6 border-t border-slate-100 flex items-center justify-between">
-                <span className="font-body text-xs text-slate-500">
+              <div className="pt-6 mt-6 border-t border-slate-100 dark:border-slate-700/80 flex items-center justify-between">
+                <span className="font-body text-xs text-slate-500 dark:text-slate-400">
                   Child Safe Standard
                 </span>
                 <a
