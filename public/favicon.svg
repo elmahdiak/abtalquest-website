@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <!-- AbtalQuest Brand Favicon -->
+  <!-- Head: Blue circle -->
+  <circle cx="50" cy="22" r="9" fill="#016ba5" />
+  
+  <!-- Outer Body / Guardian Arch: Deep Brand Blue -->
+  <path 
+    d="M26 78 C26 50, 36 38, 50 38 C64 38, 74 50, 74 78" 
+    stroke="#016ba5" 
+    stroke-width="9" 
+    stroke-linecap="round" 
+    fill="none" 
+  />
+  
+  <!-- Inner Dynamic Swoop / Hero Flame: Warm CTA Orange -->
+  <path 
+    d="M44 68 C44 58, 48 50, 56 50 C63 50, 66 55, 66 61 C66 68, 58 74, 52 74 C47 74, 44 71, 44 67" 
+    stroke="#fa8221" 
+    stroke-width="7" 
+    stroke-linecap="round" 
+    fill="none" 
+  />
+</svg>

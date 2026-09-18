@@ -1,0 +1,134 @@
+/* Google Fonts: Montserrat (Headlines/Buttons), Roboto Mono (Body/UI), Baloo 2 (Gamified Badges/Rewards) */
+@import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Montserrat:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,700;1,800;1,900&family=Roboto+Mono:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-brand-primary: #016ba5;
+    --color-brand-secondary: #fa8221;
+    --color-brand-success: #22C55E;
+    --color-brand-warning: #FACC15;
+    --color-brand-contrast: #1C1C1C;
+    --color-brand-gamification: #7C3AED;
+    --color-brand-info: #38BDF8;
+    --color-brand-foundation: #0A2540;
+    --color-brand-text-primary: #1E293B;
+    --color-brand-text-secondary: #64748B;
+  }
+
+  /* Global root typography defaults: 'Roboto Mono' for all body, descriptions, and UI text elements */
+  html {
+    font-family: 'Roboto Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    color: #1E293B;
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    font-family: 'Roboto Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    color: #1E293B;
+  }
+
+  /* Rule 1: Set 'Montserrat' as the primary font family for all headings, titles, and button labels */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Montserrat', system-ui, sans-serif !important;
+    color: #1E293B;
+    letter-spacing: -0.02em;
+  }
+
+  /* Button labels strictly use Montserrat */
+  button, 
+  [role="button"],
+  input[type="button"],
+  input[type="submit"],
+  input[type="reset"] {
+    font-family: 'Montserrat', system-ui, sans-serif !important;
+  }
+
+  /* Rule 2: Set 'Roboto Mono' as the secondary font family for all body paragraphs, descriptions, and UI text */
+  p, 
+  span, 
+  li, 
+  input, 
+  textarea, 
+  select, 
+  label, 
+  blockquote, 
+  td, 
+  th {
+    font-family: 'Roboto Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  }
+
+  /* Specific typography overrides take precedence */
+  .font-headline,
+  .font-headline *,
+  .font-heading,
+  .font-heading *,
+  .font-title,
+  .font-button {
+    font-family: 'Montserrat', system-ui, sans-serif !important;
+  }
+
+  .font-gamification,
+  .font-gamification *,
+  .font-badge,
+  .font-badge *,
+  .font-gamified {
+    font-family: 'Baloo 2', cursive, sans-serif !important;
+  }
+
+  .font-body,
+  .font-mono {
+    font-family: 'Roboto Mono', ui-monospace, monospace !important;
+  }
+}
+
+/* Custom animation utilities */
+@layer utilities {
+  @keyframes spinSlow {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  .animate-spin-slow {
+    animation: spinSlow 16s linear infinite;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: scale(0.98);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  .animate-fadeIn {
+    animation: fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  @keyframes slideLeft {
+    from {
+      opacity: 0;
+      transform: translateX(100%);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  .animate-slideLeft {
+    animation: slideLeft 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+}
