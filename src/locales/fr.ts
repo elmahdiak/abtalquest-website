@@ -414,6 +414,12 @@ export const fr = {
     tooltip_title: 'Besoin d\'aide ? Discutez avec nous',
     online: 'En ligne',
     response_time: 'Réponse en quelques minutes',
+    dock_left: 'Déplacer à gauche',
+    dock_right: 'Déplacer à droite',
+    position_label: 'Position du bouton WhatsApp',
+    bottom_right: 'En bas à droite',
+    bottom_left: 'En bas à gauche',
+    switch_position: 'Changer de côté',
   },
   credibility: {
     section_badge: 'Soutien Institutionnel & Distinctions',

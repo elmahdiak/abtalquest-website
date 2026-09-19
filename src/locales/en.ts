@@ -414,6 +414,12 @@ export const en = {
     tooltip_title: 'Need help? Chat with us',
     online: 'Online',
     response_time: 'Typically replies in minutes',
+    dock_left: 'Move to left side',
+    dock_right: 'Move to right side',
+    position_label: 'WhatsApp Button Position',
+    bottom_right: 'Bottom Right Corner',
+    bottom_left: 'Bottom Left Corner',
+    switch_position: 'Switch Corner',
   },
   credibility: {
     section_badge: 'Institutional Backing & Recognition',

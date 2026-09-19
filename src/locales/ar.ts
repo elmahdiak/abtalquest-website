@@ -414,6 +414,12 @@ export const ar = {
     tooltip_title: 'هل تحتاج مساعدة؟ تواصل معنا',
     online: 'متواجدون الآن',
     response_time: 'نرد عادةً خلال دقائق معدودة',
+    dock_left: 'نقل إلى اليسار',
+    dock_right: 'نقل إلى اليمين',
+    position_label: 'موضع زر واتساب',
+    bottom_right: 'أسفل اليمين',
+    bottom_left: 'أسفل اليسار',
+    switch_position: 'تبديل الموضع',
   },
   credibility: {
     section_badge: 'الدعم المؤسساتي والجوائز التقديرية',

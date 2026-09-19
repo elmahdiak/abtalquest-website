@@ -24,11 +24,17 @@ import {
   KeyRound,
   CheckCircle2,
   ArrowLeft,
-  RefreshCw
+  RefreshCw,
+  SlidersHorizontal
 } from 'lucide-react';
 import Badge from '../common/Badge';
 import Button from '../common/Button';
 import AbtalQuestLogo from '../common/AbtalQuestLogo';
+import { 
+  getStoredWhatsAppPosition, 
+  setStoredWhatsAppPosition, 
+  type WhatsAppPosition 
+} from '../../utils/whatsapp';
 import { 
   signInUser, 
   signOutUser, 
@@ -82,7 +88,8 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
   const [dispatchedCode, setDispatchedCode] = useState<string | null>(null);
 
   // Dashboard state
-  const [activeTab, setActiveTab] = useState<'orders' | 'messages' | 'analytics' | 'team'>('orders');
+  const [activeTab, setActiveTab] = useState<'orders' | 'messages' | 'analytics' | 'team' | 'settings'>('orders');
+  const [whatsappPosition, setWhatsappPosition] = useState<WhatsAppPosition>(getStoredWhatsAppPosition);
   const [orders, setOrders] = useState<AdminOrder[]>([]);
   const [messages, setMessages] = useState<ContactMessage[]>([]);
   const [metrics, setMetrics] = useState<SiteMetrics | null>(null);
@@ -422,6 +429,11 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
         setSelectedMessage({ ...selectedMessage, status: nextStatus });
       }
     }
+  };
+
+  const handleUpdateWhatsAppPosition = (newPos: WhatsAppPosition) => {
+    setWhatsappPosition(newPos);
+    setStoredWhatsAppPosition(newPos);
   };
 
   // Filtered orders
@@ -974,6 +986,18 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
               </span>
             </button>
           )}
+
+          <button
+            onClick={() => setActiveTab('settings')}
+            className={`px-4 py-2 rounded-xl font-headline text-xs font-bold transition-all flex items-center gap-2 ${
+              activeTab === 'settings'
+                ? 'bg-[#fa8221] text-white shadow-sm'
+                : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
+            }`}
+          >
+            <SlidersHorizontal className="w-4 h-4" />
+            <span>Platform Settings</span>
+          </button>
         </div>
       </header>
 
@@ -1651,6 +1675,157 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
                       </table>
                     </div>
                   )}
+                </div>
+              </div>
+            )}
+
+            {/* ========================================================
+                TAB 5: PLATFORM & WIDGET SETTINGS
+               ======================================================== */}
+            {activeTab === 'settings' && (
+              <div className="space-y-8 animate-in fade-in duration-200">
+                <div>
+                  <h3 className="font-headline text-2xl font-black text-slate-900 tracking-tight">
+                    Platform & Widget Settings
+                  </h3>
+                  <p className="font-body text-xs sm:text-sm text-slate-500 mt-1">
+                    Manage floating customer widgets, support contact channels, and live communication preferences.
+                  </p>
+                </div>
+
+                {/* Floating WhatsApp Chat Configuration Card */}
+                <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 shadow-xs">
+                  <div className="flex items-start justify-between gap-4 pb-6 border-b border-slate-100 mb-6">
+                    <div className="flex items-center gap-3.5">
+                      <div className="w-12 h-12 rounded-2xl bg-[#25D366]/15 text-[#25D366] flex items-center justify-center border border-[#25D366]/20 shadow-xs">
+                        <MessageSquare className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <h4 className="font-headline text-lg font-black text-slate-900">
+                          Floating WhatsApp Support Widget
+                        </h4>
+                        <p className="font-body text-xs text-slate-500 mt-0.5">
+                          Configure screen corner positioning, contact endpoint, and responsiveness across the entire website.
+                        </p>
+                      </div>
+                    </div>
+
+                    <span className="px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-headline font-bold text-xs flex items-center gap-1.5 shadow-2xs">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                      Live on All Pages
+                    </span>
+                  </div>
+
+                  {/* Position Switcher Cards */}
+                  <div className="mb-8">
+                    <label className="block font-headline text-xs font-bold uppercase tracking-wider text-slate-600 mb-3">
+                      Widget Screen Corner Positioning
+                    </label>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl">
+                      {/* Option 1: Bottom Right */}
+                      <button
+                        type="button"
+                        onClick={() => handleUpdateWhatsAppPosition('bottom-right')}
+                        className={`p-5 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                          whatsappPosition === 'bottom-right'
+                            ? 'bg-emerald-50/60 border-[#25D366] shadow-sm ring-2 ring-[#25D366]/20'
+                            : 'bg-slate-50/80 border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                        }`}
+                      >
+                        <div>
+                          <div className="flex items-center justify-between gap-2 mb-3">
+                            <span className="font-headline font-bold text-sm text-slate-900 flex items-center gap-2">
+                              Bottom-Right Corner
+                            </span>
+                            {whatsappPosition === 'bottom-right' && (
+                              <span className="px-2 py-0.5 rounded-full bg-[#25D366] text-white font-headline font-black text-[10px]">
+                                ACTIVE
+                              </span>
+                            )}
+                          </div>
+                          <p className="font-body text-xs text-slate-500 leading-relaxed mb-4">
+                            Standard, high-conversion position favored by enterprise web apps. Sits unobtrusively at the lower-right margin.
+                          </p>
+                        </div>
+
+                        {/* Schematic Mini-Viewport */}
+                        <div className="w-full h-16 rounded-xl bg-white border border-slate-200/80 relative p-1.5 flex flex-col justify-between overflow-hidden shadow-inner">
+                          <div className="w-full h-2 rounded bg-slate-100 flex items-center gap-1 px-1">
+                            <span className="w-1 h-1 rounded-full bg-slate-300" />
+                            <span className="w-1 h-1 rounded-full bg-slate-300" />
+                          </div>
+                          <div className="flex justify-end">
+                            <div className="w-4 h-4 rounded-full bg-[#25D366] shadow-sm flex items-center justify-center text-white text-[8px]">
+                              ●
+                            </div>
+                          </div>
+                        </div>
+                      </button>
+
+                      {/* Option 2: Bottom Left */}
+                      <button
+                        type="button"
+                        onClick={() => handleUpdateWhatsAppPosition('bottom-left')}
+                        className={`p-5 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                          whatsappPosition === 'bottom-left'
+                            ? 'bg-emerald-50/60 border-[#25D366] shadow-sm ring-2 ring-[#25D366]/20'
+                            : 'bg-slate-50/80 border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                        }`}
+                      >
+                        <div>
+                          <div className="flex items-center justify-between gap-2 mb-3">
+                            <span className="font-headline font-bold text-sm text-slate-900 flex items-center gap-2">
+                              Bottom-Left Corner
+                            </span>
+                            {whatsappPosition === 'bottom-left' && (
+                              <span className="px-2 py-0.5 rounded-full bg-[#25D366] text-white font-headline font-black text-[10px]">
+                                ACTIVE
+                              </span>
+                            )}
+                          </div>
+                          <p className="font-body text-xs text-slate-500 leading-relaxed mb-4">
+                            Alternative left-docked position to prevent overlap with right-docked shopping carts or pagination controls.
+                          </p>
+                        </div>
+
+                        {/* Schematic Mini-Viewport */}
+                        <div className="w-full h-16 rounded-xl bg-white border border-slate-200/80 relative p-1.5 flex flex-col justify-between overflow-hidden shadow-inner">
+                          <div className="w-full h-2 rounded bg-slate-100 flex items-center gap-1 px-1">
+                            <span className="w-1 h-1 rounded-full bg-slate-300" />
+                            <span className="w-1 h-1 rounded-full bg-slate-300" />
+                          </div>
+                          <div className="flex justify-start">
+                            <div className="w-4 h-4 rounded-full bg-[#25D366] shadow-sm flex items-center justify-center text-white text-[8px]">
+                              ●
+                            </div>
+                          </div>
+                        </div>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Connected WhatsApp Number Details */}
+                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 max-w-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                      <span className="font-headline text-xs font-bold text-slate-700 block mb-0.5">
+                        Connected WhatsApp Endpoint
+                      </span>
+                      <span className="font-mono text-sm font-bold text-slate-900">
+                        +212 7 54 40 21 29 <span className="text-xs text-slate-400 font-normal">(wa.me/212754402129)</span>
+                      </span>
+                    </div>
+
+                    <a
+                      href="https://wa.me/212754402129"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3.5 py-2 rounded-xl bg-[#25D366] hover:bg-[#20bd5a] text-white font-headline font-bold text-xs inline-flex items-center gap-1.5 transition-colors shadow-xs"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                      <span>Test Chat Link</span>
+                    </a>
+                  </div>
                 </div>
               </div>
             )}
