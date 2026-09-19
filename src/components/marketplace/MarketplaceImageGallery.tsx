@@ -94,6 +94,91 @@ export const MarketplaceImageGallery: React.FC<MarketplaceImageGalleryProps> = (
     setActiveIndex((prev) => (prev < slides.length - 1 ? prev + 1 : 0));
   }, [slides.length]);
 
+  // Touch swipe gesture handling (finger swipe on mobile/touch screens)
+  const touchStartXRef = React.useRef<number | null>(null);
+  const touchStartYRef = React.useRef<number | null>(null);
+  const touchEndXRef = React.useRef<number | null>(null);
+  const touchEndYRef = React.useRef<number | null>(null);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartXRef.current = e.touches[0].clientX;
+    touchStartYRef.current = e.touches[0].clientY;
+    touchEndXRef.current = null;
+    touchEndYRef.current = null;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    touchEndXRef.current = e.touches[0].clientX;
+    touchEndYRef.current = e.touches[0].clientY;
+  };
+
+  const handleTouchEnd = () => {
+    if (touchStartXRef.current === null || touchEndXRef.current === null) return;
+    if (touchStartYRef.current === null || touchEndYRef.current === null) return;
+
+    const deltaX = touchStartXRef.current - touchEndXRef.current;
+    const deltaY = touchStartYRef.current - touchEndYRef.current;
+    const minSwipeDistance = 40; // minimum swipe delta in px
+
+    // Only trigger swipe if horizontal motion was dominant (prevents blocking natural vertical scrolling)
+    if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > minSwipeDistance) {
+      if (deltaX > 0) {
+        // Swiped Left (finger moved from right to left)
+        if (direction === 'rtl') {
+          handlePrev();
+        } else {
+          handleNext();
+        }
+      } else {
+        // Swiped Right (finger moved from left to right)
+        if (direction === 'rtl') {
+          handleNext();
+        } else {
+          handlePrev();
+        }
+      }
+    }
+
+    touchStartXRef.current = null;
+    touchStartYRef.current = null;
+    touchEndXRef.current = null;
+    touchEndYRef.current = null;
+  };
+
+  // Mouse drag support for desktop
+  const isMouseDownRef = React.useRef<boolean>(false);
+  const mouseStartXRef = React.useRef<number | null>(null);
+  const mouseStartYRef = React.useRef<number | null>(null);
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    isMouseDownRef.current = true;
+    mouseStartXRef.current = e.clientX;
+    mouseStartYRef.current = e.clientY;
+  };
+
+  const handleMouseUp = (e: React.MouseEvent) => {
+    if (!isMouseDownRef.current || mouseStartXRef.current === null || mouseStartYRef.current === null) {
+      isMouseDownRef.current = false;
+      return;
+    }
+    const deltaX = mouseStartXRef.current - e.clientX;
+    const deltaY = mouseStartYRef.current - e.clientY;
+    const minSwipeDistance = 45;
+
+    if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > minSwipeDistance) {
+      if (deltaX > 0) {
+        if (direction === 'rtl') handlePrev();
+        else handleNext();
+      } else {
+        if (direction === 'rtl') handleNext();
+        else handlePrev();
+      }
+    }
+    isMouseDownRef.current = false;
+    mouseStartXRef.current = null;
+    mouseStartYRef.current = null;
+  };
+
   // Handle keyboard arrow navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -132,8 +217,15 @@ export const MarketplaceImageGallery: React.FC<MarketplaceImageGalleryProps> = (
   return (
     <div className={cn("flex flex-col gap-4", className)}>
       
-      {/* 1. Main Preview Viewport */}
-      <div className="relative w-full aspect-square sm:aspect-[4/3] rounded-3xl bg-gradient-to-br from-slate-100 via-slate-50 to-slate-200 dark:from-[#0B1E33] dark:via-[#071727] dark:to-[#040D18] border border-slate-200/80 dark:border-slate-800 flex items-center justify-center p-6 sm:p-10 overflow-hidden shadow-inner group select-none">
+      {/* 1. Main Preview Viewport with Touch Swipe & Mouse Drag */}
+      <div 
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onMouseDown={handleMouseDown}
+        onMouseUp={handleMouseUp}
+        className="relative w-full aspect-square sm:aspect-[4/3] rounded-3xl bg-gradient-to-br from-slate-100 via-slate-50 to-slate-200 dark:from-[#0B1E33] dark:via-[#071727] dark:to-[#040D18] border border-slate-200/80 dark:border-slate-800 flex items-center justify-center p-6 sm:p-10 overflow-hidden shadow-inner group select-none touch-pan-y cursor-grab active:cursor-grabbing"
+      >
         
         {/* Glow ambient background based on product accent color */}
         <div
@@ -392,6 +484,24 @@ export const MarketplaceImageGallery: React.FC<MarketplaceImageGalleryProps> = (
         })}
       </div>
 
+      {/* Mobile Swipe Pagination Dots Indicator */}
+      <div className="flex sm:hidden items-center justify-center gap-1.5 py-1" aria-hidden="true">
+        {slides.map((_, idx) => (
+          <button
+            key={idx}
+            type="button"
+            onClick={() => setActiveIndex(idx)}
+            className={cn(
+              "h-1.5 rounded-full transition-all duration-300 cursor-pointer",
+              activeIndex === idx 
+                ? "w-6 bg-[#016ba5] dark:bg-[#38bdf8]" 
+                : "w-1.5 bg-slate-300 dark:bg-slate-700 hover:bg-slate-400"
+            )}
+            aria-label={`Go to slide ${idx + 1}`}
+          />
+        ))}
+      </div>
+
       {/* 3. Fullscreen Lightbox Modal */}
       {isLightboxOpen && (
         <div
@@ -426,8 +536,13 @@ export const MarketplaceImageGallery: React.FC<MarketplaceImageGalleryProps> = (
               </span>
             </div>
 
-            {/* Main Lightbox Viewport */}
-            <div className="w-full h-80 sm:h-96 rounded-2xl bg-slate-950 border border-slate-800 flex items-center justify-center p-8 relative overflow-hidden">
+            {/* Main Lightbox Viewport with Touch Swipe */}
+            <div 
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
+              className="w-full h-80 sm:h-96 rounded-2xl bg-slate-950 border border-slate-800 flex items-center justify-center p-8 relative overflow-hidden touch-pan-y"
+            >
               <div
                 className="absolute inset-0 opacity-20 blur-3xl pointer-events-none"
                 style={{ backgroundColor: product.accentColor || '#016ba5' }}
