@@ -1,11 +1,19 @@
 import { supabase, isSupabaseConfigured } from '../supabaseClient';
 import type { User, Session } from '@supabase/supabase-js';
+import {
+  sendWelcomeAndConfirmationEmail,
+  sendPasswordResetCodeEmail,
+  sendAdminInvitationEmail,
+  verifyEmailCode,
+} from './emailService';
+
+export type AdminRole = 'super_admin' | 'admin' | 'manager' | 'support_admin';
 
 export interface AuthUserProfile {
   id: string;
   email: string;
   fullName?: string;
-  role?: 'super_admin' | 'admin' | 'support_admin' | 'user';
+  role?: AdminRole | 'user';
   createdAt?: string;
 }
 
@@ -13,7 +21,7 @@ export interface AdminUserRecord {
   id: string;
   email: string;
   fullName: string;
-  role: 'super_admin' | 'admin' | 'support_admin';
+  role: AdminRole;
   isSuperAdmin: boolean;
   createdBy: string;
   createdAt: string;
@@ -25,22 +33,17 @@ export const SUPER_ADMIN_NAME = 'ElMahdi Ak';
 export const SUPER_ADMIN_DEFAULT_PASS = 'AbtalAdmin2026!#Quest';
 
 /**
- * Check whether a user is the primary Super Administrator
- * Only the Super Admin (ElMahdi Ak) is authorized to add or revoke other admin accounts
+ * Check whether a user is strictly the primary Super Administrator
+ * SECURITY RULE: Full Super Admin privileges are restricted strictly to akmahdi085@gmail.com.
+ * No other email or spoofed metadata can ever claim Super Admin rights.
  */
 export const isSuperAdmin = (user: User | null): boolean => {
   if (!user || !user.email) return false;
-  const normalized = user.email.trim().toLowerCase();
-  return (
-    normalized === SUPER_ADMIN_EMAIL.toLowerCase() ||
-    user.user_metadata?.is_super_admin === true ||
-    user.user_metadata?.role === 'super_admin'
-  );
+  return user.email.trim().toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
 };
 
 /**
- * Sign in user with email and password via Supabase Auth
- * Includes instant authorization fallback for Super Admin if remote email confirmation is pending
+ * Sign in user with email and password via Supabase Auth or local verified credentials
  */
 export const signInUser = async (
   email: string,
@@ -49,7 +52,63 @@ export const signInUser = async (
   const normalizedEmail = email.trim().toLowerCase();
   const isSuperAdminTarget = normalizedEmail === SUPER_ADMIN_EMAIL.toLowerCase();
 
-  // Try Supabase Auth first
+  // Check custom/updated credentials from password reset first
+  try {
+    const credsRaw = localStorage.getItem('abtalquest_admin_credentials');
+    if (credsRaw) {
+      const creds = JSON.parse(credsRaw);
+      if (creds[normalizedEmail] && creds[normalizedEmail].password === password) {
+        const appointedUser = {
+          id: isSuperAdminTarget
+            ? '39f9b51f-63c8-4448-bc2c-e6898163616c'
+            : `admin-${normalizedEmail}`,
+          email: normalizedEmail,
+          user_metadata: {
+            full_name: creds[normalizedEmail].fullName || (isSuperAdminTarget ? SUPER_ADMIN_NAME : normalizedEmail.split('@')[0]),
+            role: creds[normalizedEmail].role || (isSuperAdminTarget ? 'super_admin' : 'admin'),
+            is_super_admin: isSuperAdminTarget,
+          },
+          app_metadata: {},
+          aud: 'authenticated',
+          created_at: new Date().toISOString(),
+        } as unknown as User;
+
+        localStorage.setItem('abtalquest_active_admin', JSON.stringify(appointedUser));
+        return { user: appointedUser, error: null };
+      }
+    }
+  } catch {
+    // Continue
+  }
+
+  // Check registered standard users
+  try {
+    const usersRaw = localStorage.getItem('abtalquest_registered_users');
+    if (usersRaw) {
+      const users = JSON.parse(usersRaw);
+      if (users[normalizedEmail] && users[normalizedEmail].password === password) {
+        const standardUser = {
+          id: `user-${normalizedEmail}`,
+          email: normalizedEmail,
+          user_metadata: {
+            full_name: users[normalizedEmail].fullName,
+            role: 'user',
+            email_confirmed: Boolean(users[normalizedEmail].emailConfirmed),
+          },
+          app_metadata: {},
+          aud: 'authenticated',
+          created_at: users[normalizedEmail].createdAt || new Date().toISOString(),
+        } as unknown as User;
+
+        localStorage.setItem('abtalquest_mock_user', JSON.stringify(standardUser));
+        return { user: standardUser, error: null };
+      }
+    }
+  } catch {
+    // Continue
+  }
+
+  // Try Supabase Auth
   if (isSupabaseConfigured()) {
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -64,7 +123,7 @@ export const signInUser = async (
         return { user: data.user, error: null };
       }
 
-      // If Super Admin logs in with master credentials and Supabase email confirmation is pending
+      // If Super Admin logs in with default master pass
       if (
         isSuperAdminTarget &&
         (password === SUPER_ADMIN_DEFAULT_PASS ||
@@ -86,32 +145,6 @@ export const signInUser = async (
 
         localStorage.setItem('abtalquest_active_admin', JSON.stringify(superAdminUser));
         return { user: superAdminUser, error: null };
-      }
-
-      // Check appointed admins provisioned by Super Admin from local cache
-      try {
-        const credsRaw = localStorage.getItem('abtalquest_admin_credentials');
-        if (credsRaw) {
-          const creds = JSON.parse(credsRaw);
-          if (creds[normalizedEmail] && creds[normalizedEmail].password === password) {
-            const appointedAdminUser = {
-              id: `admin-${normalizedEmail}`,
-              email: normalizedEmail,
-              user_metadata: {
-                full_name: creds[normalizedEmail].fullName,
-                role: creds[normalizedEmail].role,
-                is_super_admin: false,
-              },
-              app_metadata: {},
-              aud: 'authenticated',
-              created_at: new Date().toISOString(),
-            } as unknown as User;
-            localStorage.setItem('abtalquest_active_admin', JSON.stringify(appointedAdminUser));
-            return { user: appointedAdminUser, error: null };
-          }
-        }
-      } catch {
-        // Continue
       }
 
       if (error) {
@@ -146,42 +179,60 @@ export const signInUser = async (
     return { user: superAdminUser, error: null };
   }
 
-  const mockUser = {
-    id: 'mock-user-id',
-    email: normalizedEmail,
-    user_metadata: { full_name: normalizedEmail.split('@')[0], role: 'user' },
-    app_metadata: {},
-    aud: 'authenticated',
-    created_at: new Date().toISOString(),
-  } as unknown as User;
-  localStorage.setItem('abtalquest_mock_user', JSON.stringify(mockUser));
-  return { user: mockUser, error: null };
+  return { user: null, error: 'Invalid email or password.' };
 };
 
 /**
  * Sign up a new customer / family user with email, password, and full name
+ * Immediately triggers an Account Confirmation & Welcome email with a 6-digit code!
  */
 export const signUpUser = async (
   email: string,
   password: string,
   fullName: string
-): Promise<{ user: User | null; error: string | null; confirmationRequired: boolean }> => {
+): Promise<{ user: User | null; error: string | null; confirmationRequired: boolean; verificationCode?: string }> => {
+  const normalizedEmail = email.trim().toLowerCase();
+
+  // 1. Immediately trigger the Welcome & Verification Code email
+  const emailRes = await sendWelcomeAndConfirmationEmail(normalizedEmail, fullName);
+
+  // 2. Persist in local user registry
+  try {
+    const usersRaw = localStorage.getItem('abtalquest_registered_users') || '{}';
+    const users = JSON.parse(usersRaw);
+    users[normalizedEmail] = {
+      email: normalizedEmail,
+      fullName,
+      password,
+      emailConfirmed: false,
+      createdAt: new Date().toISOString(),
+    };
+    localStorage.setItem('abtalquest_registered_users', JSON.stringify(users));
+  } catch (err) {
+    console.warn('Failed to cache user credentials:', err);
+  }
+
   if (!isSupabaseConfigured()) {
     const mockUser = {
-      id: `mock-user-${Date.now()}`,
-      email,
+      id: `user-${Date.now()}`,
+      email: normalizedEmail,
       user_metadata: { full_name: fullName, role: 'user' },
       app_metadata: {},
       aud: 'authenticated',
       created_at: new Date().toISOString(),
     } as unknown as User;
-    localStorage.setItem('abtalquest_mock_user', JSON.stringify(mockUser));
-    return { user: mockUser, error: null, confirmationRequired: false };
+
+    return {
+      user: mockUser,
+      error: null,
+      confirmationRequired: true,
+      verificationCode: emailRes.code,
+    };
   }
 
   try {
     const { data, error } = await supabase.auth.signUp({
-      email,
+      email: normalizedEmail,
       password,
       options: {
         data: {
@@ -195,12 +246,11 @@ export const signUpUser = async (
       return { user: null, error: error.message, confirmationRequired: false };
     }
 
-    const confirmationRequired = !data.session && Boolean(data.user);
-
     return {
       user: data.user,
       error: null,
-      confirmationRequired,
+      confirmationRequired: true,
+      verificationCode: emailRes.code,
     };
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Registration failed';
@@ -209,19 +259,136 @@ export const signUpUser = async (
 };
 
 /**
- * Check if the given user has verified administrator privileges
+ * Confirm a newly created user account via email verification code
+ */
+export const confirmUserEmail = async (
+  email: string,
+  code: string
+): Promise<{ success: boolean; error: string | null }> => {
+  const res = verifyEmailCode(email, code, 'confirm_email');
+  if (!res.success) {
+    return res;
+  }
+
+  try {
+    const normalizedEmail = email.trim().toLowerCase();
+    const usersRaw = localStorage.getItem('abtalquest_registered_users') || '{}';
+    const users = JSON.parse(usersRaw);
+    if (users[normalizedEmail]) {
+      users[normalizedEmail].emailConfirmed = true;
+      localStorage.setItem('abtalquest_registered_users', JSON.stringify(users));
+    }
+  } catch {
+    // Ignore
+  }
+
+  return { success: true, error: null };
+};
+
+/**
+ * Request Password Reset: triggers 6-digit OTP verification email for users or admins
+ */
+export const requestPasswordReset = async (
+  email: string
+): Promise<{ success: boolean; error: string | null; code?: string }> => {
+  const normalizedEmail = email.trim().toLowerCase();
+  if (!normalizedEmail || !normalizedEmail.includes('@')) {
+    return { success: false, error: 'Please enter a valid email address.' };
+  }
+
+  const isSuperAdminTarget = normalizedEmail === SUPER_ADMIN_EMAIL.toLowerCase();
+
+  // Send 6-digit reset code email
+  const res = await sendPasswordResetCodeEmail(normalizedEmail, isSuperAdminTarget);
+  if (!res.success) {
+    return { success: false, error: res.error || 'Failed to dispatch password reset email.' };
+  }
+
+  return { success: true, error: null, code: res.code };
+};
+
+/**
+ * Verify Password Reset 6-Digit Code
+ */
+export const verifyPasswordResetCode = async (
+  email: string,
+  code: string
+): Promise<{ success: boolean; error: string | null }> => {
+  return verifyEmailCode(email, code, 'reset_password');
+};
+
+/**
+ * Complete Password Reset with Verified Code and New Password
+ */
+export const completePasswordReset = async (
+  email: string,
+  newPassword: string
+): Promise<{ success: boolean; error: string | null }> => {
+  const normalizedEmail = email.trim().toLowerCase();
+  if (!newPassword || newPassword.length < 6) {
+    return { success: false, error: 'Password must be at least 6 characters long.' };
+  }
+
+  const isSuperAdminTarget = normalizedEmail === SUPER_ADMIN_EMAIL.toLowerCase();
+
+  // Update in admin credentials registry (if admin/manager/super admin)
+  try {
+    const credsRaw = localStorage.getItem('abtalquest_admin_credentials') || '{}';
+    const creds = JSON.parse(credsRaw);
+    if (isSuperAdminTarget) {
+      creds[normalizedEmail] = {
+        password: newPassword,
+        role: 'super_admin',
+        fullName: SUPER_ADMIN_NAME,
+      };
+      localStorage.setItem('abtalquest_admin_credentials', JSON.stringify(creds));
+    } else if (creds[normalizedEmail]) {
+      creds[normalizedEmail].password = newPassword;
+      localStorage.setItem('abtalquest_admin_credentials', JSON.stringify(creds));
+    }
+  } catch {
+    // Ignore
+  }
+
+  // Update in registered users registry (for regular users)
+  try {
+    const usersRaw = localStorage.getItem('abtalquest_registered_users') || '{}';
+    const users = JSON.parse(usersRaw);
+    if (users[normalizedEmail]) {
+      users[normalizedEmail].password = newPassword;
+      localStorage.setItem('abtalquest_registered_users', JSON.stringify(users));
+    }
+  } catch {
+    // Ignore
+  }
+
+  // Update in Supabase Auth if session exists or configured
+  if (isSupabaseConfigured()) {
+    try {
+      await supabase.auth.updateUser({ password: newPassword });
+    } catch {
+      // Offline fallback succeeded
+    }
+  }
+
+  return { success: true, error: null };
+};
+
+/**
+ * Check if the given user has verified administrator privileges (Super Admin, Admin, Manager, Support Admin)
  */
 export const verifyIsAdmin = async (user: User | null): Promise<boolean> => {
   if (!user || !user.email) return false;
   const email = user.email.trim().toLowerCase();
 
-  // 1. Super Admin is unconditionally authorized
+  // 1. Super Admin is strictly and unconditionally authorized
   if (isSuperAdmin(user)) {
     return true;
   }
 
-  // 2. Check user metadata
-  if (user.user_metadata?.role === 'admin' || user.user_metadata?.role === 'support_admin') {
+  // 2. Check user metadata for manager or admin role
+  const role = user.user_metadata?.role;
+  if (role === 'admin' || role === 'manager' || role === 'support_admin') {
     return true;
   }
 
@@ -234,7 +401,7 @@ export const verifyIsAdmin = async (user: User | null): Promise<boolean> => {
         .eq('email', email)
         .maybeSingle();
 
-      if (!error && data?.role) {
+      if (!error && data?.role && ['admin', 'manager', 'support_admin', 'super_admin'].includes(data.role)) {
         return true;
       }
     } catch {
@@ -293,8 +460,8 @@ export const getAdminUsersList = async (): Promise<AdminUserRecord[]> => {
           id: row.id,
           email: row.email,
           fullName: row.full_name || row.email.split('@')[0],
-          role: (row.role || 'admin') as AdminUserRecord['role'],
-          isSuperAdmin: Boolean(row.is_super_admin || row.email.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase()),
+          role: (row.role || 'admin') as AdminRole,
+          isSuperAdmin: row.email.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase(),
           createdBy: row.created_by || 'ElMahdi Ak',
           createdAt: row.created_at || new Date().toISOString(),
         }));
@@ -316,7 +483,10 @@ export const getAdminUsersList = async (): Promise<AdminUserRecord[]> => {
       const localAdmins: AdminUserRecord[] = JSON.parse(raw);
       for (const la of localAdmins) {
         if (!list.some((existing) => existing.email.toLowerCase() === la.email.toLowerCase())) {
-          list.push(la);
+          list.push({
+            ...la,
+            isSuperAdmin: la.email.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase(),
+          });
         }
       }
     }
@@ -328,23 +498,24 @@ export const getAdminUsersList = async (): Promise<AdminUserRecord[]> => {
 };
 
 /**
- * Provision a new Administrator account
- * STRICT SECURITY: ONLY executable if the calling user is the Super Administrator (ElMahdi Ak)
+ * Provision a new Administrator or Manager account
+ * STRICT SECURITY: ONLY executable if the calling user is strictly the Super Administrator (ElMahdi Ak: akmahdi085@gmail.com)
+ * Dispatches an email notification immediately to the new manager or admin!
  */
 export const createAdminAccountBySuperAdmin = async (
   params: {
     email: string;
     password: string;
     fullName: string;
-    role: 'admin' | 'support_admin';
+    role: 'manager' | 'admin' | 'support_admin';
   },
   currentSuperAdminUser: User | null
 ): Promise<{ success: boolean; error: string | null }> => {
-  // Permission Guard
+  // Strict Super Admin Permission Guard
   if (!isSuperAdmin(currentSuperAdminUser)) {
     return {
       success: false,
-      error: 'Permission Denied: Only the Primary Super Administrator (ElMahdi Ak) has permission to provision administrator accounts.',
+      error: 'Permission Denied: Only the Primary Super Administrator (ElMahdi Ak - akmahdi085@gmail.com) has authority to provision manager or administrator accounts.',
     };
   }
 
@@ -408,7 +579,7 @@ export const createAdminAccountBySuperAdmin = async (
       localStorage.setItem('abtalquest_admin_directory', JSON.stringify(existing));
     }
 
-    // Store appointed admin credentials for offline/immediate login
+    // Store appointed credentials for immediate login
     try {
       const credsRaw = localStorage.getItem('abtalquest_admin_credentials') || '{}';
       const creds = JSON.parse(credsRaw);
@@ -422,18 +593,27 @@ export const createAdminAccountBySuperAdmin = async (
       // Ignore
     }
 
+    // 4. Immediately trigger Manager / Admin Appointment Invitation Email!
+    await sendAdminInvitationEmail({
+      email,
+      fullName: params.fullName,
+      role: params.role,
+      temporaryPass: params.password,
+      appointedBy: currentSuperAdminUser?.email || SUPER_ADMIN_EMAIL,
+    });
+
     return { success: true, error: null };
   } catch (err) {
     return {
       success: false,
-      error: err instanceof Error ? err.message : 'Failed to provision administrator account.',
+      error: err instanceof Error ? err.message : 'Failed to provision account.',
     };
   }
 };
 
 /**
- * Revoke an Administrator account
- * STRICT SECURITY: ONLY executable if calling user is the Super Administrator (ElMahdi Ak)
+ * Revoke an Administrator or Manager account
+ * STRICT SECURITY: ONLY executable if calling user is strictly the Super Administrator (ElMahdi Ak: akmahdi085@gmail.com)
  */
 export const removeAdminAccountBySuperAdmin = async (
   adminEmail: string,
@@ -442,7 +622,7 @@ export const removeAdminAccountBySuperAdmin = async (
   if (!isSuperAdmin(currentSuperAdminUser)) {
     return {
       success: false,
-      error: 'Permission Denied: Only the Primary Super Administrator (ElMahdi Ak) can revoke administrator accounts.',
+      error: 'Permission Denied: Only the Primary Super Administrator (ElMahdi Ak) can revoke administrator or manager accounts.',
     };
   }
 
@@ -450,7 +630,7 @@ export const removeAdminAccountBySuperAdmin = async (
   if (normalized === SUPER_ADMIN_EMAIL.toLowerCase()) {
     return {
       success: false,
-      error: 'Protected Master Account: The Primary Super Administrator (ElMahdi Ak) cannot be revoked.',
+      error: 'Protected Master Account: The Primary Super Administrator (akmahdi085@gmail.com) cannot be revoked.',
     };
   }
 
@@ -525,7 +705,7 @@ export const getCurrentUser = async (): Promise<User | null> => {
 };
 
 /**
- * Subscribe to Supabase Auth state changes
+ * Subscribe to Auth state changes
  */
 export const subscribeToAuthChanges = (
   callback: (user: User | null, session: Session | null) => void
@@ -565,4 +745,3 @@ export const subscribeToAuthChanges = (
     },
   };
 };
-

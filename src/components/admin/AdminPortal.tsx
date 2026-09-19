@@ -20,7 +20,11 @@ import {
   Crown,
   UserPlus,
   Trash2,
-  Shield
+  Shield,
+  KeyRound,
+  CheckCircle2,
+  ArrowLeft,
+  RefreshCw
 } from 'lucide-react';
 import Badge from '../common/Badge';
 import Button from '../common/Button';
@@ -34,6 +38,10 @@ import {
   getAdminUsersList,
   createAdminAccountBySuperAdmin,
   removeAdminAccountBySuperAdmin,
+  requestPasswordReset,
+  verifyPasswordResetCode,
+  completePasswordReset,
+  SUPER_ADMIN_EMAIL,
   type AdminUserRecord
 } from '../../services/authService';
 import { 
@@ -60,6 +68,15 @@ export const AdminPortal: React.FC = () => {
   const [authError, setAuthError] = useState<string | null>(null);
   const [authSubmitting, setAuthSubmitting] = useState<boolean>(false);
 
+  // Admin Password Recovery state
+  const [adminAuthMode, setAdminAuthMode] = useState<'signin' | 'forgot_password' | 'verify_code' | 'new_password'>('signin');
+  const [recoveryEmail, setRecoveryEmail] = useState<string>('akmahdi085@gmail.com');
+  const [recoveryCode, setRecoveryCode] = useState<string>('');
+  const [recoveryNewPassword, setRecoveryNewPassword] = useState<string>('');
+  const [recoveryConfirmPassword, setRecoveryConfirmPassword] = useState<string>('');
+  const [recoverySuccess, setRecoverySuccess] = useState<string | null>(null);
+  const [dispatchedCode, setDispatchedCode] = useState<string | null>(null);
+
   // Dashboard state
   const [activeTab, setActiveTab] = useState<'orders' | 'messages' | 'analytics' | 'team'>('orders');
   const [orders, setOrders] = useState<AdminOrder[]>([]);
@@ -74,7 +91,7 @@ export const AdminPortal: React.FC = () => {
   const [newAdminFullName, setNewAdminFullName] = useState<string>('');
   const [newAdminEmail, setNewAdminEmail] = useState<string>('');
   const [newAdminPassword, setNewAdminPassword] = useState<string>('');
-  const [newAdminRole, setNewAdminRole] = useState<'admin' | 'support_admin'>('admin');
+  const [newAdminRole, setNewAdminRole] = useState<'manager' | 'admin' | 'support_admin'>('manager');
   const [adminActionError, setAdminActionError] = useState<string | null>(null);
   const [adminActionSuccess, setAdminActionSuccess] = useState<string | null>(null);
   const [adminActionSubmitting, setAdminActionSubmitting] = useState<boolean>(false);
@@ -112,6 +129,18 @@ export const AdminPortal: React.FC = () => {
     return () => {
       mounted = false;
     };
+  }, []);
+
+  // Listen for dispatched email events for auto-fill assistance during testing
+  useEffect(() => {
+    const handleDispatched = (e: Event) => {
+      const customEvt = e as CustomEvent<{ code?: string; type?: string; toEmail?: string }>;
+      if (customEvt.detail?.code) {
+        setDispatchedCode(customEvt.detail.code);
+      }
+    };
+    window.addEventListener('abtalquest:email_dispatched', handleDispatched);
+    return () => window.removeEventListener('abtalquest:email_dispatched', handleDispatched);
   }, []);
 
   // Load team administrators (Super Admin)
@@ -192,6 +221,104 @@ export const AdminPortal: React.FC = () => {
       }
     } catch (err) {
       setAuthError(err instanceof Error ? err.message : 'Sign in failed');
+    } finally {
+      setAuthSubmitting(false);
+    }
+  };
+
+  // Handle Request Admin Password Reset
+  const handleRequestAdminReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthError(null);
+    setRecoverySuccess(null);
+    setAuthSubmitting(true);
+
+    try {
+      const res = await requestPasswordReset(recoveryEmail);
+      if (!res.success) {
+        setAuthError(res.error || 'Failed to dispatch verification code.');
+        setAuthSubmitting(false);
+        return;
+      }
+      if (res.code) {
+        setDispatchedCode(res.code);
+      }
+      setRecoverySuccess(`A 6-digit security code has been dispatched to ${recoveryEmail}.`);
+      setAdminAuthMode('verify_code');
+    } catch (err) {
+      setAuthError(err instanceof Error ? err.message : 'Reset request failed');
+    } finally {
+      setAuthSubmitting(false);
+    }
+  };
+
+  // Handle Verify Admin Reset Code
+  const handleVerifyAdminCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthError(null);
+    setRecoverySuccess(null);
+    setAuthSubmitting(true);
+
+    try {
+      const res = await verifyPasswordResetCode(recoveryEmail, recoveryCode);
+      if (!res.success) {
+        setAuthError(res.error || 'Invalid or expired 6-digit security code.');
+        setAuthSubmitting(false);
+        return;
+      }
+      setRecoverySuccess('Security code verified! You may now set your new password.');
+      setAdminAuthMode('new_password');
+    } catch (err) {
+      setAuthError(err instanceof Error ? err.message : 'Code verification failed');
+    } finally {
+      setAuthSubmitting(false);
+    }
+  };
+
+  // Handle Complete Admin Reset with New Password
+  const handleCompleteAdminReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthError(null);
+    setRecoverySuccess(null);
+
+    if (recoveryNewPassword.length < 6) {
+      setAuthError('Password must be at least 6 characters long.');
+      return;
+    }
+    if (recoveryNewPassword !== recoveryConfirmPassword) {
+      setAuthError('Passwords do not match.');
+      return;
+    }
+
+    setAuthSubmitting(true);
+    try {
+      const res = await completePasswordReset(recoveryEmail, recoveryNewPassword);
+      if (!res.success) {
+        setAuthError(res.error || 'Failed to update password.');
+        setAuthSubmitting(false);
+        return;
+      }
+
+      // Automatically sign in with the new password
+      const { user, error } = await signInUser(recoveryEmail, recoveryNewPassword);
+      if (!error && user) {
+        const authorized = await verifyIsAdmin(user);
+        if (authorized) {
+          setCurrentUser(user);
+          setIsAdmin(true);
+          if (isSuperAdmin(user)) {
+            await loadAdmins();
+          }
+          return;
+        }
+      }
+
+      setLoginEmail(recoveryEmail);
+      setLoginPassword(recoveryNewPassword);
+      setRecoverySuccess('Password successfully reset! You may now sign in.');
+      setAdminAuthMode('signin');
+    } catch (err) {
+      setAuthError(err instanceof Error ? err.message : 'Password reset failed');
     } finally {
       setAuthSubmitting(false);
     }
@@ -328,67 +455,352 @@ export const AdminPortal: React.FC = () => {
             {/* Ambient indicator */}
             <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#016ba5] via-[#fa8221] to-[#7C3AED]" />
 
-            <div className="w-14 h-14 rounded-2xl bg-[#016ba5]/20 text-[#38BDF8] flex items-center justify-center mb-6 border border-[#016ba5]/30">
-              <Lock className="w-6 h-6" />
-            </div>
+            {adminAuthMode === 'signin' && (
+              <>
+                <div className="w-14 h-14 rounded-2xl bg-[#016ba5]/20 text-[#38BDF8] flex items-center justify-center mb-6 border border-[#016ba5]/30">
+                  <Lock className="w-6 h-6" />
+                </div>
 
-            <h2 className="font-headline text-2xl font-black text-white mb-2">
-              Administrator Sign In
-            </h2>
-            
-            <p className="font-body text-xs text-slate-400 mb-6">
-              Confidential AbtalQuest Admin Portal • Authorized administrator credentials required.
-            </p>
+                <h2 className="font-headline text-2xl font-black text-white mb-2">
+                  Administrator Sign In
+                </h2>
+                
+                <p className="font-body text-xs text-slate-400 mb-6">
+                  Confidential AbtalQuest Admin Portal • Authorized administrator credentials required.
+                </p>
 
-            {authError && (
-              <div className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/30 flex items-start gap-2.5 text-xs font-body text-red-300 mb-5">
-                <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
-                <span>{authError}</span>
-              </div>
+                {recoverySuccess && (
+                  <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-start gap-2.5 text-xs font-body text-emerald-300 mb-5">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
+                    <span>{recoverySuccess}</span>
+                  </div>
+                )}
+
+                {authError && (
+                  <div className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/30 flex items-start gap-2.5 text-xs font-body text-red-300 mb-5">
+                    <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
+                    <span>{authError}</span>
+                  </div>
+                )}
+
+                <form onSubmit={handleSignIn} className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-headline font-bold text-slate-300 mb-1">
+                      Admin Email
+                    </label>
+                    <input
+                      type="email"
+                      required
+                      value={loginEmail}
+                      onChange={(e) => setLoginEmail(e.target.value)}
+                      placeholder="akmahdi085@gmail.com"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white font-body text-xs focus:outline-none focus:ring-2 focus:ring-[#016ba5]"
+                    />
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-xs font-headline font-bold text-slate-300">
+                        Password
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAdminAuthMode('forgot_password');
+                          setRecoveryEmail(loginEmail || SUPER_ADMIN_EMAIL);
+                          setAuthError(null);
+                          setRecoverySuccess(null);
+                        }}
+                        className="text-[11px] font-headline font-semibold text-[#fa8221] hover:text-orange-300 transition-colors flex items-center gap-1"
+                      >
+                        <KeyRound className="w-3 h-3" />
+                        <span>Forgot Password?</span>
+                      </button>
+                    </div>
+                    <input
+                      type="password"
+                      required
+                      value={loginPassword}
+                      onChange={(e) => setLoginPassword(e.target.value)}
+                      placeholder="••••••••"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white font-body text-xs focus:outline-none focus:ring-2 focus:ring-[#016ba5]"
+                    />
+                  </div>
+
+                  <div className="pt-2">
+                    <Button
+                      variant="primary"
+                      size="lg"
+                      fullWidth
+                      disabled={authSubmitting}
+                      icon={authSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Lock className="w-4 h-4" />}
+                      iconPosition="left"
+                    >
+                      {authSubmitting ? 'Authenticating...' : 'Sign In as Admin'}
+                    </Button>
+                  </div>
+                </form>
+              </>
             )}
 
-            <form onSubmit={handleSignIn} className="space-y-4">
-              <div>
-                <label className="block text-xs font-headline font-bold text-slate-300 mb-1">
-                  Admin Email
-                </label>
-                <input
-                  type="email"
-                  required
-                  value={loginEmail}
-                  onChange={(e) => setLoginEmail(e.target.value)}
-                  placeholder="akmahdi085@gmail.com"
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white font-body text-xs focus:outline-none focus:ring-2 focus:ring-[#016ba5]"
-                />
-              </div>
+            {adminAuthMode === 'forgot_password' && (
+              <>
+                <div className="w-14 h-14 rounded-2xl bg-[#fa8221]/20 text-[#fa8221] flex items-center justify-center mb-6 border border-[#fa8221]/30">
+                  <KeyRound className="w-6 h-6" />
+                </div>
 
-              <div>
-                <label className="block text-xs font-headline font-bold text-slate-300 mb-1">
-                  Password
-                </label>
-                <input
-                  type="password"
-                  required
-                  value={loginPassword}
-                  onChange={(e) => setLoginPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white font-body text-xs focus:outline-none focus:ring-2 focus:ring-[#016ba5]"
-                />
-              </div>
+                <h2 className="font-headline text-2xl font-black text-white mb-2">
+                  Reset Password
+                </h2>
+                
+                <p className="font-body text-xs text-slate-400 mb-6">
+                  Enter your registered Super Admin or Administrator email. We will immediately dispatch a secure 6-digit recovery code.
+                </p>
 
-              <div className="pt-2">
-                <Button
-                  variant="primary"
-                  size="lg"
-                  fullWidth
-                  disabled={authSubmitting}
-                  icon={authSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Lock className="w-4 h-4" />}
-                  iconPosition="left"
-                >
-                  {authSubmitting ? 'Authenticating...' : 'Sign In as Admin'}
-                </Button>
-              </div>
-            </form>
+                {authError && (
+                  <div className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/30 flex items-start gap-2.5 text-xs font-body text-red-300 mb-5">
+                    <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
+                    <span>{authError}</span>
+                  </div>
+                )}
+
+                <form onSubmit={handleRequestAdminReset} className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-headline font-bold text-slate-300 mb-1">
+                      Account Email
+                    </label>
+                    <input
+                      type="email"
+                      required
+                      value={recoveryEmail}
+                      onChange={(e) => setRecoveryEmail(e.target.value)}
+                      placeholder="akmahdi085@gmail.com"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white font-body text-xs focus:outline-none focus:ring-2 focus:ring-[#fa8221]"
+                    />
+                  </div>
+
+                  <div className="pt-2 space-y-2">
+                    <Button
+                      variant="cta"
+                      size="lg"
+                      fullWidth
+                      disabled={authSubmitting}
+                      icon={authSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
+                      iconPosition="left"
+                    >
+                      {authSubmitting ? 'Sending Code...' : 'Send 6-Digit Code'}
+                    </Button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAdminAuthMode('signin');
+                        setAuthError(null);
+                        setRecoverySuccess(null);
+                      }}
+                      className="w-full py-2 text-xs font-headline font-semibold text-slate-400 hover:text-slate-200 flex items-center justify-center gap-1.5 transition-colors"
+                    >
+                      <ArrowLeft className="w-3.5 h-3.5" />
+                      <span>Back to Sign In</span>
+                    </button>
+                  </div>
+                </form>
+              </>
+            )}
+
+            {adminAuthMode === 'verify_code' && (
+              <>
+                <div className="w-14 h-14 rounded-2xl bg-purple-500/20 text-purple-400 flex items-center justify-center mb-6 border border-purple-500/30">
+                  <Mail className="w-6 h-6" />
+                </div>
+
+                <h2 className="font-headline text-2xl font-black text-white mb-2">
+                  Verify Security Code
+                </h2>
+                
+                <p className="font-body text-xs text-slate-400 mb-4">
+                  Enter the 6-digit security code dispatched to <strong className="text-slate-200">{recoveryEmail}</strong>.
+                </p>
+
+                {dispatchedCode && (
+                  <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between text-xs font-body text-amber-200 mb-4">
+                    <div>
+                      <span className="text-[10px] text-amber-400 font-headline font-bold uppercase block">Dispatched Email Code:</span>
+                      <strong className="font-mono text-sm tracking-widest text-white">{dispatchedCode}</strong>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setRecoveryCode(dispatchedCode)}
+                      className="px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-600 text-slate-900 font-headline font-bold text-[11px] transition-colors"
+                    >
+                      Auto-fill
+                    </button>
+                  </div>
+                )}
+
+                {recoverySuccess && (
+                  <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-start gap-2.5 text-xs font-body text-emerald-300 mb-4">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
+                    <span>{recoverySuccess}</span>
+                  </div>
+                )}
+
+                {authError && (
+                  <div className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/30 flex items-start gap-2.5 text-xs font-body text-red-300 mb-4">
+                    <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
+                    <span>{authError}</span>
+                  </div>
+                )}
+
+                <form onSubmit={handleVerifyAdminCode} className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-headline font-bold text-slate-300 mb-1 text-center">
+                      6-Digit Security Code
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      maxLength={6}
+                      value={recoveryCode}
+                      onChange={(e) => setRecoveryCode(e.target.value.trim().toUpperCase())}
+                      placeholder="• • • • • •"
+                      className="w-full px-3.5 py-3 rounded-xl bg-slate-900 border border-slate-700 text-white font-mono text-center text-lg tracking-[0.5em] focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    />
+                  </div>
+
+                  <div className="pt-2 space-y-3">
+                    <Button
+                      variant="primary"
+                      size="lg"
+                      fullWidth
+                      disabled={authSubmitting || recoveryCode.length < 6}
+                      icon={authSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
+                      iconPosition="left"
+                    >
+                      {authSubmitting ? 'Verifying...' : 'Verify Security Code'}
+                    </Button>
+
+                    <div className="flex items-center justify-between text-xs font-headline font-semibold pt-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAdminAuthMode('signin');
+                          setAuthError(null);
+                          setRecoverySuccess(null);
+                        }}
+                        className="text-slate-400 hover:text-slate-200 flex items-center gap-1 transition-colors"
+                      >
+                        <ArrowLeft className="w-3.5 h-3.5" />
+                        <span>Back to Sign In</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        disabled={authSubmitting}
+                        onClick={async () => {
+                          setAuthError(null);
+                          setAuthSubmitting(true);
+                          try {
+                            const res = await requestPasswordReset(recoveryEmail);
+                            if (res.code) setDispatchedCode(res.code);
+                            setRecoverySuccess('A fresh code has been sent!');
+                          } catch (err) {
+                            setAuthError(err instanceof Error ? err.message : 'Resend failed');
+                          } finally {
+                            setAuthSubmitting(false);
+                          }
+                        }}
+                        className="text-[#38BDF8] hover:text-sky-300 flex items-center gap-1 transition-colors"
+                      >
+                        <RefreshCw className="w-3 h-3" />
+                        <span>Resend Code</span>
+                      </button>
+                    </div>
+                  </div>
+                </form>
+              </>
+            )}
+
+            {adminAuthMode === 'new_password' && (
+              <>
+                <div className="w-14 h-14 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center mb-6 border border-emerald-500/30">
+                  <ShieldCheck className="w-6 h-6" />
+                </div>
+
+                <h2 className="font-headline text-2xl font-black text-white mb-2">
+                  Set New Password
+                </h2>
+                
+                <p className="font-body text-xs text-slate-400 mb-6">
+                  Create a secure new password (min. 6 characters) for your administrator account.
+                </p>
+
+                {authError && (
+                  <div className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/30 flex items-start gap-2.5 text-xs font-body text-red-300 mb-5">
+                    <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
+                    <span>{authError}</span>
+                  </div>
+                )}
+
+                <form onSubmit={handleCompleteAdminReset} className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-headline font-bold text-slate-300 mb-1">
+                      New Password
+                    </label>
+                    <input
+                      type="password"
+                      required
+                      minLength={6}
+                      value={recoveryNewPassword}
+                      onChange={(e) => setRecoveryNewPassword(e.target.value)}
+                      placeholder="••••••••"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white font-body text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-headline font-bold text-slate-300 mb-1">
+                      Confirm New Password
+                    </label>
+                    <input
+                      type="password"
+                      required
+                      minLength={6}
+                      value={recoveryConfirmPassword}
+                      onChange={(e) => setRecoveryConfirmPassword(e.target.value)}
+                      placeholder="••••••••"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white font-body text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    />
+                  </div>
+
+                  <div className="pt-2 space-y-2">
+                    <Button
+                      variant="primary"
+                      size="lg"
+                      fullWidth
+                      disabled={authSubmitting}
+                      icon={authSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
+                      iconPosition="left"
+                    >
+                      {authSubmitting ? 'Updating...' : 'Update Password & Sign In'}
+                    </Button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAdminAuthMode('signin');
+                        setAuthError(null);
+                        setRecoverySuccess(null);
+                      }}
+                      className="w-full py-2 text-xs font-headline font-semibold text-slate-400 hover:text-slate-200 flex items-center justify-center gap-1.5 transition-colors"
+                    >
+                      <ArrowLeft className="w-3.5 h-3.5" />
+                      <span>Back to Sign In</span>
+                    </button>
+                  </div>
+                </form>
+              </>
+            )}
 
             <div className="mt-6 pt-5 border-t border-slate-800">
               <div className="p-3 rounded-2xl bg-purple-950/30 border border-purple-800/40 text-left">
@@ -424,6 +836,10 @@ export const AdminPortal: React.FC = () => {
               {isSuperAdmin(currentUser) ? (
                 <span className="font-headline text-xs font-black uppercase tracking-wider text-purple-300 bg-purple-500/20 border border-purple-500/30 px-2.5 py-1 rounded-full flex items-center gap-1.5 shadow-sm">
                   <Crown className="w-3.5 h-3.5 text-amber-400" /> Super Admin (ElMahdi Ak)
+                </span>
+              ) : currentUser?.user_metadata?.role === 'manager' ? (
+                <span className="font-headline text-xs font-bold uppercase tracking-wider text-indigo-300 bg-indigo-500/20 border border-indigo-500/30 px-2.5 py-1 rounded-full flex items-center gap-1.5 shadow-sm">
+                  <ShieldCheck className="w-3.5 h-3.5 text-indigo-400" /> Manager Console
                 </span>
               ) : (
                 <span className="font-headline text-xs font-bold uppercase tracking-wider text-amber-400 bg-amber-400/10 px-2.5 py-1 rounded-full flex items-center gap-1.5">
@@ -1151,20 +1567,24 @@ export const AdminPortal: React.FC = () => {
                                 {adm.email}
                               </td>
                               <td className="py-3.5 px-4">
-                                {adm.isSuperAdmin ? (
-                                  <span className="px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 font-headline font-extrabold text-[10px] flex items-center gap-1 w-max">
-                                    <Crown className="w-3 h-3 text-amber-500" /> Super Admin
-                                  </span>
-                                ) : adm.role === 'support_admin' ? (
-                                  <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 font-headline font-bold text-[10px] w-max">
-                                    Support Admin
-                                  </span>
-                                ) : (
-                                  <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 font-headline font-bold text-[10px] w-max">
-                                    Full Administrator
-                                  </span>
-                                )}
-                              </td>
+                                  {adm.isSuperAdmin ? (
+                                    <span className="px-2.5 py-0.5 rounded-full bg-purple-100 text-purple-800 font-headline font-extrabold text-[10px] flex items-center gap-1 w-max shadow-xs">
+                                      <Crown className="w-3 h-3 text-amber-500" /> Super Admin
+                                    </span>
+                                  ) : adm.role === 'manager' ? (
+                                    <span className="px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-800 font-headline font-bold text-[10px] flex items-center gap-1 w-max">
+                                      <ShieldCheck className="w-3 h-3 text-indigo-600" /> Manager
+                                    </span>
+                                  ) : adm.role === 'support_admin' ? (
+                                    <span className="px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800 font-headline font-bold text-[10px] w-max">
+                                      Support Admin
+                                    </span>
+                                  ) : (
+                                    <span className="px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 font-headline font-bold text-[10px] w-max">
+                                      Full Administrator
+                                    </span>
+                                  )}
+                                </td>
                               <td className="py-3.5 px-4 text-slate-500 text-[11px]">
                                 {adm.createdBy}
                               </td>
@@ -1281,12 +1701,16 @@ export const AdminPortal: React.FC = () => {
                 </label>
                 <select
                   value={newAdminRole}
-                  onChange={(e) => setNewAdminRole(e.target.value as 'admin' | 'support_admin')}
+                  onChange={(e) => setNewAdminRole(e.target.value as 'manager' | 'admin' | 'support_admin')}
                   className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-body text-xs focus:outline-none focus:ring-2 focus:ring-purple-600"
                 >
-                  <option value="admin">Full Administrator (Orders, Inquiries & Analytics)</option>
+                  <option value="manager">Manager (Full Operations & Platform Access)</option>
+                  <option value="admin">Administrator (Orders, Inquiries & Analytics)</option>
                   <option value="support_admin">Support Administrator (Orders & Inquiries Only)</option>
                 </select>
+                <p className="text-[11px] font-body text-slate-500 mt-1">
+                  Managers hold operational access across orders, inquiries, inventory, and metrics.
+                </p>
               </div>
 
               <div className="pt-3 flex items-center justify-end gap-3">
