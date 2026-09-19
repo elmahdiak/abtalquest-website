@@ -470,6 +470,18 @@ export const fr = {
     backer_4_name: 'ENVESTORS',
     backer_4_desc: 'Réseau d\'Investissement Transfrontalier & Business Angels',
 
+    // Recognized By
+    recognized_heading: 'Reconnu Par',
+    recognized_subheading: 'Distingué par des universités prestigieuses, ministères et sommets continentaux.',
+    recognized_1_name: 'Université Al Akhawayn',
+    recognized_1_desc: 'Ventures Adventure • Top 17 Finalistes Nationaux',
+    recognized_2_name: 'Université EuroMed (UEMF)',
+    recognized_2_desc: 'Challenge STARTECH • Top 10 Lauréats Régionaux',
+    recognized_3_name: 'GITEX AFRICA Morocco',
+    recognized_3_desc: 'Ministère de la Transition Numérique & ADD',
+    recognized_4_name: 'Morocco 300',
+    recognized_4_desc: 'Sélection Officielle Continentale 2026',
+
     // Tags & Badges
     tag_incubation: 'Incubation',
     tag_education: 'Éducation',
@@ -479,6 +491,10 @@ export const fr = {
     tag_impact: 'Impact Social',
     tag_ecosystem: 'Écosystème Startup',
     tag_angel: 'Réseau d\'Angels',
+    tag_academic: 'Académique',
+    tag_university: 'Enseignement Supérieur',
+    tag_continental: 'Continental',
+    tag_government: 'Soutien Ministériel',
     verified_laureate: 'Officiellement Lauréat & Certifié',
   },
 };

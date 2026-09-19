@@ -470,6 +470,18 @@ export const ar = {
     backer_4_name: 'ENVESTORS',
     backer_4_desc: 'شبكة المستثمرين الملائكيين وتمويل المشاريع الريادية الواعدة',
 
+    // Recognized By
+    recognized_heading: 'معترف به ومكرم من قبل',
+    recognized_subheading: 'تكريم واعتماد رسمي من كبرى الجامعات والوزارات والمؤتمرات القارية.',
+    recognized_1_name: 'جامعة الأخوين (AUI)',
+    recognized_1_desc: 'مغامرة المشاريع • أفضل ١٧ متأهل على الصعيد الوطني',
+    recognized_2_name: 'الجامعة الأورومتوسطية (UEMF)',
+    recognized_2_desc: 'تحدي ستارتك • أفضل ١٠ مشاريع جهوية رائدة',
+    recognized_3_name: 'جيتكس إفريقيا المغرب (GITEX AFRICA)',
+    recognized_3_desc: 'وزارة الانتقال الرقمي وإصلاح الإدارة ووكالة ADD',
+    recognized_4_name: 'موروكو ٣٠٠ (Morocco 300)',
+    recognized_4_desc: 'نسخة ٢٠٢٦ الرسمية • أفضل ٣٠٠ شركة ناشئة إفريقية',
+
     // Tags & Badges
     tag_incubation: 'احتضان وتسريع',
     tag_education: 'تعليم وتربية',
@@ -479,6 +491,10 @@ export const ar = {
     tag_impact: 'أثر اجتماعي',
     tag_ecosystem: 'منظومة ريادية',
     tag_angel: 'استثمار ملائكي',
+    tag_academic: 'أكاديمي',
+    tag_university: 'تعليم عالي',
+    tag_continental: 'قاري ودولي',
+    tag_government: 'اعتماد وزاري',
     verified_laureate: 'مشروع متوج ومعتمد رسمياً',
   },
 };

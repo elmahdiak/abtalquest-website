@@ -470,6 +470,18 @@ export const en = {
     backer_4_name: 'ENVESTORS',
     backer_4_desc: 'Cross-Border Investment & Angel Syndicate Network',
 
+    // Recognized By
+    recognized_heading: 'Recognized By',
+    recognized_subheading: 'Accredited by leading universities, ministries, and continental summits.',
+    recognized_1_name: 'Al Akhawayn University',
+    recognized_1_desc: 'Ventures Adventure • Top 17 Nationwide Finalist',
+    recognized_2_name: 'EuroMed University (UEMF)',
+    recognized_2_desc: 'STARTECH Challenge • Top 10 Regional Laureate',
+    recognized_3_name: 'GITEX AFRICA Morocco',
+    recognized_3_desc: 'Ministry of Digital Transition & ADD',
+    recognized_4_name: 'Morocco 300',
+    recognized_4_desc: 'Official 2026 Continental Selection',
+
     // Tags & Badges
     tag_incubation: 'Incubation',
     tag_education: 'Education',
@@ -479,6 +491,10 @@ export const en = {
     tag_impact: 'Social Impact',
     tag_ecosystem: 'Startup Network',
     tag_angel: 'Angel Syndicate',
+    tag_academic: 'Academic',
+    tag_university: 'Higher Education',
+    tag_continental: 'Continental',
+    tag_government: 'Ministry Endorsed',
     verified_laureate: 'Officially Laureate & Endorsed',
   },
 };
