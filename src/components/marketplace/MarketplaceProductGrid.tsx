@@ -51,11 +51,11 @@ export const MarketplaceProductGrid: React.FC<MarketplaceProductGridProps> = ({
   return (
     <section className="w-full">
       {/* Top Toolbar: Results Counter, Active Filter Chips, Sort Selector */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-slate-200 dark:border-slate-800">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 mb-4 sm:mb-6 pb-3 sm:pb-4 border-b border-slate-200 dark:border-slate-800">
         
         {/* Results Counter & Active Chips */}
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-sm font-bold text-slate-900 dark:text-white">
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+          <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">
             {products.length === 1 ? t('marketplace.cart_item_singular') : t('marketplace.cart_items', { count: products.length })}
           </span>
 
@@ -125,7 +125,7 @@ export const MarketplaceProductGrid: React.FC<MarketplaceProductGridProps> = ({
         </div>
 
         {/* Sort selector */}
-        <div className="flex items-center gap-2 self-end sm:self-auto">
+        <div className="flex items-center justify-between w-full sm:w-auto gap-2 self-end sm:self-auto">
           <label htmlFor="grid-sort" className="text-xs font-bold text-slate-500 dark:text-slate-400 whitespace-nowrap">
             {t('marketplace.sort_label')}
           </label>
@@ -148,25 +148,25 @@ export const MarketplaceProductGrid: React.FC<MarketplaceProductGridProps> = ({
 
       {/* Loading Skeleton */}
       {isLoading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {Array.from({ length: 8 }).map((_, i) => (
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2.5 sm:gap-4 md:gap-5 lg:gap-6">
+          {Array.from({ length: 10 }).map((_, i) => (
             <div
               key={i}
-              className="bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 p-4 animate-pulse flex flex-col justify-between h-[420px]"
+              className="bg-white dark:bg-slate-800 rounded-2xl sm:rounded-3xl border border-slate-200 dark:border-slate-700 p-2.5 sm:p-4 animate-pulse flex flex-col justify-between h-[280px] sm:h-[380px] md:h-[420px]"
             >
-              <div className="w-full h-48 bg-slate-200 dark:bg-slate-700 rounded-2xl mb-4" />
+              <div className="w-full h-28 sm:h-40 md:h-48 bg-slate-200 dark:bg-slate-700 rounded-xl sm:rounded-2xl mb-2 sm:mb-4" />
               <div className="space-y-2 flex-1">
-                <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-1/3" />
-                <div className="h-6 bg-slate-200 dark:bg-slate-700 rounded w-3/4" />
-                <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-full" />
+                <div className="h-3 sm:h-4 bg-slate-200 dark:bg-slate-700 rounded w-1/3" />
+                <div className="h-4 sm:h-6 bg-slate-200 dark:bg-slate-700 rounded w-3/4" />
+                <div className="h-3 sm:h-4 bg-slate-200 dark:bg-slate-700 rounded w-full hidden sm:block" />
               </div>
-              <div className="h-10 bg-slate-200 dark:bg-slate-700 rounded-xl mt-4" />
+              <div className="h-8 sm:h-10 bg-slate-200 dark:bg-slate-700 rounded-lg sm:rounded-xl mt-3 sm:mt-4" />
             </div>
           ))}
         </div>
       ) : products.length > 0 ? (
-        /* Product Cards Grid */
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        /* Product Cards Grid: 2 cols on mobile, 3 on tablet, 4 on laptop, 5 on desktop */
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2.5 sm:gap-4 md:gap-5 lg:gap-6">
           {products.map((product) => (
             <MarketplaceProductCard
               key={product.id}

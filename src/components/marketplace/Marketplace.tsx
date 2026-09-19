@@ -487,7 +487,7 @@ export const Marketplace: React.FC<MarketplaceProps> = ({
           />
         </main>
       ) : (
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 flex-1 w-full">
+        <main className="max-w-7xl 2xl:max-w-[1600px] mx-auto px-3 sm:px-6 lg:px-8 py-5 sm:py-8 space-y-6 sm:space-y-8 flex-1 w-full">
           {/* 2. Promotional Banners Carousel */}
           <MarketplaceBannerCarousel
             onFilterPlanet={(planet) => {

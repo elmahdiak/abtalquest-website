@@ -42,7 +42,7 @@ export const MarketplaceCategoryPills: React.FC<MarketplaceCategoryPillsProps> =
 
   return (
     <div className="w-full overflow-hidden py-1">
-      <div className="flex items-center gap-2 overflow-x-auto pb-2 pt-1 no-scrollbar scroll-smooth">
+      <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-2 pt-1 no-scrollbar scroll-smooth -mx-3 px-3 sm:mx-0 sm:px-0">
         {pills.map((pill) => {
           const isActive = activePill === pill.id;
           const IconComponent = pill.icon;
@@ -53,14 +53,14 @@ export const MarketplaceCategoryPills: React.FC<MarketplaceCategoryPillsProps> =
               type="button"
               onClick={() => onSelectPill(pill.id)}
               className={cn(
-                "inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all duration-200 border shrink-0 cursor-pointer select-none active:scale-95",
+                "inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all duration-200 border shrink-0 cursor-pointer select-none active:scale-95",
                 isActive
                   ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900 border-slate-900 dark:border-white shadow-md"
                   : "bg-white dark:bg-slate-800/90 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 hover:border-slate-300 dark:hover:border-slate-600 shadow-sm"
               )}
             >
               <IconComponent className={cn(
-                "w-3.5 h-3.5",
+                "w-3.5 h-3.5 shrink-0",
                 isActive ? (activePill === 'all' ? 'text-white dark:text-slate-900' : 'text-amber-400 dark:text-amber-500') : (pill.color || 'text-slate-500 dark:text-slate-400')
               )} />
               
