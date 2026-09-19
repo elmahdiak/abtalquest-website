@@ -1,6 +1,7 @@
 import React from 'react';
 import Navbar from './Navbar';
 import Footer from './Footer';
+import WhatsAppButton from '../common/WhatsAppButton';
 
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 
@@ -37,6 +38,7 @@ export const Layout: React.FC<LayoutProps> = ({
         {children}
       </main>
       <Footer onOpenContact={onOpenContact} />
+      <WhatsAppButton />
     </div>
   );
 };

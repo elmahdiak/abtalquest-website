@@ -391,4 +391,10 @@ export const fr = {
     rights: 'Tous droits réservés. Univers sain, non violent et axé sur les valeurs pour enfants.',
     admin_link: 'Portail d\'Administration Interne',
   },
+  whatsapp: {
+    chat_with_us: 'Discuter sur WhatsApp',
+    tooltip_title: 'Besoin d\'aide ? Discutez avec nous',
+    online: 'En ligne',
+    response_time: 'Réponse en quelques minutes',
+  },
 };

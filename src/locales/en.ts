@@ -391,4 +391,10 @@ export const en = {
     rights: 'All rights reserved. Safe, non-violent, and values-centered universe for children.',
     admin_link: 'Internal Administration Portal',
   },
+  whatsapp: {
+    chat_with_us: 'Chat on WhatsApp',
+    tooltip_title: 'Need help? Chat with us',
+    online: 'Online',
+    response_time: 'Typically replies in minutes',
+  },
 };
