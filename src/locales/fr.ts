@@ -415,4 +415,59 @@ export const fr = {
     online: 'En ligne',
     response_time: 'Réponse en quelques minutes',
   },
+  credibility: {
+    section_badge: 'Soutien Institutionnel & Distinctions',
+    section_title_prefix: 'Soutenu par les Plus Grandes',
+    section_title_highlight: 'Institutions et Reconnu au Niveau National',
+    section_subtitle: 'AbtalQuest bénéficie de l\'appui des principaux pôles d\'innovation, universités et programmes régionaux d\'investissement, propulsant une éducation sans écran porteuse de valeurs.',
+    
+    // Awards / Recognition
+    awards_heading: 'Prix & Distinctions Prestigieuses',
+    awards_subheading: 'Récompensé par des universités, des ministères gouvernementaux et de grands programmes d\'innovation d\'entreprise.',
+    
+    award_1_badge: 'Finaliste National',
+    award_1_metric: 'Top 17 / 237',
+    award_1_metric_label: 'Finalistes Nationaux',
+    award_1_title: 'Ventures Adventure',
+    award_1_org: 'Université Al Akhawayn (AUI)',
+    award_1_desc: 'Sélectionné parmi les 17 meilleures startups sur 237 candidates nationales pour l\'excellence académique et l\'innovation pédagogique.',
+    
+    award_2_badge: 'Lauréat Régional',
+    award_2_metric: 'Top 10',
+    award_2_metric_label: 'Innovateurs Régionaux',
+    award_2_title: 'Challenge STARTECH',
+    award_2_org: 'Université EuroMed • Bank of Africa • CRI Fès-Meknès',
+    award_2_desc: 'Classé dans le Top 10 des startups régionales à fort impact pour la conception novatrice de kits éducatifs physiques et numériques fondés sur les valeurs.',
+    
+    award_3_badge: 'Distinction Continentale',
+    award_3_metric: 'Top 300',
+    award_3_metric_label: 'Startups Africaines',
+    award_3_title: 'GITEX AFRICA 300',
+    award_3_org: 'Ministère de la Transition Numérique et de la Réforme de l\'Administration',
+    award_3_desc: 'Officiellement distingué par le Gouvernement Marocain et l\'ADD parmi les 300 startups numériques les plus prometteuses d\'Afrique.',
+
+    // Supported By
+    supported_heading: 'Soutenu Par',
+    supported_subheading: 'Partenaires institutionnels et écosystèmes d\'innovation engagés pour l\'enfance.',
+    supporter_1_name: 'EXPLORER',
+    supporter_1_desc: 'Programme National d\'Innovation & d\'Incubation',
+    supporter_2_name: 'Injaz Al Maghreb',
+    supporter_2_desc: 'Membre de Junior Achievement Worldwide • Leader Éducation Jeunesse',
+    supporter_3_name: 'CRI Fès-Meknès',
+    supporter_3_desc: 'Centre Régional d\'Investissement • Autorité Publique Régionale',
+    supporter_4_name: 'Ibda3 Lab',
+    supporter_4_desc: 'Laboratoire d\'Innovation Pédagogique & Créativité',
+
+    // Backed By
+    backed_heading: 'Accompagné & Propulsé Par',
+    backed_subheading: 'Pionniers technologiques, réseaux d\'investisseurs et experts de l\'écosystème.',
+    backer_1_name: 'Nexaya',
+    backer_1_desc: 'Partenaire Infrastructure Numérique & Technologies Cloud',
+    backer_2_name: 'My Generous Planet',
+    backer_2_desc: 'Fonds d\'Impact Positif & Entrepreneuriat Philanthropique',
+    backer_3_name: 'Startup Universe Morocco',
+    backer_3_desc: 'Réseau National d\'Accélération & d\'Écosystème Startup',
+    backer_4_name: 'ENVESTORS',
+    backer_4_desc: 'Réseau d\'Investissement Transfrontalier & Business Angels',
+  },
 };

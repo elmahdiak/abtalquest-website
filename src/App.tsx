@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import Layout from './components/layout/Layout';
 import Hero from './components/home/Hero';
+import InstitutionalCredibility from './components/home/InstitutionalCredibility';
 import VisionMission from './components/home/VisionMission';
 import PlanetWorlds from './components/home/PlanetWorlds';
 import CoreFeatures from './components/home/CoreFeatures';
@@ -187,7 +188,10 @@ export function App() {
             }}
           />
 
-          {/* 2. VISION & MISSION SECTION */}
+          {/* 2. INSTITUTIONAL BACKING, SUPPORTERS & PRESTIGIOUS AWARDS */}
+          <InstitutionalCredibility />
+
+          {/* 3. VISION & MISSION SECTION */}
           <VisionMission />
 
           {/* 3. EXPLORE THE PLANET WORLDS */}

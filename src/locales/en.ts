@@ -415,4 +415,59 @@ export const en = {
     online: 'Online',
     response_time: 'Typically replies in minutes',
   },
+  credibility: {
+    section_badge: 'Institutional Backing & Recognition',
+    section_title_prefix: 'Supported by Morocco\'s Foremost',
+    section_title_highlight: 'Institutions & Nationally Recognized',
+    section_subtitle: 'AbtalQuest is backed by leading innovation hubs, academic institutions, and regional development programs, elevating screen-free pedagogy and character growth.',
+    
+    // Awards / Recognition
+    awards_heading: 'Prestigious Recognitions & Awards',
+    awards_subheading: 'Honored by universities, government ministries, and leading enterprise innovation challenges.',
+    
+    award_1_badge: 'National Finalist',
+    award_1_metric: 'Top 17 / 237',
+    award_1_metric_label: 'Nationwide Finalists',
+    award_1_title: 'Ventures Adventure',
+    award_1_org: 'Al Akhawayn University (AUI)',
+    award_1_desc: 'Selected among the top 17 startups out of 237 nationwide applicants for academic and educational innovation excellence.',
+    
+    award_2_badge: 'Regional Laureate',
+    award_2_metric: 'Top 10',
+    award_2_metric_label: 'Regional Innovators',
+    award_2_title: 'STARTECH Challenge',
+    award_2_org: 'EuroMed University • Bank of Africa • CRI Fès-Meknès',
+    award_2_desc: 'Ranked in the top 10 regional high-impact startups for pioneering values-based digital and physical children’s pedagogical kits.',
+    
+    award_3_badge: 'Continental Distinction',
+    award_3_metric: 'Top 300',
+    award_3_metric_label: 'African Startups',
+    award_3_title: 'GITEX AFRICA 300',
+    award_3_org: 'Ministry of Digital Transition & Administrative Reform',
+    award_3_desc: 'Officially recognized by the Moroccan Government and ADD among the most promising 300 digital startups driving transformation across Africa.',
+
+    // Supported By
+    supported_heading: 'Supported By',
+    supported_subheading: 'Institutional partners and innovation ecosystems advancing our mission.',
+    supporter_1_name: 'EXPLORER',
+    supporter_1_desc: 'National Innovation & Incubation Program',
+    supporter_2_name: 'Injaz Al Maghreb',
+    supporter_2_desc: 'Junior Achievement Worldwide • Youth Education Leader',
+    supporter_3_name: 'CRI Fès-Meknès',
+    supporter_3_desc: 'Centre Régional d’Investissement • Public Regional Authority',
+    supporter_4_name: 'Ibda3 Lab',
+    supporter_4_desc: 'Creative Pedagogy & Research Innovation Lab',
+
+    // Backed By
+    backed_heading: 'Backed By',
+    backed_subheading: 'Technology pioneers, angel networks, and venture growth partners.',
+    backer_1_name: 'Nexaya',
+    backer_1_desc: 'Digital Infrastructure & Cloud Technology Partner',
+    backer_2_name: 'My Generous Planet',
+    backer_2_desc: 'Philanthropic Venture & Positive Social Impact Fund',
+    backer_3_name: 'Startup Universe Morocco',
+    backer_3_desc: 'Nationwide Entrepreneurship & Acceleration Network',
+    backer_4_name: 'ENVESTORS',
+    backer_4_desc: 'Cross-Border Investment & Angel Syndicate Network',
+  },
 };
