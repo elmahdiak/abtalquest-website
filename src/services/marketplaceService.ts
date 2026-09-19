@@ -13,8 +13,15 @@ export interface ProductReview {
   comment: string;
 }
 
+export interface ProductVariant {
+  id: string;
+  name: string;
+  options: string[];
+}
+
 export interface Product {
   id: string;
+  sku?: string;
   title: string;
   category: 'thinkers' | 'brave' | 'solvers' | 'heart';
   planetName: string;
@@ -22,6 +29,14 @@ export interface Product {
   ageGroup: '6-8' | '9-11' | '12+';
   ageLabel: string;
   price: number;
+  originalPrice?: number;
+  discountPercent?: number;
+  inStock?: boolean;
+  stockCount?: number;
+  isBestSeller?: boolean;
+  isNew?: boolean;
+  images?: string[];
+  variants?: ProductVariant[];
   xpBonus: number;
   rating: number;
   reviewsCount: number;
@@ -81,6 +96,7 @@ export interface SupabaseHealth {
 export const DEFAULT_PRODUCTS: Product[] = [
   {
     id: 'prod-1',
+    sku: 'AQ-THK-101',
     title: "Thinkers' Clockwork Waterwheel Kit",
     category: 'thinkers',
     planetName: "Thinkers' Planet",
@@ -88,6 +104,16 @@ export const DEFAULT_PRODUCTS: Product[] = [
     ageGroup: '9-11',
     ageLabel: 'Ages 9–11',
     price: 29.99,
+    originalPrice: 39.99,
+    discountPercent: 25,
+    inStock: true,
+    stockCount: 14,
+    isBestSeller: true,
+    isNew: false,
+    variants: [
+      { id: 'edition', name: 'Pack Edition', options: ['Standard Kit', 'Deluxe Co-Quest Box', 'Academy Class Pack (5x)'] },
+      { id: 'language', name: 'Quest Language', options: ['Bilingual (Arabic / English)', 'Bilingual (Arabic / French)', 'English Edition'] }
+    ],
     xpBonus: 400,
     rating: 4.9,
     reviewsCount: 42,
@@ -126,6 +152,7 @@ export const DEFAULT_PRODUCTS: Product[] = [
   },
   {
     id: 'prod-2',
+    sku: 'AQ-THK-102',
     title: 'The Scribe of Wisdom Illustrated Chronicle',
     category: 'thinkers',
     planetName: "Thinkers' Planet",
@@ -133,6 +160,16 @@ export const DEFAULT_PRODUCTS: Product[] = [
     ageGroup: '6-8',
     ageLabel: 'Ages 6–8',
     price: 18.50,
+    originalPrice: 22.00,
+    discountPercent: 15,
+    inStock: true,
+    stockCount: 28,
+    isBestSeller: false,
+    isNew: false,
+    variants: [
+      { id: 'cover', name: 'Format', options: ['Hardcover Collector Edition', 'Softcover Explorer Edition'] },
+      { id: 'language', name: 'Story Language', options: ['Bilingual (Arabic / English)', 'Bilingual (Arabic / French)', 'Pure Arabic Calligraphy'] }
+    ],
     xpBonus: 250,
     rating: 4.8,
     reviewsCount: 38,
@@ -164,6 +201,7 @@ export const DEFAULT_PRODUCTS: Product[] = [
   },
   {
     id: 'prod-3',
+    sku: 'AQ-BRV-201',
     title: 'Mount Sabr Trail Compass & Weather Journal',
     category: 'brave',
     planetName: 'Brave Planet',
@@ -171,6 +209,16 @@ export const DEFAULT_PRODUCTS: Product[] = [
     ageGroup: '6-8',
     ageLabel: 'Ages 6–8',
     price: 24.00,
+    originalPrice: 30.00,
+    discountPercent: 20,
+    inStock: true,
+    stockCount: 6,
+    isBestSeller: true,
+    isNew: false,
+    variants: [
+      { id: 'strap', name: 'Lanyard Style', options: ['Desert Ochre Braided', 'Oasis Teal Braided', 'Night Obsidian'] },
+      { id: 'language', name: 'Journal Guide', options: ['Bilingual (Arabic / English)', 'Bilingual (Arabic / French)'] }
+    ],
     xpBonus: 350,
     rating: 5.0,
     reviewsCount: 64,
@@ -202,6 +250,7 @@ export const DEFAULT_PRODUCTS: Product[] = [
   },
   {
     id: 'prod-4',
+    sku: 'AQ-BRV-202',
     title: 'The Resilience Sand-Timer & Calm Chamber',
     category: 'brave',
     planetName: 'Brave Planet',
@@ -209,6 +258,16 @@ export const DEFAULT_PRODUCTS: Product[] = [
     ageGroup: '6-8',
     ageLabel: 'Ages 6–8',
     price: 16.00,
+    originalPrice: 19.99,
+    discountPercent: 20,
+    inStock: true,
+    stockCount: 19,
+    isBestSeller: false,
+    isNew: true,
+    variants: [
+      { id: 'sandColor', name: 'Mineral Sand Hue', options: ['Sunrise Amber', 'Deep Azure Sky', 'Sage Oasis'] },
+      { id: 'duration', name: 'Timer Duration', options: ['3-Minute Calm Breath', '5-Minute Deep Reflection'] }
+    ],
     xpBonus: 200,
     rating: 4.7,
     reviewsCount: 29,
@@ -240,6 +299,7 @@ export const DEFAULT_PRODUCTS: Product[] = [
   },
   {
     id: 'prod-5',
+    sku: 'AQ-SLV-301',
     title: 'Hydraulic Aquifer Robotic Sluice Arm',
     category: 'solvers',
     planetName: "Solvers' Planet",
@@ -247,6 +307,16 @@ export const DEFAULT_PRODUCTS: Product[] = [
     ageGroup: '12+',
     ageLabel: 'Ages 12+',
     price: 36.50,
+    originalPrice: 48.00,
+    discountPercent: 24,
+    inStock: true,
+    stockCount: 8,
+    isBestSeller: false,
+    isNew: true,
+    variants: [
+      { id: 'edition', name: 'Kit Variant', options: ['Standard Sluice Arm', 'Hydraulic Master Workshop (+ Reservoir Grid)'] },
+      { id: 'language', name: 'Engineering Manual', options: ['Bilingual (Arabic / English)', 'Bilingual (Arabic / French)'] }
+    ],
     xpBonus: 500,
     rating: 4.9,
     reviewsCount: 51,
@@ -278,6 +348,7 @@ export const DEFAULT_PRODUCTS: Product[] = [
   },
   {
     id: 'prod-6',
+    sku: 'AQ-SLV-302',
     title: 'Labyrinth Logic Algorithm Card Deck',
     category: 'solvers',
     planetName: "Solvers' Planet",
@@ -285,6 +356,16 @@ export const DEFAULT_PRODUCTS: Product[] = [
     ageGroup: '9-11',
     ageLabel: 'Ages 9–11',
     price: 22.00,
+    originalPrice: 26.00,
+    discountPercent: 15,
+    inStock: true,
+    stockCount: 31,
+    isBestSeller: false,
+    isNew: false,
+    variants: [
+      { id: 'edition', name: 'Deck Edition', options: ['Explorer Core (120 Cards)', 'Expanded Clan Edition (220 Cards + Wooden Tokens)'] },
+      { id: 'language', name: 'Card Language', options: ['Bilingual (Arabic / English)', 'Bilingual (Arabic / French)'] }
+    ],
     xpBonus: 320,
     rating: 4.8,
     reviewsCount: 33,
@@ -316,6 +397,7 @@ export const DEFAULT_PRODUCTS: Product[] = [
   },
   {
     id: 'prod-7',
+    sku: 'AQ-HRT-401',
     title: 'The Caravan of Kindness Cooperative Game',
     category: 'heart',
     planetName: 'Heart Planet',
@@ -323,6 +405,16 @@ export const DEFAULT_PRODUCTS: Product[] = [
     ageGroup: '6-8',
     ageLabel: 'Ages 6–8',
     price: 34.00,
+    originalPrice: 42.00,
+    discountPercent: 19,
+    inStock: true,
+    stockCount: 12,
+    isBestSeller: true,
+    isNew: false,
+    variants: [
+      { id: 'edition', name: 'Board Size', options: ['Family Tabletop Edition', 'Grand Deluxe Velvet Box'] },
+      { id: 'language', name: 'Game Language', options: ['Bilingual (Arabic / English)', 'Bilingual (Arabic / French)', 'French Edition'] }
+    ],
     xpBonus: 450,
     rating: 5.0,
     reviewsCount: 77,
@@ -354,6 +446,7 @@ export const DEFAULT_PRODUCTS: Product[] = [
   },
   {
     id: 'prod-8',
+    sku: 'AQ-HRT-402',
     title: 'The Gratitude Lantern & Friendship Scroll Craft',
     category: 'heart',
     planetName: 'Heart Planet',
@@ -361,6 +454,16 @@ export const DEFAULT_PRODUCTS: Product[] = [
     ageGroup: '6-8',
     ageLabel: 'Ages 6–8',
     price: 19.99,
+    originalPrice: 24.99,
+    discountPercent: 20,
+    inStock: true,
+    stockCount: 15,
+    isBestSeller: false,
+    isNew: true,
+    variants: [
+      { id: 'candle', name: 'LED Candle Light', options: ['Warm Starlight Glow', 'Soft Amber Flicker'] },
+      { id: 'language', name: 'Scroll Prompts', options: ['Bilingual (Arabic / English)', 'Bilingual (Arabic / French)'] }
+    ],
     xpBonus: 280,
     rating: 4.9,
     reviewsCount: 45,
@@ -411,6 +514,7 @@ export const getSessionId = (): string => {
  */
 interface SupabaseProductRow {
   id: string;
+  sku?: string;
   title: string;
   category: 'thinkers' | 'brave' | 'solvers' | 'heart';
   planet_name: string;
@@ -418,6 +522,13 @@ interface SupabaseProductRow {
   age_group: '6-8' | '9-11' | '12+';
   age_label: string;
   price: number | string;
+  original_price?: number | string;
+  discount_percent?: number;
+  in_stock?: boolean;
+  stock_count?: number;
+  is_best_seller?: boolean;
+  is_new?: boolean;
+  variants?: ProductVariant[];
   xp_bonus: number;
   rating?: number;
   reviews_count?: number;
@@ -434,6 +545,7 @@ interface SupabaseProductRow {
 const mapRowToProduct = (row: SupabaseProductRow): Product => {
   return {
     id: row.id,
+    sku: row.sku || `AQ-${row.category.substring(0, 3).toUpperCase()}-${row.id.replace(/\D/g, '') || '01'}`,
     title: row.title,
     category: row.category,
     planetName: row.planet_name,
@@ -441,6 +553,13 @@ const mapRowToProduct = (row: SupabaseProductRow): Product => {
     ageGroup: row.age_group,
     ageLabel: row.age_label,
     price: Number(row.price),
+    originalPrice: row.original_price ? Number(row.original_price) : undefined,
+    discountPercent: row.discount_percent,
+    inStock: row.in_stock !== undefined ? row.in_stock : true,
+    stockCount: row.stock_count !== undefined ? row.stock_count : 15,
+    isBestSeller: row.is_best_seller,
+    isNew: row.is_new,
+    variants: row.variants,
     xpBonus: Number(row.xp_bonus || 0),
     rating: Number(row.rating || 5.0),
     reviewsCount: Number(row.reviews_count || 0),
@@ -1131,4 +1250,34 @@ export const getSiteMetrics = async (): Promise<SiteMetrics> => {
     topProducts,
   };
 };
+
+/**
+ * Local Wishlist Persistence Helpers
+ */
+const WISHLIST_STORAGE_KEY = 'abtalquest_wishlist';
+
+export function loadWishlistFromStorage(): string[] {
+  try {
+    const raw = localStorage.getItem(WISHLIST_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveWishlistToStorage(ids: string[]): void {
+  try {
+    localStorage.setItem(WISHLIST_STORAGE_KEY, JSON.stringify(ids));
+  } catch (err) {
+    console.warn('Failed to persist wishlist:', err);
+  }
+}
+
+export function toggleWishlistItem(id: string): string[] {
+  const current = loadWishlistFromStorage();
+  const exists = current.includes(id);
+  const updated = exists ? current.filter((item) => item !== id) : [...current, id];
+  saveWishlistToStorage(updated);
+  return updated;
+}
 
