@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import Button from '../common/Button';
 import Badge from '../common/Badge';
-import { getUserOrders, type AdminOrder } from '../../services/marketplaceService';
+import { getUserOrders, formatPrice, type AdminOrder } from '../../services/marketplaceService';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 import { useLanguage } from '../../context/LanguageContext';
 import { cn } from '../../lib/utils';
@@ -25,7 +25,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
   user,
   onSignOut,
 }) => {
-  const { t, direction } = useLanguage();
+  const { t, direction, language } = useLanguage();
   const [orders, setOrders] = useState<AdminOrder[]>([]);
   const [loadingOrders, setLoadingOrders] = useState<boolean>(true);
 
@@ -194,7 +194,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
                     direction === 'rtl' ? 'sm:items-start' : 'sm:items-end'
                   )}>
                     <span className="font-headline font-black text-sm text-slate-900 dark:text-white">
-                      ${order.totalAmount.toFixed(2)}
+                      {formatPrice(order.totalAmount, language)}
                     </span>
                     <span className="font-gamification text-xs text-[#7C3AED] dark:text-purple-400 font-bold">
                       +{order.totalXp} XP

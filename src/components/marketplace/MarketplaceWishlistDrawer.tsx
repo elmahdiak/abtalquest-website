@@ -6,7 +6,7 @@ import {
   ShoppingBag, 
   ArrowRight 
 } from 'lucide-react';
-import type { Product } from '../../services/marketplaceService';
+import { formatPrice, type Product } from '../../services/marketplaceService';
 import { useLanguage } from '../../context/LanguageContext';
 import { cn } from '../../lib/utils';
 
@@ -29,7 +29,7 @@ export const MarketplaceWishlistDrawer: React.FC<MarketplaceWishlistDrawerProps>
   onMoveToCart,
   onSelectProduct,
 }) => {
-  const { t, direction } = useLanguage();
+  const { t, direction, language } = useLanguage();
 
   // Handle ESC key
   useEffect(() => {
@@ -131,11 +131,11 @@ export const MarketplaceWishlistDrawer: React.FC<MarketplaceWishlistDrawerProps>
 
                     <div className="flex items-baseline gap-2 mt-1 mb-3">
                       <span className="text-sm font-black text-slate-900 dark:text-white">
-                        ${product.price.toFixed(2)}
+                        {formatPrice(product.price, language)}
                       </span>
                       {product.originalPrice && (
                         <span className="text-xs text-slate-400 line-through">
-                          ${product.originalPrice.toFixed(2)}
+                          {formatPrice(product.originalPrice, language)}
                         </span>
                       )}
                       <span className="text-[11px] font-bold text-[#fa8221]">

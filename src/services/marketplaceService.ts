@@ -103,9 +103,9 @@ export const DEFAULT_PRODUCTS: Product[] = [
     productType: 'Physical Kit',
     ageGroup: '9-11',
     ageLabel: 'Ages 9–11',
-    price: 29.99,
-    originalPrice: 39.99,
-    discountPercent: 25,
+    price: 320,
+    originalPrice: 420,
+    discountPercent: 24,
     inStock: true,
     stockCount: 14,
     isBestSeller: true,
@@ -159,9 +159,9 @@ export const DEFAULT_PRODUCTS: Product[] = [
     productType: 'Storybook',
     ageGroup: '6-8',
     ageLabel: 'Ages 6–8',
-    price: 18.50,
-    originalPrice: 22.00,
-    discountPercent: 15,
+    price: 190,
+    originalPrice: 240,
+    discountPercent: 21,
     inStock: true,
     stockCount: 28,
     isBestSeller: false,
@@ -208,9 +208,9 @@ export const DEFAULT_PRODUCTS: Product[] = [
     productType: 'Quest Gear',
     ageGroup: '6-8',
     ageLabel: 'Ages 6–8',
-    price: 24.00,
-    originalPrice: 30.00,
-    discountPercent: 20,
+    price: 250,
+    originalPrice: 320,
+    discountPercent: 22,
     inStock: true,
     stockCount: 6,
     isBestSeller: true,
@@ -257,8 +257,8 @@ export const DEFAULT_PRODUCTS: Product[] = [
     productType: 'Learning Tool',
     ageGroup: '6-8',
     ageLabel: 'Ages 6–8',
-    price: 16.00,
-    originalPrice: 19.99,
+    price: 160,
+    originalPrice: 200,
     discountPercent: 20,
     inStock: true,
     stockCount: 19,
@@ -306,9 +306,9 @@ export const DEFAULT_PRODUCTS: Product[] = [
     productType: 'Physical Kit',
     ageGroup: '12+',
     ageLabel: 'Ages 12+',
-    price: 36.50,
-    originalPrice: 48.00,
-    discountPercent: 24,
+    price: 480,
+    originalPrice: 620,
+    discountPercent: 23,
     inStock: true,
     stockCount: 8,
     isBestSeller: false,
@@ -355,9 +355,9 @@ export const DEFAULT_PRODUCTS: Product[] = [
     productType: 'Family Game',
     ageGroup: '9-11',
     ageLabel: 'Ages 9–11',
-    price: 22.00,
-    originalPrice: 26.00,
-    discountPercent: 15,
+    price: 220,
+    originalPrice: 280,
+    discountPercent: 21,
     inStock: true,
     stockCount: 31,
     isBestSeller: false,
@@ -404,9 +404,9 @@ export const DEFAULT_PRODUCTS: Product[] = [
     productType: 'Family Game',
     ageGroup: '6-8',
     ageLabel: 'Ages 6–8',
-    price: 34.00,
-    originalPrice: 42.00,
-    discountPercent: 19,
+    price: 390,
+    originalPrice: 490,
+    discountPercent: 20,
     inStock: true,
     stockCount: 12,
     isBestSeller: true,
@@ -453,9 +453,9 @@ export const DEFAULT_PRODUCTS: Product[] = [
     productType: 'Physical Kit',
     ageGroup: '6-8',
     ageLabel: 'Ages 6–8',
-    price: 19.99,
-    originalPrice: 24.99,
-    discountPercent: 20,
+    price: 210,
+    originalPrice: 270,
+    discountPercent: 22,
     inStock: true,
     stockCount: 15,
     isBestSeller: false,
@@ -1207,7 +1207,7 @@ export const getSiteMetrics = async (): Promise<SiteMetrics> => {
   const planetSales = Object.entries(planetMap).map(([planet, val]) => ({
     planet,
     salesCount: val.count || 2,
-    revenue: val.revenue || 49.99,
+    revenue: val.revenue || 490,
     color: val.color,
   }));
 
@@ -1216,17 +1216,17 @@ export const getSiteMetrics = async (): Promise<SiteMetrics> => {
     .sort((a, b) => b.revenue - a.revenue)
     .slice(0, 4);
 
-  // If no product sales yet, provide representative top learning kits
+  // If no product sales yet, provide representative top learning kits in MAD
   if (topProducts.length === 0) {
     topProducts.push(
-      { title: "Thinkers' Clockwork Waterwheel Kit", unitsSold: 28, revenue: 839.72 },
-      { title: "The Caravan of Kindness Cooperative Game", unitsSold: 24, revenue: 816.00 },
-      { title: "Mount Sabr Trail Compass & Weather Journal", unitsSold: 22, revenue: 528.00 },
-      { title: "Hydraulic Aquifer Robotic Sluice Arm", unitsSold: 18, revenue: 657.00 }
+      { title: "Thinkers' Clockwork Waterwheel Kit", unitsSold: 28, revenue: 8960 },
+      { title: "The Caravan of Kindness Cooperative Game", unitsSold: 24, revenue: 9360 },
+      { title: "Mount Sabr Trail Compass & Weather Journal", unitsSold: 22, revenue: 5500 },
+      { title: "Hydraulic Aquifer Robotic Sluice Arm", unitsSold: 18, revenue: 8640 }
     );
   }
 
-  // 7-day trend simulation based on real data
+  // 7-day trend simulation based on real data in MAD
   const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   const recentDaysTrend = days.map((day, i) => {
     const dayOrders = Math.max(1, Math.floor((totalOrders * (i + 1)) / 10) + (i % 3));
@@ -1234,12 +1234,12 @@ export const getSiteMetrics = async (): Promise<SiteMetrics> => {
       day,
       orders: dayOrders,
       visitors: 140 + i * 25 + Math.floor(Math.random() * 20),
-      revenue: Math.round(dayOrders * 28.5),
+      revenue: Math.round(dayOrders * 280),
     };
   });
 
   return {
-    totalRevenue: totalRevenue || 2840.72,
+    totalRevenue: totalRevenue || 32460,
     totalOrders: totalOrders || 92,
     totalXpAwarded: totalXpAwarded || 34500,
     activeVisitorsWeek,
@@ -1280,4 +1280,26 @@ export function toggleWishlistItem(id: string): string[] {
   saveWishlistToStorage(updated);
   return updated;
 }
+
+/**
+ * Format numeric price into Moroccan Dirhams (MAD / Dhs / د.م.)
+ * Consistent and language-adaptive:
+ * - ar: '320 د.م.'
+ * - fr: '320 Dhs'
+ * - en: '320 MAD'
+ */
+export const formatPrice = (amount: number, language: string = 'en'): string => {
+  const rounded = Number(amount || 0);
+  const formattedNum = rounded % 1 === 0 
+    ? rounded.toLocaleString('en-US') 
+    : rounded.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  if (language === 'ar') {
+    return `${formattedNum} د.م.`;
+  }
+  if (language === 'fr') {
+    return `${formattedNum} Dhs`;
+  }
+  return `${formattedNum} MAD`;
+};
 

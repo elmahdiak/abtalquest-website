@@ -3,6 +3,7 @@ import { Check, Database } from 'lucide-react';
 import Badge from '../common/Badge';
 import Button from '../common/Button';
 import type { OrderConfirmation } from '../../services/marketplaceService';
+import { formatPrice } from '../../services/marketplaceService';
 import { useLanguage } from '../../context/LanguageContext';
 
 export interface MarketplaceConfirmationModalProps {
@@ -14,7 +15,7 @@ export const MarketplaceConfirmationModal: React.FC<MarketplaceConfirmationModal
   orderConfirmation,
   onClose,
 }) => {
-  const { t, direction } = useLanguage();
+  const { t, direction, language } = useLanguage();
 
   if (!orderConfirmation) return null;
 
@@ -55,7 +56,7 @@ export const MarketplaceConfirmationModal: React.FC<MarketplaceConfirmationModal
           <div className="flex justify-between items-center text-xs font-body">
             <span className="text-slate-500 dark:text-slate-400">{t('marketplace.order_total_paid')}</span>
             <strong className="font-headline text-slate-800 dark:text-slate-100">
-              ${orderConfirmation.totalAmount.toFixed(2)}
+              {formatPrice(orderConfirmation.totalAmount, language)}
             </strong>
           </div>
 

@@ -10,6 +10,7 @@ import {
 import Badge from '../common/Badge';
 import Button from '../common/Button';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
+import { formatPrice } from '../../services/marketplaceService';
 import { useLanguage } from '../../context/LanguageContext';
 import { cn } from '../../lib/utils';
 
@@ -51,7 +52,7 @@ export const MarketplaceCheckoutModal: React.FC<MarketplaceCheckoutModalProps> =
   submittingOrder,
   onSubmitOrder,
 }) => {
-  const { t, direction } = useLanguage();
+  const { t, direction, language } = useLanguage();
 
   if (!isOpen) return null;
 
@@ -92,7 +93,7 @@ export const MarketplaceCheckoutModal: React.FC<MarketplaceCheckoutModalProps> =
         <div className="p-4 rounded-2xl bg-slate-50 dark:bg-[#0A2540] border border-slate-200 dark:border-slate-700 mb-6">
           <div className="flex justify-between items-center text-xs font-body text-slate-600 dark:text-slate-300 pb-2 border-b border-slate-200 dark:border-slate-700">
             <span>{t('marketplace.checkout_items_in_order', { count: cartTotalCount })}</span>
-            <span className="font-headline font-bold text-slate-800 dark:text-slate-100">${cartSubtotal.toFixed(2)}</span>
+            <span className="font-headline font-bold text-slate-800 dark:text-slate-100">{formatPrice(cartSubtotal, language)}</span>
           </div>
           <div className="flex justify-between items-center text-xs font-body text-slate-600 dark:text-slate-300 py-1.5 border-b border-slate-200 dark:border-slate-700">
             <span>{t('marketplace.checkout_delivery')}</span>
@@ -100,7 +101,7 @@ export const MarketplaceCheckoutModal: React.FC<MarketplaceCheckoutModalProps> =
           </div>
           <div className="flex justify-between items-center text-sm font-headline font-black text-slate-900 dark:text-white pt-2">
             <span>{t('marketplace.checkout_total_due')}</span>
-            <span>${cartSubtotal.toFixed(2)}</span>
+            <span>{formatPrice(cartSubtotal, language)}</span>
           </div>
           <div className="mt-2 pt-2 border-t border-dashed border-slate-200 dark:border-slate-700 flex items-center justify-between text-xs font-gamification text-[#7C3AED] dark:text-purple-400 font-bold">
             <span>{t('marketplace.checkout_xp_to_unlock')}</span>
@@ -196,7 +197,7 @@ export const MarketplaceCheckoutModal: React.FC<MarketplaceCheckoutModalProps> =
                 type="text"
                 value={formData.city}
                 onChange={(e) => setFormData((prev) => ({ ...prev, city: e.target.value }))}
-                placeholder="e.g. Austin"
+                placeholder="e.g. Casablanca"
                 className={`w-full px-3.5 py-2.5 rounded-xl border font-body text-xs focus:outline-none focus:ring-2 focus:ring-[#016ba5] bg-white dark:bg-[#0A2540] text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 ${
                   formErrors.city ? 'border-red-400 bg-red-50/20 dark:bg-red-950/20' : 'border-slate-300 dark:border-slate-600'
                 }`}
@@ -212,7 +213,7 @@ export const MarketplaceCheckoutModal: React.FC<MarketplaceCheckoutModalProps> =
                 type="text"
                 value={formData.postalCode}
                 onChange={(e) => setFormData((prev) => ({ ...prev, postalCode: e.target.value }))}
-                placeholder="78701"
+                placeholder="20000"
                 className={`w-full px-3.5 py-2.5 rounded-xl border font-body text-xs focus:outline-none focus:ring-2 focus:ring-[#016ba5] bg-white dark:bg-[#0A2540] text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 ${
                   formErrors.postalCode ? 'border-red-400 bg-red-50/20 dark:bg-red-950/20' : 'border-slate-300 dark:border-slate-600'
                 }`}
@@ -232,7 +233,7 @@ export const MarketplaceCheckoutModal: React.FC<MarketplaceCheckoutModalProps> =
             >
               {submittingOrder
                 ? t('marketplace.checkout_saving')
-                : t('marketplace.checkout_confirm_btn', { total: cartSubtotal.toFixed(2) })}
+                : t('marketplace.checkout_confirm_btn', { total: formatPrice(cartSubtotal, language) })}
             </Button>
 
             <p className="text-[11px] font-body text-slate-400 dark:text-slate-500 text-center">

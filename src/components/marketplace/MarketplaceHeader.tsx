@@ -9,6 +9,7 @@ import {
   ArrowRight
 } from 'lucide-react';
 import type { Product } from '../../services/marketplaceService';
+import { formatPrice } from '../../services/marketplaceService';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 import { useLanguage } from '../../context/LanguageContext';
 import { cn } from '../../lib/utils';
@@ -44,7 +45,7 @@ export const MarketplaceHeader: React.FC<MarketplaceHeaderProps> = ({
   onOpenAuth,
   isLiveSupabase,
 }) => {
-  const { t, direction } = useLanguage();
+  const { t, direction, language } = useLanguage();
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const searchDropdownRef = useRef<HTMLDivElement>(null);
 
@@ -205,7 +206,7 @@ export const MarketplaceHeader: React.FC<MarketplaceHeaderProps> = ({
                           <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                             <span>{product.planetName}</span>
                             <span>•</span>
-                            <span className="font-semibold text-slate-700 dark:text-slate-200">${product.price.toFixed(2)}</span>
+                            <span className="font-semibold text-slate-700 dark:text-slate-200">{formatPrice(product.price, language)}</span>
                             <span>•</span>
                             <span className="text-[#fa8221] font-medium">+{product.xpBonus} XP</span>
                           </div>
@@ -278,7 +279,7 @@ export const MarketplaceHeader: React.FC<MarketplaceHeaderProps> = ({
                 <span className="text-[11px] font-medium text-white/90 uppercase tracking-wider">
                   {t('marketplace.cart_pill_label')}
                 </span>
-                <span className="font-extrabold text-sm">${cartSubtotal.toFixed(2)}</span>
+                <span className="font-extrabold text-sm">{formatPrice(cartSubtotal, language)}</span>
               </div>
             </button>
           </div>

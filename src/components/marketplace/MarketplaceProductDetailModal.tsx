@@ -17,7 +17,7 @@ import {
   Wrench,
   Heart as HeartIcon
 } from 'lucide-react';
-import type { Product } from '../../services/marketplaceService';
+import { formatPrice, type Product } from '../../services/marketplaceService';
 import { useLanguage } from '../../context/LanguageContext';
 import { cn } from '../../lib/utils';
 
@@ -40,7 +40,7 @@ export const MarketplaceProductDetailModal: React.FC<MarketplaceProductDetailMod
   isWishlisted,
   onSelectRelatedProduct,
 }) => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [quantity, setQuantity] = useState(1);
   const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>({});
   const [selectedImageTab, setSelectedImageTab] = useState<number>(0);
@@ -105,7 +105,7 @@ export const MarketplaceProductDetailModal: React.FC<MarketplaceProductDetailMod
     .filter((p) => p.id !== product.id && (p.category === product.category || p.ageGroup === product.ageGroup))
     .slice(0, 3);
 
-  const totalPrice = (product.price * quantity).toFixed(2);
+  const totalPrice = formatPrice(product.price * quantity, language);
   const totalXp = product.xpBonus * quantity;
 
   return (
@@ -253,11 +253,11 @@ export const MarketplaceProductDetailModal: React.FC<MarketplaceProductDetailMod
                   <div>
                     <div className="flex items-baseline gap-2">
                       <span className="text-3xl font-extrabold text-slate-900 dark:text-white">
-                        ${product.price.toFixed(2)}
+                        {formatPrice(product.price, language)}
                       </span>
                       {product.originalPrice && (
                         <span className="text-sm text-slate-400 line-through">
-                          ${product.originalPrice.toFixed(2)}
+                          {formatPrice(product.originalPrice, language)}
                         </span>
                       )}
                     </div>
@@ -341,7 +341,7 @@ export const MarketplaceProductDetailModal: React.FC<MarketplaceProductDetailMod
                     </div>
 
                     <div className="text-xs font-bold text-slate-500">
-                      = ${totalPrice} (+{totalXp} XP)
+                      = {totalPrice} (+{totalXp} XP)
                     </div>
                   </div>
 
@@ -579,7 +579,7 @@ export const MarketplaceProductDetailModal: React.FC<MarketplaceProductDetailMod
                         {rel.title}
                       </p>
                       <div className="flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400">
-                        <span className="font-bold text-slate-700 dark:text-slate-300">${rel.price.toFixed(2)}</span>
+                        <span className="font-bold text-slate-700 dark:text-slate-300">{formatPrice(rel.price, language)}</span>
                         <span>•</span>
                         <span className="text-[#fa8221] font-semibold">+{rel.xpBonus} XP</span>
                       </div>

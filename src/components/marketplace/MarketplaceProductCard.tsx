@@ -12,7 +12,7 @@ import {
   Wrench,
   Heart as HeartIcon
 } from 'lucide-react';
-import type { Product } from '../../services/marketplaceService';
+import { formatPrice, type Product } from '../../services/marketplaceService';
 import { useLanguage } from '../../context/LanguageContext';
 import { cn } from '../../lib/utils';
 
@@ -33,7 +33,7 @@ export const MarketplaceProductCard: React.FC<MarketplaceProductCardProps> = ({
   isWishlisted,
   isInCart = false,
 }) => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [justAdded, setJustAdded] = useState(false);
 
   const handleAddToCart = (e: React.MouseEvent) => {
@@ -186,11 +186,11 @@ export const MarketplaceProductCard: React.FC<MarketplaceProductCardProps> = ({
         <div className="pt-3 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-between mb-4">
           <div className="flex items-baseline gap-2">
             <span className="text-xl font-extrabold text-slate-900 dark:text-white">
-              ${product.price.toFixed(2)}
+              {formatPrice(product.price, language)}
             </span>
             {product.originalPrice && (
               <span className="text-xs text-slate-400 line-through">
-                ${product.originalPrice.toFixed(2)}
+                {formatPrice(product.originalPrice, language)}
               </span>
             )}
           </div>

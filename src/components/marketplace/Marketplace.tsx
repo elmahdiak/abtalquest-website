@@ -68,7 +68,7 @@ export const Marketplace: React.FC<MarketplaceProps> = ({ user, onOpenAuth }) =>
     address: '',
     city: '',
     postalCode: '',
-    country: 'United States',
+    country: 'Morocco',
   });
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 

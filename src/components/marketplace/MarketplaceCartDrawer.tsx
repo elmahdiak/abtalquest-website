@@ -9,7 +9,7 @@ import {
   ArrowRight, 
   Truck 
 } from 'lucide-react';
-import type { Product } from '../../services/marketplaceService';
+import { formatPrice, type Product } from '../../services/marketplaceService';
 import { useLanguage } from '../../context/LanguageContext';
 import { cn } from '../../lib/utils';
 
@@ -34,7 +34,7 @@ export const MarketplaceCartDrawer: React.FC<MarketplaceCartDrawerProps> = ({
   onProceedToCheckout,
   onSelectProduct,
 }) => {
-  const { t, direction } = useLanguage();
+  const { t, direction, language } = useLanguage();
 
   useEffect(() => {
     if (!isOpen) return;
@@ -59,8 +59,8 @@ export const MarketplaceCartDrawer: React.FC<MarketplaceCartDrawerProps> = ({
   const subtotal = cartItems.reduce((acc, curr) => acc + curr.product.price * curr.quantity, 0);
   const totalXp = cartItems.reduce((acc, curr) => acc + curr.product.xpBonus * curr.quantity, 0);
 
-  // Free shipping threshold simulation ($50)
-  const freeShippingThreshold = 50;
+  // Free shipping threshold simulation (500 MAD)
+  const freeShippingThreshold = 500;
   const progressPercent = Math.min(100, Math.round((subtotal / freeShippingThreshold) * 100));
 
   return (
@@ -103,8 +103,12 @@ export const MarketplaceCartDrawer: React.FC<MarketplaceCartDrawerProps> = ({
                 <Truck className="w-3.5 h-3.5" />
                 <span>
                   {subtotal >= freeShippingThreshold
-                    ? '🎉 You unlocked Free Tracked Delivery!'
-                    : `Add $${(freeShippingThreshold - subtotal).toFixed(2)} more for Free Tracked Delivery!`}
+                    ? (language === 'ar' ? '🎉 لقد حصلت على توصيل مجاني!' : language === 'fr' ? '🎉 Livraison suivie gratuite débloquée !' : '🎉 You unlocked Free Tracked Delivery!')
+                    : (language === 'ar'
+                        ? `أضف ${formatPrice(freeShippingThreshold - subtotal, language)} للحصول على توصيل مجاني!`
+                        : language === 'fr'
+                        ? `Ajoutez ${formatPrice(freeShippingThreshold - subtotal, language)} pour la livraison gratuite !`
+                        : `Add ${formatPrice(freeShippingThreshold - subtotal, language)} more for Free Tracked Delivery!`)}
                 </span>
               </div>
               <span>{progressPercent}%</span>
@@ -168,10 +172,10 @@ export const MarketplaceCartDrawer: React.FC<MarketplaceCartDrawerProps> = ({
 
                     <div className="flex items-baseline gap-2 mt-1 mb-3">
                       <span className="text-sm font-black text-slate-900 dark:text-white">
-                        ${(product.price * quantity).toFixed(2)}
+                        {formatPrice(product.price * quantity, language)}
                       </span>
                       <span className="text-[11px] text-slate-400">
-                        (${product.price.toFixed(2)} ea)
+                        ({formatPrice(product.price, language)} ea)
                       </span>
                       <span className="text-[11px] font-bold text-[#fa8221]">
                         +{product.xpBonus * quantity} XP
@@ -239,7 +243,7 @@ export const MarketplaceCartDrawer: React.FC<MarketplaceCartDrawerProps> = ({
               <div className="space-y-2 text-xs">
                 <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
                   <span>{t('marketplace.cart_subtotal')}</span>
-                  <span className="font-bold text-slate-800 dark:text-slate-200">${subtotal.toFixed(2)}</span>
+                  <span className="font-bold text-slate-800 dark:text-slate-200">{formatPrice(subtotal, language)}</span>
                 </div>
 
                 <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
@@ -249,7 +253,7 @@ export const MarketplaceCartDrawer: React.FC<MarketplaceCartDrawerProps> = ({
 
                 <div className="flex items-center justify-between text-sm font-extrabold text-slate-900 dark:text-white pt-2 border-t border-slate-200 dark:border-slate-700">
                   <span>{t('marketplace.checkout_total_due')}</span>
-                  <span className="text-base">${subtotal.toFixed(2)}</span>
+                  <span className="text-base">{formatPrice(subtotal, language)}</span>
                 </div>
 
                 <div className="flex items-center justify-between text-xs font-bold text-[#fa8221]">

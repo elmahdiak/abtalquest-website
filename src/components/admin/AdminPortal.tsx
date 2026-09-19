@@ -9,7 +9,7 @@ import {
   Search, 
   Clock, 
   AlertCircle, 
-  DollarSign, 
+  Coins, 
   Sparkles, 
   Users, 
   ArrowUpRight, 
@@ -641,7 +641,7 @@ export const AdminPortal: React.FC = () => {
 
                               <td className="py-4 px-4 font-headline">
                                 <span className="font-black text-slate-900 block">
-                                  ${order.totalAmount.toFixed(2)}
+                                  {order.totalAmount.toLocaleString()} MAD
                                 </span>
                                 <span className="font-gamification text-[#7C3AED] font-bold text-[10px]">
                                   +{order.totalXp} XP
@@ -828,11 +828,11 @@ export const AdminPortal: React.FC = () => {
                       <div className="flex items-center justify-between text-slate-500 mb-2">
                         <span className="font-headline font-bold text-xs uppercase tracking-wider">Gross Revenue</span>
                         <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                          <DollarSign className="w-4 h-4" />
+                          <Coins className="w-4 h-4" />
                         </div>
                       </div>
                       <h3 className="font-headline text-3xl font-black text-slate-900">
-                        ${metrics.totalRevenue.toFixed(2)}
+                        {metrics.totalRevenue.toLocaleString()} MAD
                       </h3>
                     </div>
                     <div className="mt-4 pt-3 border-t border-slate-100 flex items-center gap-1.5 text-xs text-emerald-600 font-semibold">
@@ -1356,10 +1356,10 @@ export const AdminPortal: React.FC = () => {
                   <div key={idx} className="flex justify-between items-center p-3 rounded-xl bg-slate-50 border border-slate-100 text-xs">
                     <div>
                       <strong className="font-headline text-slate-800 block">{item.productTitle}</strong>
-                      <span className="text-slate-500 font-body">Qty: {item.quantity} × ${item.unitPrice.toFixed(2)}</span>
+                      <span className="text-slate-500 font-body">Qty: {item.quantity} × {item.unitPrice.toLocaleString()} MAD</span>
                     </div>
                     <span className="font-headline font-bold text-slate-900">
-                      ${(item.unitPrice * item.quantity).toFixed(2)}
+                      {(item.unitPrice * item.quantity).toLocaleString()} MAD
                     </span>
                   </div>
                 ))}
@@ -1370,7 +1370,7 @@ export const AdminPortal: React.FC = () => {
               <div>
                 <span className="font-body text-xs text-slate-500 block">Total Due:</span>
                 <span className="font-headline font-black text-2xl text-slate-900">
-                  ${selectedOrder.totalAmount.toFixed(2)}
+                  {selectedOrder.totalAmount.toLocaleString()} MAD
                 </span>
               </div>
 
