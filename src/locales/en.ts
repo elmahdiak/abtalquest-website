@@ -469,5 +469,16 @@ export const en = {
     backer_3_desc: 'Nationwide Entrepreneurship & Acceleration Network',
     backer_4_name: 'ENVESTORS',
     backer_4_desc: 'Cross-Border Investment & Angel Syndicate Network',
+
+    // Tags & Badges
+    tag_incubation: 'Incubation',
+    tag_education: 'Education',
+    tag_public: 'Public Authority',
+    tag_innovation: 'Innovation Lab',
+    tag_tech: 'Cloud & Tech',
+    tag_impact: 'Social Impact',
+    tag_ecosystem: 'Startup Network',
+    tag_angel: 'Angel Syndicate',
+    verified_laureate: 'Officially Laureate & Endorsed',
   },
 };

@@ -469,5 +469,16 @@ export const ar = {
     backer_3_desc: 'الشبكة الوطنية لتسريع وتطوير منظومة الشركات الناشئة',
     backer_4_name: 'ENVESTORS',
     backer_4_desc: 'شبكة المستثمرين الملائكيين وتمويل المشاريع الريادية الواعدة',
+
+    // Tags & Badges
+    tag_incubation: 'احتضان وتسريع',
+    tag_education: 'تعليم وتربية',
+    tag_public: 'هيئة عمومية',
+    tag_innovation: 'مختبر ابتكار',
+    tag_tech: 'بنية وسحابة تقنية',
+    tag_impact: 'أثر اجتماعي',
+    tag_ecosystem: 'منظومة ريادية',
+    tag_angel: 'استثمار ملائكي',
+    verified_laureate: 'مشروع متوج ومعتمد رسمياً',
   },
 };

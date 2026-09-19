@@ -469,5 +469,16 @@ export const fr = {
     backer_3_desc: 'Réseau National d\'Accélération & d\'Écosystème Startup',
     backer_4_name: 'ENVESTORS',
     backer_4_desc: 'Réseau d\'Investissement Transfrontalier & Business Angels',
+
+    // Tags & Badges
+    tag_incubation: 'Incubation',
+    tag_education: 'Éducation',
+    tag_public: 'Autorité Publique',
+    tag_innovation: 'Lab Innovation',
+    tag_tech: 'Cloud & Tech',
+    tag_impact: 'Impact Social',
+    tag_ecosystem: 'Écosystème Startup',
+    tag_angel: 'Réseau d\'Angels',
+    verified_laureate: 'Officiellement Lauréat & Certifié',
   },
 };
