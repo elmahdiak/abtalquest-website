@@ -80,6 +80,7 @@ export interface OrderConfirmation {
   totalAmount: number;
   totalXp: number;
   isSupabaseSaved: boolean;
+  supabaseError?: string;
 }
 
 export interface SupabaseHealth {
@@ -763,14 +764,14 @@ export const placeOrder = async (input: CreateOrderInput): Promise<OrderConfirma
   const createdAt = new Date().toISOString();
 
   let isSupabaseSaved = false;
+  let supabaseError: string | undefined;
 
   if (isSupabaseConfigured()) {
     try {
-      // 1. Insert order record (sanitize user_id to ensure valid UUID format)
-      const validUserId = isValidUUID(input.userId) ? input.userId : null;
-      const { error: orderError } = await supabase.from('orders').insert({
+      // 1. Insert order record into Supabase orders table (with self-contained items JSONB)
+      const orderPayload: any = {
         id: orderId,
-        user_id: validUserId,
+        user_id: input.userId || null,
         session_id: sessionId,
         customer_name: input.customerName,
         customer_email: input.customerEmail,
@@ -783,30 +784,51 @@ export const placeOrder = async (input: CreateOrderInput): Promise<OrderConfirma
         total_amount: input.totalAmount,
         total_xp: input.totalXp,
         status: 'confirmed',
-      });
+        items: input.items || [],
+      };
+
+      let { error: orderError } = await supabase.from('orders').insert(orderPayload);
+
+      // If 'items' column is not yet added in table schema, retry without it
+      if (orderError && (orderError.message.includes('column') || orderError.code === '42703')) {
+        console.warn('[AbtalQuest Supabase] Retrying insert with standard columns...');
+        const { items: _omit, ...legacyPayload } = orderPayload;
+        const retryResult = await supabase.from('orders').insert(legacyPayload);
+        orderError = retryResult.error;
+      }
 
       if (!orderError) {
-        // 2. Insert order items
-        const lineItems = input.items.map((item) => ({
-          order_id: orderId,
-          product_id: item.productId,
-          product_title: item.productTitle,
-          quantity: item.quantity,
-          unit_price: item.unitPrice,
-          xp_bonus: item.xpBonus,
-        }));
+        // 2. Also insert order items into order_items table for relational consistency
+        if (input.items && input.items.length > 0) {
+          const lineItems = input.items.map((item) => ({
+            order_id: orderId,
+            product_id: item.productId,
+            product_title: item.productTitle,
+            quantity: item.quantity,
+            unit_price: item.unitPrice,
+            xp_bonus: item.xpBonus,
+          }));
 
-        await supabase.from('order_items').insert(lineItems);
+          const { error: itemsError } = await supabase.from('order_items').insert(lineItems);
+          if (itemsError) {
+            console.warn('[AbtalQuest Supabase] Order items insert notice:', itemsError.message);
+          }
+        }
+
         isSupabaseSaved = true;
 
         // 3. Clear cart in Supabase
         await supabase.from('cart_items').delete().eq('session_id', sessionId);
       } else {
-        console.warn('[AbtalQuest Supabase] Order insert notice:', orderError.message);
+        supabaseError = orderError.message;
+        console.error('[AbtalQuest Supabase] Order insert error:', orderError.message);
       }
-    } catch (err) {
-      console.warn('[AbtalQuest Supabase] Order creation caught error:', err);
+    } catch (err: any) {
+      supabaseError = err?.message || 'Database order insert exception';
+      console.error('[AbtalQuest Supabase] Order creation caught error:', err);
     }
+  } else {
+    supabaseError = 'Supabase credentials not configured';
   }
 
   // Normalized order record for local backup and event dispatching
@@ -865,6 +887,7 @@ export const placeOrder = async (input: CreateOrderInput): Promise<OrderConfirma
     totalAmount: input.totalAmount,
     totalXp: input.totalXp,
     isSupabaseSaved,
+    supabaseError,
   };
 };
 
@@ -1012,11 +1035,153 @@ export const syncUnsavedOrdersToSupabase = async (
   return syncedCount;
 };
 
+// Track last error during database order query for admin notifications
+let lastOrdersDatabaseError: string | null = null;
+export const getLastOrdersDatabaseError = (): string | null => lastOrdersDatabaseError;
+
+export interface DatabaseHealth {
+  configured: boolean;
+  ordersTableExists: boolean;
+  orderItemsTableExists: boolean;
+  errorMessage?: string;
+}
+
 /**
- * Fetch all orders for Admin Portal
+ * Live health check to verify Supabase connectivity and orders table existence
+ */
+export const checkOrdersDatabaseHealth = async (): Promise<DatabaseHealth> => {
+  if (!isSupabaseConfigured()) {
+    return {
+      configured: false,
+      ordersTableExists: false,
+      orderItemsTableExists: false,
+      errorMessage: 'Supabase credentials are not configured in environment (VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY).',
+    };
+  }
+
+  try {
+    const { error: ordersErr } = await supabase.from('orders').select('id').limit(1);
+    const { error: itemsErr } = await supabase.from('order_items').select('id').limit(1);
+
+    const ordersTableExists = !ordersErr || ordersErr.code !== 'PGRST205';
+    const orderItemsTableExists = !itemsErr || itemsErr.code !== 'PGRST205';
+
+    let errorMessage: string | undefined;
+    if (ordersErr && ordersErr.code === 'PGRST205') {
+      errorMessage = "Table 'public.orders' not found in Supabase schema cache.";
+    } else if (ordersErr) {
+      errorMessage = ordersErr.message;
+    }
+
+    return {
+      configured: true,
+      ordersTableExists,
+      orderItemsTableExists,
+      errorMessage,
+    };
+  } catch (err: any) {
+    return {
+      configured: true,
+      ordersTableExists: false,
+      orderItemsTableExists: false,
+      errorMessage: err?.message || 'Database connection error.',
+    };
+  }
+};
+
+/**
+ * Copy-paste ready SQL migration to provision the orders table in Supabase SQL Editor
+ */
+export const ORDERS_SCHEMA_SQL = `-- ==============================================================================
+-- AbtalQuest: Orders & Order Items Migration for Supabase
+-- Run this in Supabase SQL Editor (https://supabase.com/dashboard/project/sdatbzgyqwxburnsjbax/sql/new)
+-- ==============================================================================
+
+CREATE TABLE IF NOT EXISTS public.orders (
+  id TEXT PRIMARY KEY,
+  user_id TEXT,
+  session_id TEXT,
+  customer_name TEXT NOT NULL,
+  customer_email TEXT NOT NULL,
+  customer_phone TEXT,
+  shipping_address TEXT NOT NULL,
+  city TEXT,
+  postal_code TEXT,
+  country TEXT DEFAULT 'Morocco',
+  subtotal NUMERIC(10, 2) NOT NULL DEFAULT 0.00,
+  shipping_cost NUMERIC(10, 2) NOT NULL DEFAULT 0.00,
+  total_amount NUMERIC(10, 2) NOT NULL,
+  total_xp INTEGER NOT NULL DEFAULT 0,
+  status TEXT NOT NULL DEFAULT 'confirmed' CHECK (status IN ('confirmed', 'processing', 'shipped', 'delivered', 'cancelled')),
+  items JSONB NOT NULL DEFAULT '[]'::jsonb,
+  notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Add columns if table already existed without them
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'orders' AND column_name = 'items') THEN
+    ALTER TABLE public.orders ADD COLUMN items JSONB NOT NULL DEFAULT '[]'::jsonb;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'orders' AND column_name = 'customer_phone') THEN
+    ALTER TABLE public.orders ADD COLUMN customer_phone TEXT;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'orders' AND column_name = 'notes') THEN
+    ALTER TABLE public.orders ADD COLUMN notes TEXT;
+  END IF;
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'orders' AND column_name = 'user_id' AND data_type = 'uuid') THEN
+    ALTER TABLE public.orders ALTER COLUMN user_id TYPE TEXT USING user_id::text;
+  END IF;
+END $$;
+
+CREATE INDEX IF NOT EXISTS idx_orders_created_at ON public.orders(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_orders_user_id ON public.orders(user_id);
+CREATE INDEX IF NOT EXISTS idx_orders_customer_email ON public.orders(customer_email);
+CREATE INDEX IF NOT EXISTS idx_orders_status ON public.orders(status);
+
+ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Allow public insert on orders" ON public.orders;
+DROP POLICY IF EXISTS "Allow public read on orders" ON public.orders;
+DROP POLICY IF EXISTS "Allow admin update on orders" ON public.orders;
+DROP POLICY IF EXISTS "Allow admin delete on orders" ON public.orders;
+
+CREATE POLICY "Allow public insert on orders" ON public.orders FOR INSERT TO anon, authenticated WITH CHECK (true);
+CREATE POLICY "Allow public read on orders" ON public.orders FOR SELECT TO anon, authenticated USING (true);
+CREATE POLICY "Allow admin update on orders" ON public.orders FOR UPDATE TO anon, authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Allow admin delete on orders" ON public.orders FOR DELETE TO anon, authenticated USING (true);
+
+CREATE TABLE IF NOT EXISTS public.order_items (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  order_id TEXT NOT NULL REFERENCES public.orders(id) ON DELETE CASCADE,
+  product_id TEXT NOT NULL,
+  product_title TEXT NOT NULL,
+  quantity INTEGER NOT NULL CHECK (quantity > 0),
+  unit_price NUMERIC(10, 2) NOT NULL,
+  xp_bonus INTEGER NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON public.order_items(order_id);
+ALTER TABLE public.order_items ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Allow public insert on order_items" ON public.order_items;
+DROP POLICY IF EXISTS "Allow public read on order_items" ON public.order_items;
+DROP POLICY IF EXISTS "Allow admin update on order_items" ON public.order_items;
+DROP POLICY IF EXISTS "Allow admin delete on order_items" ON public.order_items;
+
+CREATE POLICY "Allow public insert on order_items" ON public.order_items FOR INSERT TO anon, authenticated WITH CHECK (true);
+CREATE POLICY "Allow public read on order_items" ON public.order_items FOR SELECT TO anon, authenticated USING (true);
+CREATE POLICY "Allow admin update on order_items" ON public.order_items FOR UPDATE TO anon, authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Allow admin delete on order_items" ON public.order_items FOR DELETE TO anon, authenticated USING (true);
+`;
+
+/**
+ * Fetch all orders directly from Supabase orders table for Admin Portal
  */
 export const getAllOrdersForAdmin = async (): Promise<AdminOrder[]> => {
-  // Always load and safely normalize local orders
+  // Always load and safely normalize local orders (for offline fallback/caching)
   let localOrders: AdminOrder[] = [];
   if (typeof window !== 'undefined') {
     const local = localStorage.getItem('abtalquest_orders_history');
@@ -1054,35 +1219,53 @@ export const getAllOrdersForAdmin = async (): Promise<AdminOrder[]> => {
   }
 
   if (!isSupabaseConfigured()) {
+    lastOrdersDatabaseError = 'Supabase credentials not configured';
     return localOrders;
   }
 
   try {
+    // 1. Query Supabase database orders table directly
     const { data: ordersData, error: ordersError } = await supabase
       .from('orders')
       .select('*')
       .order('created_at', { ascending: false });
 
-    if (ordersError || !ordersData) {
-      console.warn('Error fetching orders from Supabase:', ordersError?.message);
+    if (ordersError) {
+      lastOrdersDatabaseError = ordersError.message;
+      console.warn('[AbtalQuest Supabase] Error fetching orders from Supabase:', ordersError.message);
       return localOrders;
     }
 
-    // Fetch order items
+    lastOrdersDatabaseError = null;
+
+    if (!ordersData) {
+      return localOrders;
+    }
+
+    // 2. Fetch order items (if line items were not stored in items JSONB column)
     const { data: itemsData } = await supabase.from('order_items').select('*');
 
-    const remoteOrders: AdminOrder[] = ordersData.map((row) => {
-      const lineItems = itemsData
-        ? itemsData
-            .filter((item) => item.order_id === row.id)
-            .map((item) => ({
-              productId: item.product_id,
-              productTitle: item.product_title,
-              quantity: Number(item.quantity),
-              unitPrice: Number(item.unit_price),
-              xpBonus: Number(item.xp_bonus || 0),
-            }))
-        : [];
+    const remoteOrders: AdminOrder[] = ordersData.map((row: any) => {
+      let lineItems: any[] = [];
+      if (Array.isArray(row.items) && row.items.length > 0) {
+        lineItems = row.items.map((i: any) => ({
+          productId: i.productId || i.product_id,
+          productTitle: i.productTitle || i.product_title,
+          quantity: Number(i.quantity || 1),
+          unitPrice: Number(i.unitPrice || i.unit_price || 0),
+          xpBonus: Number(i.xpBonus || i.xp_bonus || 0),
+        }));
+      } else if (itemsData) {
+        lineItems = itemsData
+          .filter((item) => item.order_id === row.id)
+          .map((item) => ({
+            productId: item.product_id,
+            productTitle: item.product_title,
+            quantity: Number(item.quantity),
+            unitPrice: Number(item.unit_price),
+            xpBonus: Number(item.xp_bonus || 0),
+          }));
+      }
 
       return {
         id: row.id,
@@ -1105,33 +1288,32 @@ export const getAllOrdersForAdmin = async (): Promise<AdminOrder[]> => {
       };
     });
 
-    // Merge and deduplicate by ID: remote orders take precedence, local orders preserve any offline additions
-    const orderMap = new Map<string, AdminOrder>();
+    // Merge any locally stored unsaved orders to guarantee zero data loss during network interruptions
+    if (localOrders.length > 0) {
+      const unsaved = localOrders.filter((localO) => !localO.isSupabaseSaved);
+      if (unsaved.length > 0) {
+        // Queue background sync to Supabase
+        void syncUnsavedOrdersToSupabase(unsaved);
 
-    localOrders.forEach((order) => {
-      orderMap.set(order.id, order);
-    });
+        const orderMap = new Map<string, AdminOrder>();
+        // Add remote orders first
+        remoteOrders.forEach((ro) => orderMap.set(ro.id, ro));
+        // Add unsaved local orders if not in remote
+        unsaved.forEach((lo) => {
+          if (!orderMap.has(lo.id)) {
+            orderMap.set(lo.id, lo);
+          }
+        });
 
-    remoteOrders.forEach((order) => {
-      orderMap.set(order.id, {
-        ...orderMap.get(order.id),
-        ...order,
-        isSupabaseSaved: true,
-      });
-    });
-
-    const mergedOrders = Array.from(orderMap.values()).sort(
-      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    );
-
-    // If any local orders aren't in Supabase yet, attempt non-blocking background sync
-    const unsaved = mergedOrders.filter((o) => !o.isSupabaseSaved);
-    if (unsaved.length > 0) {
-      void syncUnsavedOrdersToSupabase(unsaved);
+        return Array.from(orderMap.values()).sort(
+          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+      }
     }
 
-    return mergedOrders;
-  } catch (err) {
+    return remoteOrders;
+  } catch (err: any) {
+    lastOrdersDatabaseError = err?.message || 'Database query error';
     console.warn('Orders fetch error:', err);
     return localOrders;
   }

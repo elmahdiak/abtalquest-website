@@ -61,41 +61,76 @@ CREATE POLICY "Allow all operations on session cart"
   USING (true)
   WITH CHECK (true);
 
--- 3. ORDERS TABLE (Supports both authenticated users and guest checkouts)
+-- -- 3. ORDERS TABLE (Supports multi-device access for Admins & Managers, authenticated users, and guest checkouts)
 CREATE TABLE IF NOT EXISTS public.orders (
   id TEXT PRIMARY KEY,
-  user_id UUID, -- Optional: links to auth.users if customer created an account
+  user_id TEXT, -- Flexible text identifier: supports UUIDs from auth.users or guest/client identifiers
   session_id TEXT,
   customer_name TEXT NOT NULL,
   customer_email TEXT NOT NULL,
+  customer_phone TEXT,
   shipping_address TEXT NOT NULL,
   city TEXT,
   postal_code TEXT,
-  country TEXT DEFAULT 'United States',
-  subtotal NUMERIC(10, 2) NOT NULL,
+  country TEXT DEFAULT 'Morocco',
+  subtotal NUMERIC(10, 2) NOT NULL DEFAULT 0.00,
   shipping_cost NUMERIC(10, 2) NOT NULL DEFAULT 0.00,
   total_amount NUMERIC(10, 2) NOT NULL,
   total_xp INTEGER NOT NULL DEFAULT 0,
   status TEXT NOT NULL DEFAULT 'confirmed' CHECK (status IN ('confirmed', 'processing', 'shipped', 'delivered', 'cancelled')),
+  items JSONB NOT NULL DEFAULT '[]'::jsonb, -- Self-contained array of order items for fast single-query retrieval
+  notes TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Ensure columns exist if table was already created earlier
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'orders' AND column_name = 'items') THEN
+    ALTER TABLE public.orders ADD COLUMN items JSONB NOT NULL DEFAULT '[]'::jsonb;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'orders' AND column_name = 'customer_phone') THEN
+    ALTER TABLE public.orders ADD COLUMN customer_phone TEXT;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'orders' AND column_name = 'notes') THEN
+    ALTER TABLE public.orders ADD COLUMN notes TEXT;
+  END IF;
+  -- Ensure user_id column allows TEXT
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'orders' AND column_name = 'user_id' AND data_type = 'uuid') THEN
+    ALTER TABLE public.orders ALTER COLUMN user_id TYPE TEXT USING user_id::text;
+  END IF;
+END $$;
+
+-- Indexes for lightning fast queries across devices
+CREATE INDEX IF NOT EXISTS idx_orders_created_at ON public.orders(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_orders_user_id ON public.orders(user_id);
+CREATE INDEX IF NOT EXISTS idx_orders_customer_email ON public.orders(customer_email);
+CREATE INDEX IF NOT EXISTS idx_orders_status ON public.orders(status);
 
 -- Enable RLS for orders
 ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
 
--- Allow public insert and read on orders
+-- Clean existing policies to avoid conflict
+DROP POLICY IF EXISTS "Allow public insert on orders" ON public.orders;
+DROP POLICY IF EXISTS "Allow public read on orders" ON public.orders;
+DROP POLICY IF EXISTS "Allow admin update on orders" ON public.orders;
+DROP POLICY IF EXISTS "Allow admin delete on orders" ON public.orders;
+
+-- Allow anyone (guest customer or logged-in user) to place orders
 CREATE POLICY "Allow public insert on orders"
   ON public.orders
   FOR INSERT
   TO anon, authenticated
   WITH CHECK (true);
 
+-- Allow Admins, Managers, and customers to query orders across devices
 CREATE POLICY "Allow public read on orders"
   ON public.orders
   FOR SELECT
   TO anon, authenticated
   USING (true);
 
+-- Allow Admins and Managers to update order status (e.g. mark as shipped, delivered, cancelled)
 CREATE POLICY "Allow admin update on orders"
   ON public.orders
   FOR UPDATE
@@ -103,7 +138,14 @@ CREATE POLICY "Allow admin update on orders"
   USING (true)
   WITH CHECK (true);
 
--- 4. ORDER ITEMS TABLE
+-- Allow Admins to delete test or cancelled orders if needed
+CREATE POLICY "Allow admin delete on orders"
+  ON public.orders
+  FOR DELETE
+  TO anon, authenticated
+  USING (true);
+
+-- 4. ORDER ITEMS TABLE (Relational normalization and item-level reporting)
 CREATE TABLE IF NOT EXISTS public.order_items (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   order_id TEXT NOT NULL REFERENCES public.orders(id) ON DELETE CASCADE,
@@ -115,8 +157,16 @@ CREATE TABLE IF NOT EXISTS public.order_items (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Index on order_id for fast foreign-key joins
+CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON public.order_items(order_id);
+
 -- Enable RLS for order_items
 ALTER TABLE public.order_items ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Allow public insert on order_items" ON public.order_items;
+DROP POLICY IF EXISTS "Allow public read on order_items" ON public.order_items;
+DROP POLICY IF EXISTS "Allow admin update on order_items" ON public.order_items;
+DROP POLICY IF EXISTS "Allow admin delete on order_items" ON public.order_items;
 
 -- Allow public insert and read on order_items
 CREATE POLICY "Allow public insert on order_items"
@@ -128,6 +178,19 @@ CREATE POLICY "Allow public insert on order_items"
 CREATE POLICY "Allow public read on order_items"
   ON public.order_items
   FOR SELECT
+  TO anon, authenticated
+  USING (true);
+
+CREATE POLICY "Allow admin update on order_items"
+  ON public.order_items
+  FOR UPDATE
+  TO anon, authenticated
+  USING (true)
+  WITH CHECK (true);
+
+CREATE POLICY "Allow admin delete on order_items"
+  ON public.order_items
+  FOR DELETE
   TO anon, authenticated
   USING (true);
 
