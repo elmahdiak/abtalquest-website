@@ -63,7 +63,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
   if (!isOpen || !user) return null;
 
   const fullName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'Family Hero';
-  const totalXpEarned = orders.reduce((sum, o) => sum + o.totalXp, 0);
+  const totalXpEarned = orders.reduce((sum, o) => sum + (o.totalXp || 0), 0);
 
   return (
     <div
@@ -185,7 +185,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
                     </div>
 
                     <p className="font-body text-xs text-slate-600 dark:text-slate-300">
-                      {order.items.map((i) => `${i.productTitle} (×${i.quantity})`).join(', ')}
+                      {(order.items || []).map((i) => `${i.productTitle} (×${i.quantity})`).join(', ')}
                     </p>
                   </div>
 

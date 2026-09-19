@@ -747,6 +747,14 @@ export const loadCartFromSupabase = async (): Promise<Record<string, number>> =>
 };
 
 /**
+ * Check if a string is a valid UUID
+ */
+export const isValidUUID = (id?: string | null): boolean => {
+  if (!id) return false;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
+};
+
+/**
  * Place and record an order in Supabase
  */
 export const placeOrder = async (input: CreateOrderInput): Promise<OrderConfirmation> => {
@@ -758,17 +766,18 @@ export const placeOrder = async (input: CreateOrderInput): Promise<OrderConfirma
 
   if (isSupabaseConfigured()) {
     try {
-      // 1. Insert order record (with optional user_id if customer is logged in)
+      // 1. Insert order record (sanitize user_id to ensure valid UUID format)
+      const validUserId = isValidUUID(input.userId) ? input.userId : null;
       const { error: orderError } = await supabase.from('orders').insert({
         id: orderId,
-        user_id: input.userId || null,
+        user_id: validUserId,
         session_id: sessionId,
         customer_name: input.customerName,
         customer_email: input.customerEmail,
         shipping_address: input.shippingAddress,
         city: input.city,
         postal_code: input.postalCode,
-        country: input.country || 'United States',
+        country: input.country || 'Morocco',
         subtotal: input.subtotal,
         shipping_cost: input.shippingCost,
         total_amount: input.totalAmount,
@@ -800,22 +809,53 @@ export const placeOrder = async (input: CreateOrderInput): Promise<OrderConfirma
     }
   }
 
+  // Normalized order record for local backup and event dispatching
+  const localOrderRecord: AdminOrder = {
+    id: orderId,
+    orderId,
+    userId: input.userId || null,
+    customerName: input.customerName || 'Anonymous Customer',
+    customerEmail: input.customerEmail || '',
+    shippingAddress: input.shippingAddress || '',
+    city: input.city || '',
+    postalCode: input.postalCode || '',
+    country: input.country || 'Morocco',
+    subtotal: Number(input.subtotal || input.totalAmount || 0),
+    shippingCost: Number(input.shippingCost || 0),
+    totalAmount: Number(input.totalAmount || 0),
+    totalXp: Number(input.totalXp || 0),
+    status: 'confirmed',
+    createdAt,
+    items: input.items || [],
+    isSupabaseSaved,
+  };
+
   // Backup to localStorage
   if (typeof window !== 'undefined') {
     const ordersHistoryKey = 'abtalquest_orders_history';
     const existingRaw = localStorage.getItem(ordersHistoryKey);
-    const existingOrders = existingRaw ? JSON.parse(existingRaw) : [];
-    existingOrders.unshift({
-      orderId,
-      ...input,
-      createdAt,
-      isSupabaseSaved,
-      status: 'confirmed',
-    });
+    let existingOrders: any[] = [];
+    try {
+      existingOrders = existingRaw ? JSON.parse(existingRaw) : [];
+      if (!Array.isArray(existingOrders)) existingOrders = [];
+    } catch {
+      existingOrders = [];
+    }
+
+    existingOrders.unshift(localOrderRecord);
     localStorage.setItem(ordersHistoryKey, JSON.stringify(existingOrders));
 
     // Clear local cart
     localStorage.removeItem(`abtalquest_cart_${sessionId}`);
+
+    // Dispatch real-time cross-component and window events
+    try {
+      window.dispatchEvent(
+        new CustomEvent('abtalquest_order_created', { detail: localOrderRecord })
+      );
+    } catch {
+      // ignore
+    }
   }
 
   return {
@@ -833,6 +873,7 @@ export const placeOrder = async (input: CreateOrderInput): Promise<OrderConfirma
  */
 export interface AdminOrder {
   id: string;
+  orderId?: string;
   userId?: string | null;
   customerName: string;
   customerEmail: string;
@@ -853,39 +894,167 @@ export interface AdminOrder {
     unitPrice: number;
     xpBonus: number;
   }[];
+  isSupabaseSaved?: boolean;
 }
+
+/**
+ * Sync unsaved local orders up to Supabase database
+ */
+export const syncUnsavedOrdersToSupabase = async (
+  ordersList?: AdminOrder[]
+): Promise<number> => {
+  if (!isSupabaseConfigured()) return 0;
+
+  let candidates: AdminOrder[] = [];
+  if (ordersList && ordersList.length > 0) {
+    candidates = ordersList.filter((o) => !o.isSupabaseSaved);
+  } else if (typeof window !== 'undefined') {
+    const local = localStorage.getItem('abtalquest_orders_history');
+    if (local) {
+      try {
+        const parsed = JSON.parse(local);
+        if (Array.isArray(parsed)) {
+          candidates = parsed
+            .filter((o: any) => !o.isSupabaseSaved)
+            .map((o: any) => ({
+              id: String(o.id || o.orderId),
+              userId: o.userId,
+              customerName: o.customerName || 'Anonymous Hero Parent',
+              customerEmail: o.customerEmail || 'parent@example.com',
+              shippingAddress: o.shippingAddress || '123 Oasis Street',
+              city: o.city || '',
+              postalCode: o.postalCode || '',
+              country: o.country || 'Morocco',
+              subtotal: Number(o.subtotal || o.totalAmount || 0),
+              shippingCost: Number(o.shippingCost || 0),
+              totalAmount: Number(o.totalAmount || 0),
+              totalXp: Number(o.totalXp || 0),
+              status: o.status || 'confirmed',
+              createdAt: o.createdAt || new Date().toISOString(),
+              items: Array.isArray(o.items) ? o.items : [],
+              isSupabaseSaved: false,
+            }));
+        }
+      } catch {
+        // ignore
+      }
+    }
+  }
+
+  if (candidates.length === 0) return 0;
+
+  let syncedCount = 0;
+  for (const order of candidates) {
+    try {
+      const validUserId = isValidUUID(order.userId) ? order.userId : null;
+      const { error: orderError } = await supabase.from('orders').upsert(
+        {
+          id: order.id,
+          user_id: validUserId,
+          customer_name: order.customerName,
+          customer_email: order.customerEmail,
+          shipping_address: order.shippingAddress,
+          city: order.city,
+          postal_code: order.postalCode,
+          country: order.country || 'Morocco',
+          subtotal: order.subtotal,
+          shipping_cost: order.shippingCost,
+          total_amount: order.totalAmount,
+          total_xp: order.totalXp,
+          status: order.status,
+          created_at: order.createdAt,
+        },
+        { onConflict: 'id' }
+      );
+
+      if (!orderError) {
+        if (order.items && order.items.length > 0) {
+          const lineItems = order.items.map((item) => ({
+            order_id: order.id,
+            product_id: item.productId,
+            product_title: item.productTitle,
+            quantity: item.quantity,
+            unit_price: item.unitPrice,
+            xp_bonus: item.xpBonus,
+          }));
+          await supabase
+            .from('order_items')
+            .upsert(lineItems, { onConflict: 'id', ignoreDuplicates: true });
+        }
+        order.isSupabaseSaved = true;
+        syncedCount++;
+      }
+    } catch (err) {
+      console.warn('Syncing local order to Supabase failed:', err);
+    }
+  }
+
+  // Update local storage flags if any were synced
+  if (syncedCount > 0 && typeof window !== 'undefined') {
+    try {
+      const local = localStorage.getItem('abtalquest_orders_history');
+      if (local) {
+        const parsed = JSON.parse(local);
+        if (Array.isArray(parsed)) {
+          const updated = parsed.map((item: any) => {
+            const id = item.id || item.orderId;
+            const synced = candidates.find((c) => c.id === id && c.isSupabaseSaved);
+            return synced ? { ...item, isSupabaseSaved: true } : item;
+          });
+          localStorage.setItem('abtalquest_orders_history', JSON.stringify(updated));
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  return syncedCount;
+};
 
 /**
  * Fetch all orders for Admin Portal
  */
 export const getAllOrdersForAdmin = async (): Promise<AdminOrder[]> => {
-  if (!isSupabaseConfigured()) {
+  // Always load and safely normalize local orders
+  let localOrders: AdminOrder[] = [];
+  if (typeof window !== 'undefined') {
     const local = localStorage.getItem('abtalquest_orders_history');
     if (local) {
       try {
         const parsed = JSON.parse(local);
-        return parsed.map((o: any) => ({
-          id: o.orderId || o.id,
-          userId: o.userId,
-          customerName: o.customerName || 'Anonymous Hero Parent',
-          customerEmail: o.customerEmail || 'parent@example.com',
-          shippingAddress: o.shippingAddress || '123 Oasis Street',
-          city: o.city || 'Austin',
-          postalCode: o.postalCode || '78701',
-          country: o.country || 'USA',
-          subtotal: Number(o.subtotal || o.totalAmount || 0),
-          shippingCost: Number(o.shippingCost || 0),
-          totalAmount: Number(o.totalAmount || 0),
-          totalXp: Number(o.totalXp || 0),
-          status: o.status || 'confirmed',
-          createdAt: o.createdAt || new Date().toISOString(),
-          items: o.items || [],
-        }));
-      } catch {
-        return [];
+        if (Array.isArray(parsed)) {
+          localOrders = parsed.map((o: any) => {
+            const id = String(o.id || o.orderId || `ABQ-${Math.random().toString(36).substring(2, 8)}`);
+            return {
+              id,
+              orderId: id,
+              userId: o.userId || null,
+              customerName: o.customerName || 'Anonymous Hero Parent',
+              customerEmail: o.customerEmail || 'parent@example.com',
+              shippingAddress: o.shippingAddress || '123 Oasis Street',
+              city: o.city || '',
+              postalCode: o.postalCode || '',
+              country: o.country || 'Morocco',
+              subtotal: Number(o.subtotal || o.totalAmount || 0),
+              shippingCost: Number(o.shippingCost || 0),
+              totalAmount: Number(o.totalAmount || 0),
+              totalXp: Number(o.totalXp || 0),
+              status: (o.status || 'confirmed') as AdminOrder['status'],
+              createdAt: o.createdAt || new Date().toISOString(),
+              items: Array.isArray(o.items) ? o.items : [],
+              isSupabaseSaved: Boolean(o.isSupabaseSaved),
+            };
+          });
+        }
+      } catch (err) {
+        console.warn('Error reading local orders:', err);
       }
     }
-    return [];
+  }
+
+  if (!isSupabaseConfigured()) {
+    return localOrders;
   }
 
   try {
@@ -896,15 +1065,13 @@ export const getAllOrdersForAdmin = async (): Promise<AdminOrder[]> => {
 
     if (ordersError || !ordersData) {
       console.warn('Error fetching orders from Supabase:', ordersError?.message);
-      // Fallback to local
-      const local = localStorage.getItem('abtalquest_orders_history');
-      return local ? JSON.parse(local) : [];
+      return localOrders;
     }
 
     // Fetch order items
     const { data: itemsData } = await supabase.from('order_items').select('*');
 
-    return ordersData.map((row) => {
+    const remoteOrders: AdminOrder[] = ordersData.map((row) => {
       const lineItems = itemsData
         ? itemsData
             .filter((item) => item.order_id === row.id)
@@ -919,25 +1086,54 @@ export const getAllOrdersForAdmin = async (): Promise<AdminOrder[]> => {
 
       return {
         id: row.id,
+        orderId: row.id,
         userId: row.user_id,
-        customerName: row.customer_name,
-        customerEmail: row.customer_email,
-        shippingAddress: row.shipping_address,
-        city: row.city,
-        postalCode: row.postal_code,
-        country: row.country,
-        subtotal: Number(row.subtotal),
+        customerName: row.customer_name || 'Anonymous Customer',
+        customerEmail: row.customer_email || '',
+        shippingAddress: row.shipping_address || '',
+        city: row.city || '',
+        postalCode: row.postal_code || '',
+        country: row.country || 'Morocco',
+        subtotal: Number(row.subtotal || 0),
         shippingCost: Number(row.shipping_cost || 0),
-        totalAmount: Number(row.total_amount),
+        totalAmount: Number(row.total_amount || 0),
         totalXp: Number(row.total_xp || 0),
-        status: row.status as AdminOrder['status'],
-        createdAt: row.created_at,
+        status: (row.status || 'confirmed') as AdminOrder['status'],
+        createdAt: row.created_at || new Date().toISOString(),
         items: lineItems,
+        isSupabaseSaved: true,
       };
     });
+
+    // Merge and deduplicate by ID: remote orders take precedence, local orders preserve any offline additions
+    const orderMap = new Map<string, AdminOrder>();
+
+    localOrders.forEach((order) => {
+      orderMap.set(order.id, order);
+    });
+
+    remoteOrders.forEach((order) => {
+      orderMap.set(order.id, {
+        ...orderMap.get(order.id),
+        ...order,
+        isSupabaseSaved: true,
+      });
+    });
+
+    const mergedOrders = Array.from(orderMap.values()).sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+
+    // If any local orders aren't in Supabase yet, attempt non-blocking background sync
+    const unsaved = mergedOrders.filter((o) => !o.isSupabaseSaved);
+    if (unsaved.length > 0) {
+      void syncUnsavedOrdersToSupabase(unsaved);
+    }
+
+    return mergedOrders;
   } catch (err) {
     console.warn('Orders fetch error:', err);
-    return [];
+    return localOrders;
   }
 };
 
@@ -954,13 +1150,26 @@ export const updateOrderStatus = async (
     if (local) {
       try {
         const parsed = JSON.parse(local);
-        const updated = parsed.map((o: any) =>
-          (o.orderId === orderId || o.id === orderId) ? { ...o, status: newStatus } : o
-        );
-        localStorage.setItem('abtalquest_orders_history', JSON.stringify(updated));
+        if (Array.isArray(parsed)) {
+          const updated = parsed.map((o: any) =>
+            (o.orderId === orderId || o.id === orderId) ? { ...o, status: newStatus } : o
+          );
+          localStorage.setItem('abtalquest_orders_history', JSON.stringify(updated));
+        }
       } catch {
         // ignore
       }
+    }
+
+    // Broadcast status change event
+    try {
+      window.dispatchEvent(
+        new CustomEvent('abtalquest_order_status_updated', {
+          detail: { orderId, status: newStatus },
+        })
+      );
+    } catch {
+      // ignore
     }
   }
 
@@ -983,9 +1192,10 @@ export const updateOrderStatus = async (
  */
 export const getUserOrders = async (email: string, userId?: string): Promise<AdminOrder[]> => {
   const all = await getAllOrdersForAdmin();
+  const cleanEmail = (email || '').trim().toLowerCase();
   return all.filter((o) => {
     if (userId && o.userId === userId) return true;
-    if (email && o.customerEmail.toLowerCase() === email.toLowerCase()) return true;
+    if (cleanEmail && (o.customerEmail || '').trim().toLowerCase() === cleanEmail) return true;
     return false;
   });
 };

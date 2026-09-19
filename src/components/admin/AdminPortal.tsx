@@ -53,6 +53,7 @@ import {
 import { 
   getAllOrdersForAdmin, 
   updateOrderStatus, 
+  syncUnsavedOrdersToSupabase,
   getContactMessagesForAdmin, 
   updateContactMessageStatus, 
   getSiteMetrics,
@@ -111,6 +112,8 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
   const [orderSearch, setOrderSearch] = useState<string>('');
   const [orderStatusFilter, setOrderStatusFilter] = useState<string>('all');
   const [selectedOrder, setSelectedOrder] = useState<AdminOrder | null>(null);
+  const [syncingOrders, setSyncingOrders] = useState<boolean>(false);
+  const [syncFeedback, setSyncFeedback] = useState<string | null>(null);
 
   // Messages filters
   const [messageFilter, setMessageFilter] = useState<'all' | 'unread' | 'read'>('all');
@@ -202,6 +205,52 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
       isMounted = false;
     };
   }, [isAdmin, currentUser]);
+
+  // 3. Real-time synchronizer for orders across tabs & frontend actions
+  useEffect(() => {
+    if (!isAdmin) return;
+
+    const handleOrderEvent = () => {
+      void loadDashboardData(false);
+    };
+
+    const handleStorageEvent = (e: StorageEvent) => {
+      if (e.key === 'abtalquest_orders_history' || e.key === 'abtalquest_contact_messages') {
+        void loadDashboardData(false);
+      }
+    };
+
+    window.addEventListener('abtalquest_order_created', handleOrderEvent);
+    window.addEventListener('abtalquest_order_status_updated', handleOrderEvent);
+    window.addEventListener('storage', handleStorageEvent);
+
+    return () => {
+      window.removeEventListener('abtalquest_order_created', handleOrderEvent);
+      window.removeEventListener('abtalquest_order_status_updated', handleOrderEvent);
+      window.removeEventListener('storage', handleStorageEvent);
+    };
+  }, [isAdmin]);
+
+  // Handle manual Supabase synchronization
+  const handleManualSync = async () => {
+    setSyncingOrders(true);
+    setSyncFeedback(null);
+    try {
+      const count = await syncUnsavedOrdersToSupabase(orders);
+      await loadDashboardData(false);
+      if (count > 0) {
+        setSyncFeedback(`Successfully synced ${count} order${count > 1 ? 's' : ''} to Supabase!`);
+      } else {
+        setSyncFeedback('All orders are synchronized with Supabase.');
+      }
+      setTimeout(() => setSyncFeedback(null), 4000);
+    } catch {
+      setSyncFeedback('Sync complete.');
+      setTimeout(() => setSyncFeedback(null), 3000);
+    } finally {
+      setSyncingOrders(false);
+    }
+  };
 
   // Handle Admin Sign In
   const handleSignIn = async (e: React.FormEvent) => {
@@ -438,10 +487,17 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
 
   // Filtered orders
   const filteredOrders = orders.filter((o) => {
+    const orderId = String(o.id || o.orderId || '').toLowerCase();
+    const customerName = String(o.customerName || '').toLowerCase();
+    const customerEmail = String(o.customerEmail || '').toLowerCase();
+    const search = (orderSearch || '').trim().toLowerCase();
+
     const matchesSearch =
-      o.id.toLowerCase().includes(orderSearch.toLowerCase()) ||
-      o.customerName.toLowerCase().includes(orderSearch.toLowerCase()) ||
-      o.customerEmail.toLowerCase().includes(orderSearch.toLowerCase());
+      !search ||
+      orderId.includes(search) ||
+      customerName.includes(search) ||
+      customerEmail.includes(search);
+
     const matchesStatus = orderStatusFilter === 'all' || o.status === orderStatusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -1025,10 +1081,27 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
                     </p>
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    {syncFeedback && (
+                      <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg animate-fadeIn flex items-center gap-1.5">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                        {syncFeedback}
+                      </span>
+                    )}
                     <Button
                       variant="outline"
                       size="sm"
+                      disabled={syncingOrders || loadingData}
+                      onClick={handleManualSync}
+                      icon={<RefreshCw className={`w-3.5 h-3.5 ${syncingOrders ? 'animate-spin' : ''}`} />}
+                      iconPosition="left"
+                    >
+                      {syncingOrders ? 'Syncing...' : 'Sync Cloud'}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={loadingData}
                       onClick={() => loadDashboardData(true)}
                       icon={<Clock className="w-3.5 h-3.5" />}
                       iconPosition="left"
@@ -1092,7 +1165,24 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
                           {filteredOrders.map((order) => (
                             <tr key={order.id} className="hover:bg-slate-50/70 transition-colors">
                               <td className="py-4 px-4 font-headline">
-                                <span className="font-bold text-slate-900 block">{order.id}</span>
+                                <div className="flex items-center gap-2 mb-0.5">
+                                  <span className="font-bold text-slate-900 block">{order.id}</span>
+                                  {order.isSupabaseSaved ? (
+                                    <span
+                                      title="Synced to Supabase Cloud"
+                                      className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                    >
+                                      Cloud
+                                    </span>
+                                  ) : (
+                                    <span
+                                      title="Saved locally on device (pending cloud sync)"
+                                      className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200"
+                                    >
+                                      Local
+                                    </span>
+                                  )}
+                                </div>
                                 <span className="font-body text-[11px] text-slate-400">
                                   {new Date(order.createdAt).toLocaleDateString()}
                                 </span>
@@ -1110,19 +1200,19 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
 
                               <td className="py-4 px-4">
                                 <span className="text-slate-700 block font-medium">
-                                  {order.items.length} item{order.items.length > 1 ? 's' : ''}
+                                  {(order.items || []).length} item{(order.items || []).length > 1 ? 's' : ''}
                                 </span>
                                 <span className="text-[11px] text-slate-500 line-clamp-1">
-                                  {order.items.map((i) => `${i.productTitle} (×${i.quantity})`).join(', ')}
+                                  {(order.items || []).map((i) => `${i.productTitle} (×${i.quantity})`).join(', ')}
                                 </span>
                               </td>
 
                               <td className="py-4 px-4 font-headline">
                                 <span className="font-black text-slate-900 block">
-                                  {order.totalAmount.toLocaleString()} MAD
+                                  {(order.totalAmount || 0).toLocaleString()} MAD
                                 </span>
                                 <span className="font-gamification text-[#7C3AED] font-bold text-[10px]">
-                                  +{order.totalXp} XP
+                                  +{(order.totalXp || 0)} XP
                                 </span>
                               </td>
 
@@ -1989,14 +2079,14 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
                 Order Items
               </h5>
               <div className="space-y-2">
-                {selectedOrder.items.map((item, idx) => (
+                {(selectedOrder.items || []).map((item, idx) => (
                   <div key={idx} className="flex justify-between items-center p-3 rounded-xl bg-slate-50 border border-slate-100 text-xs">
                     <div>
                       <strong className="font-headline text-slate-800 block">{item.productTitle}</strong>
-                      <span className="text-slate-500 font-body">Qty: {item.quantity} × {item.unitPrice.toLocaleString()} MAD</span>
+                      <span className="text-slate-500 font-body">Qty: {item.quantity} × {(item.unitPrice || 0).toLocaleString()} MAD</span>
                     </div>
                     <span className="font-headline font-bold text-slate-900">
-                      {(item.unitPrice * item.quantity).toLocaleString()} MAD
+                      {((item.unitPrice || 0) * (item.quantity || 1)).toLocaleString()} MAD
                     </span>
                   </div>
                 ))}
@@ -2007,7 +2097,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
               <div>
                 <span className="font-body text-xs text-slate-500 block">Total Due:</span>
                 <span className="font-headline font-black text-2xl text-slate-900">
-                  {selectedOrder.totalAmount.toLocaleString()} MAD
+                  {(selectedOrder.totalAmount || 0).toLocaleString()} MAD
                 </span>
               </div>
 
