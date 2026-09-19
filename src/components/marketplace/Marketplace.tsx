@@ -18,7 +18,7 @@ import { MarketplaceHeader } from './MarketplaceHeader';
 import { MarketplaceBannerCarousel } from './MarketplaceBannerCarousel';
 import { MarketplaceCategoryPills } from './MarketplaceCategoryPills';
 import { MarketplaceProductGrid } from './MarketplaceProductGrid';
-import { MarketplaceProductDetailModal } from './MarketplaceProductDetailModal';
+import { MarketplaceProductDetailPage } from './MarketplaceProductDetailPage';
 import { MarketplaceTaxonomyDrawer } from './MarketplaceTaxonomyDrawer';
 import { MarketplaceWishlistDrawer } from './MarketplaceWishlistDrawer';
 import { MarketplaceCartDrawer } from './MarketplaceCartDrawer';
@@ -29,9 +29,14 @@ import { MarketplaceFooter } from './MarketplaceFooter';
 export interface MarketplaceProps {
   user?: SupabaseUser | null;
   onOpenAuth?: () => void;
+  initialProductId?: string | null;
 }
 
-export const Marketplace: React.FC<MarketplaceProps> = ({ user, onOpenAuth }) => {
+export const Marketplace: React.FC<MarketplaceProps> = ({ 
+  user, 
+  onOpenAuth,
+  initialProductId = null,
+}) => {
   // Products and database health state
   const [products, setProducts] = useState<Product[]>(DEFAULT_PRODUCTS);
   const [loadingProducts, setLoadingProducts] = useState<boolean>(true);
@@ -51,7 +56,72 @@ export const Marketplace: React.FC<MarketplaceProps> = ({ user, onOpenAuth }) =>
   const [isWishlistOpen, setIsWishlistOpen] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  
+  // Dedicated Product Page Route State
+  const [activeProductId, setActiveProductId] = useState<string | null>(initialProductId);
+
+  // Parse and sync URL product route on mount and browser navigation (popstate / hashchange)
+  useEffect(() => {
+    const handleUrlChange = () => {
+      const hash = window.location.hash;
+      const pathname = window.location.pathname;
+
+      // Check pattern like #marketplace/product/prod-1 or #/marketplace/product/prod-1
+      const hashMatch = hash.match(/#\/?marketplace\/product\/([a-zA-Z0-9_-]+)/);
+      if (hashMatch && hashMatch[1]) {
+        setActiveProductId(hashMatch[1]);
+        return;
+      }
+
+      // Check pathname pattern like /marketplace/product/prod-1
+      const pathMatch = pathname.match(/\/marketplace\/product\/([a-zA-Z0-9_-]+)/);
+      if (pathMatch && pathMatch[1]) {
+        setActiveProductId(pathMatch[1]);
+        return;
+      }
+
+      // If user navigated back to catalog root
+      if (hash === '#marketplace' || hash === '#/marketplace' || hash === '' || hash === '#universe') {
+        setActiveProductId(null);
+      }
+    };
+
+    handleUrlChange();
+    window.addEventListener('hashchange', handleUrlChange);
+    window.addEventListener('popstate', handleUrlChange);
+    return () => {
+      window.removeEventListener('hashchange', handleUrlChange);
+      window.removeEventListener('popstate', handleUrlChange);
+    };
+  }, []);
+
+  // Navigation handler between catalog and dedicated product page
+  const handleSelectProduct = useCallback((product: Product | null) => {
+    if (product) {
+      setActiveProductId(product.id);
+      const targetHash = `#marketplace/product/${product.id}`;
+      if (window.location.hash !== targetHash) {
+        if (typeof document !== 'undefined' && 'startViewTransition' in document && typeof (document as any).startViewTransition === 'function') {
+          (document as any).startViewTransition(() => {
+            window.history.pushState({ productId: product.id }, '', targetHash);
+          });
+        } else {
+          window.history.pushState({ productId: product.id }, '', targetHash);
+        }
+      }
+    } else {
+      setActiveProductId(null);
+      if (window.location.hash.includes('/product/')) {
+        if (typeof document !== 'undefined' && 'startViewTransition' in document && typeof (document as any).startViewTransition === 'function') {
+          (document as any).startViewTransition(() => {
+            window.history.pushState({}, '', '#marketplace');
+          });
+        } else {
+          window.history.pushState({}, '', '#marketplace');
+        }
+      }
+    }
+  }, []);
 
   // Wishlist state (persisted locally)
   const [wishlistIds, setWishlistIds] = useState<string[]>(() => loadWishlistFromStorage());
@@ -377,15 +447,21 @@ export const Marketplace: React.FC<MarketplaceProps> = ({ user, onOpenAuth }) =>
     }
   };
 
+  // Active selected product for the dedicated product page
+  const activeProduct = useMemo(() => {
+    if (!activeProductId) return null;
+    return products.find((p) => p.id === activeProductId) || null;
+  }, [activeProductId, products]);
+
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors font-body">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors font-body flex flex-col">
       
       {/* 1. Header & Search Experience */}
       <MarketplaceHeader
         searchTerm={searchTerm}
         onSearchChange={setSearchTerm}
         products={products}
-        onSelectProduct={setSelectedProduct}
+        onSelectProduct={handleSelectProduct}
         onOpenTaxonomy={() => setIsTaxonomyOpen(true)}
         onOpenWishlist={() => setIsWishlistOpen(true)}
         wishlistCount={wishlistIds.length}
@@ -397,45 +473,57 @@ export const Marketplace: React.FC<MarketplaceProps> = ({ user, onOpenAuth }) =>
         isLiveSupabase={isFromSupabase}
       />
 
-      {/* Main Content Body */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-        
-        {/* 2. Promotional Banners Carousel */}
-        <MarketplaceBannerCarousel
-          onFilterPlanet={(planet) => {
-            setSelectedPlanet(planet);
-            setActivePill(planet);
-          }}
-        />
+      {/* Main Content Body: Dedicated Product Page or Catalog Feed */}
+      {activeProduct ? (
+        <main className="flex-1 w-full">
+          <MarketplaceProductDetailPage
+            product={activeProduct}
+            allProducts={products}
+            onBackToMarketplace={() => handleSelectProduct(null)}
+            onSelectProduct={handleSelectProduct}
+            onAddToCart={handleAddToCart}
+            onToggleWishlist={handleToggleWishlist}
+            isWishlisted={wishlistIds.includes(activeProduct.id)}
+          />
+        </main>
+      ) : (
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 flex-1 w-full">
+          {/* 2. Promotional Banners Carousel */}
+          <MarketplaceBannerCarousel
+            onFilterPlanet={(planet) => {
+              setSelectedPlanet(planet);
+              setActivePill(planet);
+            }}
+          />
 
-        {/* 3. Horizontal Category Pills Selector */}
-        <MarketplaceCategoryPills
-          activePill={activePill}
-          onSelectPill={handleSelectPill}
-          totalProductsCount={products.length}
-        />
+          {/* 3. Horizontal Category Pills Selector */}
+          <MarketplaceCategoryPills
+            activePill={activePill}
+            onSelectPill={handleSelectPill}
+            totalProductsCount={products.length}
+          />
 
-        {/* 4. Product Grid & Instant Sorting */}
-        <MarketplaceProductGrid
-          products={filteredProducts}
-          isLoading={loadingProducts}
-          sortBy={sortBy}
-          onSortChange={setSortBy}
-          activeFilters={{
-            planet: selectedPlanet,
-            age: selectedAge,
-            type: selectedType,
-            search: searchTerm,
-          }}
-          onClearFilter={handleClearFilter}
-          onSelectProduct={setSelectedProduct}
-          onAddToCart={handleAddToCart}
-          onToggleWishlist={handleToggleWishlist}
-          wishlistIds={wishlistIds}
-          cartIds={cart.map((c) => c.id)}
-        />
-
-      </main>
+          {/* 4. Product Grid & Instant Sorting */}
+          <MarketplaceProductGrid
+            products={filteredProducts}
+            isLoading={loadingProducts}
+            sortBy={sortBy}
+            onSortChange={setSortBy}
+            activeFilters={{
+              planet: selectedPlanet,
+              age: selectedAge,
+              type: selectedType,
+              search: searchTerm,
+            }}
+            onClearFilter={handleClearFilter}
+            onSelectProduct={handleSelectProduct}
+            onAddToCart={handleAddToCart}
+            onToggleWishlist={handleToggleWishlist}
+            wishlistIds={wishlistIds}
+            cartIds={cart.map((c) => c.id)}
+          />
+        </main>
+      )}
 
       {/* 5. Slide-Out Taxonomy Drawer */}
       <MarketplaceTaxonomyDrawer
@@ -455,7 +543,7 @@ export const Marketplace: React.FC<MarketplaceProps> = ({ user, onOpenAuth }) =>
         products={products}
         onRemoveFromWishlist={handleRemoveFromWishlist}
         onMoveToCart={handleMoveToCart}
-        onSelectProduct={setSelectedProduct}
+        onSelectProduct={handleSelectProduct}
       />
 
       {/* 7. Slide-Out Cart Drawer */}
@@ -467,21 +555,10 @@ export const Marketplace: React.FC<MarketplaceProps> = ({ user, onOpenAuth }) =>
         onUpdateQuantity={handleUpdateQuantity}
         onRemoveItem={handleRemoveItem}
         onProceedToCheckout={() => setIsCheckoutOpen(true)}
-        onSelectProduct={setSelectedProduct}
+        onSelectProduct={handleSelectProduct}
       />
 
-      {/* 8. Product Detail Modal */}
-      <MarketplaceProductDetailModal
-        product={selectedProduct}
-        allProducts={products}
-        onClose={() => setSelectedProduct(null)}
-        onAddToCart={(product, qty) => handleAddToCart(product, qty)}
-        onToggleWishlist={handleToggleWishlist}
-        isWishlisted={selectedProduct ? wishlistIds.includes(selectedProduct.id) : false}
-        onSelectRelatedProduct={(related) => setSelectedProduct(related)}
-      />
-
-      {/* 9. Checkout Modal */}
+      {/* 8. Checkout Modal */}
       <MarketplaceCheckoutModal
         isOpen={isCheckoutOpen}
         onClose={() => setIsCheckoutOpen(false)}
@@ -497,13 +574,13 @@ export const Marketplace: React.FC<MarketplaceProps> = ({ user, onOpenAuth }) =>
         onSubmitOrder={handleSubmitOrder}
       />
 
-      {/* 10. Order Confirmation Modal */}
+      {/* 9. Order Confirmation Modal */}
       <MarketplaceConfirmationModal
         orderConfirmation={orderConfirmation}
         onClose={() => setOrderConfirmation(null)}
       />
 
-      {/* 11. E-Commerce Marketplace Footer */}
+      {/* 10. E-Commerce Marketplace Footer */}
       <MarketplaceFooter
         onFilterPlanet={(planet) => {
           setSelectedPlanet(planet);

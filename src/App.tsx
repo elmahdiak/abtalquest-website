@@ -45,7 +45,11 @@ export function App() {
       const pathname = window.location.pathname;
       if (hash === '#admin-portal-secure' || pathname === '/admin-portal-secure') {
         setCurrentView('admin');
-      } else if (hash === '#marketplace') {
+      } else if (
+        hash.startsWith('#marketplace') || 
+        hash.startsWith('#/marketplace') || 
+        pathname.startsWith('/marketplace')
+      ) {
         setCurrentView('marketplace');
       } else if (hash === '#contact') {
         setContactModalOpen(true);
@@ -56,6 +60,7 @@ export function App() {
     };
     handleHash();
     window.addEventListener('hashchange', handleHash);
+    window.addEventListener('popstate', handleHash);
 
     // Subscribe to auth state
     const authSub = subscribeToAuthChanges((currentUser) => {
@@ -64,6 +69,7 @@ export function App() {
 
     return () => {
       window.removeEventListener('hashchange', handleHash);
+      window.removeEventListener('popstate', handleHash);
       authSub.unsubscribe();
     };
   }, []);
