@@ -41,9 +41,27 @@ export function App() {
 
   useEffect(() => {
     const handleHash = () => {
-      const hash = window.location.hash;
-      const pathname = window.location.pathname;
-      if (hash === '#admin-portal-secure' || pathname === '/admin-portal-secure') {
+      const hash = window.location.hash.toLowerCase();
+      const pathname = window.location.pathname.toLowerCase();
+      const searchParams = new URLSearchParams(window.location.search.toLowerCase());
+
+      // Secret Admin Portal Triggers (completely hidden from public navigation)
+      // 1. Secret URL hashes: #admin-secret, #admin, #admin-portal-secure, #admin-portal
+      // 2. Secret query parameters: ?mode=admin, ?portal=admin, ?admin=true, ?secret=admin
+      // 3. Secret pathnames: /admin-secret, /admin-portal-secure
+      const isSecretAdminTrigger = 
+        hash === '#admin-secret' ||
+        hash === '#admin' ||
+        hash === '#admin-portal-secure' ||
+        hash === '#admin-portal' ||
+        searchParams.get('mode') === 'admin' ||
+        searchParams.get('portal') === 'admin' ||
+        searchParams.get('admin') === 'true' ||
+        searchParams.get('secret') === 'admin' ||
+        pathname === '/admin-secret' ||
+        pathname === '/admin-portal-secure';
+
+      if (isSecretAdminTrigger) {
         setCurrentView('admin');
       } else if (
         hash.startsWith('#marketplace') || 
@@ -122,7 +140,21 @@ export function App() {
   };
 
   if (currentView === 'admin') {
-    return <AdminPortal />;
+    return (
+      <AdminPortal 
+        onClose={() => {
+          // Safely strip secret query parameters and hash when exiting to public website
+          const url = new URL(window.location.href);
+          url.searchParams.delete('mode');
+          url.searchParams.delete('portal');
+          url.searchParams.delete('admin');
+          url.searchParams.delete('secret');
+          url.hash = '#universe';
+          window.history.replaceState({}, '', url.pathname + (url.search ? '?' + url.searchParams.toString() : '') + '#universe');
+          setCurrentView('home');
+        }}
+      />
+    );
   }
 
   return (

@@ -280,8 +280,8 @@ export const sendAdminInvitationEmail = async (params: {
 You have been appointed to the AbtalQuest platform as: ${roleDisplay}.
 Appointed by: ${params.appointedBy}
 
-You can log in to the AbtalQuest Admin Portal:
-Portal URL: https://abtalquest.com/#admin-portal-secure
+You can log in to the confidential AbtalQuest Admin Portal:
+Portal URL: https://abtalquest.com/#admin-secret (or ?mode=admin)
 Login Email: ${normalizedEmail}
 Temporary Password: ${params.temporaryPass}
 

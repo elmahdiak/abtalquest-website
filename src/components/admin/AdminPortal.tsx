@@ -56,7 +56,11 @@ import {
 } from '../../services/marketplaceService';
 import type { User } from '@supabase/supabase-js';
 
-export const AdminPortal: React.FC = () => {
+export interface AdminPortalProps {
+  onClose?: () => void;
+}
+
+export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
   // Auth state
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
@@ -371,10 +375,28 @@ export const AdminPortal: React.FC = () => {
     await loadAdmins();
   };
 
+  // Safely exit admin mode, remove any secret hashes or query params from URL, and return to public website
+  const handleExitAdmin = (e?: React.MouseEvent) => {
+    if (e) e.preventDefault();
+    if (onClose) {
+      onClose();
+    } else {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('mode');
+      url.searchParams.delete('portal');
+      url.searchParams.delete('admin');
+      url.searchParams.delete('secret');
+      url.hash = '#universe';
+      window.history.replaceState({}, '', url.pathname + '#universe');
+      window.dispatchEvent(new Event('hashchange'));
+    }
+  };
+
   const handleSignOut = async () => {
     await signOutUser();
     setCurrentUser(null);
     setIsAdmin(false);
+    handleExitAdmin();
   };
 
   const handleUpdateOrderStatus = async (orderId: string, status: AdminOrder['status']) => {
@@ -435,19 +457,27 @@ export const AdminPortal: React.FC = () => {
       <div className="min-h-screen bg-[#0A2540] flex flex-col justify-between p-3 sm:p-8 w-full max-w-full overflow-x-hidden">
         <header className="max-w-7xl mx-auto w-full flex items-center justify-between py-4">
           <div className="flex items-center gap-3">
-            <AbtalQuestLogo variant="dark" size="sm" showText={true} clickable={true} href="#universe" />
+            <AbtalQuestLogo 
+              variant="dark" 
+              size="sm" 
+              showText={true} 
+              clickable={true} 
+              href="#universe" 
+              onClick={handleExitAdmin}
+            />
             <span className="hidden sm:inline font-headline text-xs font-bold uppercase tracking-widest text-slate-400 border-l border-slate-700 pl-3">
               Internal Administration Portal
             </span>
           </div>
 
-          <a
-            href="#universe"
+          <button
+            type="button"
+            onClick={handleExitAdmin}
             className="font-headline text-xs font-semibold text-slate-300 hover:text-white flex items-center gap-1.5 transition-colors"
           >
             <span>Return to Website</span>
             <ExternalLink className="w-3.5 h-3.5" />
-          </a>
+          </button>
         </header>
 
         <main className="max-w-md mx-auto w-full py-12">
@@ -831,7 +861,14 @@ export const AdminPortal: React.FC = () => {
       <header className="bg-[#0A2540] text-white border-b border-slate-800 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <AbtalQuestLogo variant="dark" size="sm" showText={true} clickable={true} href="#universe" />
+            <AbtalQuestLogo 
+              variant="dark" 
+              size="sm" 
+              showText={true} 
+              clickable={true} 
+              href="#universe" 
+              onClick={handleExitAdmin}
+            />
             <div className="hidden md:flex items-center gap-2.5 pl-4 border-l border-slate-700">
               {isSuperAdmin(currentUser) ? (
                 <span className="font-headline text-xs font-black uppercase tracking-wider text-purple-300 bg-purple-500/20 border border-purple-500/30 px-2.5 py-1 rounded-full flex items-center gap-1.5 shadow-sm">
@@ -853,13 +890,14 @@ export const AdminPortal: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-3">
-            <a
-              href="#universe"
+            <button
+              type="button"
+              onClick={handleExitAdmin}
               className="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-headline font-semibold text-slate-300 hover:text-white transition-colors flex items-center gap-1.5"
             >
               <span>Live Site</span>
               <ExternalLink className="w-3.5 h-3.5" />
-            </a>
+            </button>
 
             <button
               onClick={handleSignOut}
