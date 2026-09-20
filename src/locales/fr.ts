@@ -298,6 +298,9 @@ export const fr = {
     mp_footer_newsletter_btn: 'S\'inscrire',
     mp_footer_newsletter_placeholder: 'Votre e-mail parent',
     mp_footer_newsletter_success: 'Bienvenue dans le Club Explorateur !',
+    mp_footer_newsletter_already: 'Vous êtes déjà inscrit au Club Explorateur !',
+    mp_footer_newsletter_invalid: 'Veuillez entrer une adresse e-mail valide.',
+    mp_footer_newsletter_error: 'Impossible de traiter l\'inscription pour le moment. Veuillez réessayer.',
   },
   auth: {
     badge: 'Portail Famille AbtalQuest',

@@ -298,6 +298,9 @@ export const en = {
     mp_footer_newsletter_btn: 'Subscribe',
     mp_footer_newsletter_placeholder: 'Enter your parent email',
     mp_footer_newsletter_success: 'Welcome to the Explorer Club!',
+    mp_footer_newsletter_already: "You're already subscribed to the Explorer Club!",
+    mp_footer_newsletter_invalid: 'Please enter a valid email address.',
+    mp_footer_newsletter_error: 'Unable to process subscription right now. Please try again.',
   },
   auth: {
     badge: 'AbtalQuest Family Portal',

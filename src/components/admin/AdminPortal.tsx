@@ -38,7 +38,9 @@ import {
   BookOpen,
   Eye,
   FileText,
-  Globe
+  Globe,
+  Download,
+  UserCheck
 } from 'lucide-react';
 import Badge from '../common/Badge';
 import Button from '../common/Button';
@@ -99,6 +101,14 @@ import {
   DEFAULT_BLOG_CATEGORIES,
   type BlogPost
 } from '../../services/blogService';
+import {
+  fetchSubscribers,
+  deleteSubscriber,
+  exportSubscribersToCSV,
+  subscribeEmail,
+  SUBSCRIBERS_SCHEMA_SQL,
+  type Subscriber
+} from '../../services/subscriberService';
 import type { User } from '@supabase/supabase-js';
 import { supabase, isSupabaseConfigured } from '../../supabaseClient';
 
@@ -128,7 +138,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
   const [dispatchedCode, setDispatchedCode] = useState<string | null>(null);
 
   // Dashboard state
-  const [activeTab, setActiveTab] = useState<'orders' | 'products' | 'categories' | 'blogs' | 'messages' | 'analytics' | 'team' | 'settings'>('orders');
+  const [activeTab, setActiveTab] = useState<'orders' | 'products' | 'categories' | 'blogs' | 'subscribers' | 'messages' | 'analytics' | 'team' | 'settings'>('orders');
   const [whatsappPosition, setWhatsappPosition] = useState<WhatsAppPosition>(getStoredWhatsAppPosition);
   const [orders, setOrders] = useState<AdminOrder[]>([]);
   const [messages, setMessages] = useState<ContactMessage[]>([]);
@@ -246,6 +256,24 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
   const [messageFilter, setMessageFilter] = useState<'all' | 'unread' | 'read'>('all');
   const [selectedMessage, setSelectedMessage] = useState<ContactMessage | null>(null);
 
+  // Subscribers & Explorer Club state
+  const [subscribersList, setSubscribersList] = useState<Subscriber[]>([]);
+  const [subscribersLoading, setSubscribersLoading] = useState<boolean>(false);
+  const [subscribersError, setSubscribersError] = useState<string | null>(null);
+  const [subscribersTableMissing, setSubscribersTableMissing] = useState<boolean>(false);
+  const [subscriberSearch, setSubscriberSearch] = useState<string>('');
+  const [subscriberSourceFilter, setSubscriberSourceFilter] = useState<string>('all');
+  const [deletingSubscriber, setDeletingSubscriber] = useState<Subscriber | null>(null);
+  const [deletingSubscriberSubmitting, setDeletingSubscriberSubmitting] = useState<boolean>(false);
+  const [subscriberActionSuccess, setSubscriberActionSuccess] = useState<string | null>(null);
+  const [showAddSubscriberModal, setShowAddSubscriberModal] = useState<boolean>(false);
+  const [newSubEmail, setNewSubEmail] = useState<string>('');
+  const [newSubSource, setNewSubSource] = useState<string>('explorer_club');
+  const [newSubSubmitting, setNewSubSubmitting] = useState<boolean>(false);
+  const [newSubError, setNewSubError] = useState<string | null>(null);
+  const [copiedSubscribersSql, setCopiedSubscribersSql] = useState<boolean>(false);
+  const [showSubscribersSqlModal, setShowSubscribersSqlModal] = useState<boolean>(false);
+
   // 1. Initial auth check
   useEffect(() => {
     let mounted = true;
@@ -284,6 +312,37 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
     return () => window.removeEventListener('abtalquest:email_dispatched', handleDispatched);
   }, []);
 
+  // Load subscribers
+  const loadSubscribers = async () => {
+    setSubscribersLoading(true);
+    setSubscribersError(null);
+    try {
+      const res = await fetchSubscribers();
+      setSubscribersList(res.subscribers);
+      setSubscribersTableMissing(!!res.isTableMissing);
+      if (res.error && !res.isTableMissing) {
+        setSubscribersError(res.error);
+      }
+    } catch (err: any) {
+      setSubscribersError(err?.message || 'Failed to load subscribers');
+    } finally {
+      setSubscribersLoading(false);
+    }
+  };
+
+  // Listen for subscriber real-time events across windows
+  useEffect(() => {
+    const handleSubChanged = () => {
+      loadSubscribers();
+    };
+    window.addEventListener('abtalquest:subscriber_added', handleSubChanged);
+    window.addEventListener('abtalquest:subscriber_deleted', handleSubChanged);
+    return () => {
+      window.removeEventListener('abtalquest:subscriber_added', handleSubChanged);
+      window.removeEventListener('abtalquest:subscriber_deleted', handleSubChanged);
+    };
+  }, []);
+
   // Load team administrators (Super Admin)
   const loadAdmins = async () => {
     setLoadingAdmins(true);
@@ -301,7 +360,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
   const loadDashboardData = async (force = false) => {
     if (force) setLoadingData(true);
     try {
-      const [ordersList, messagesList, siteStats, health, productsData, loadedCategories, loadedBlogs] = await Promise.all([
+      const [ordersList, messagesList, siteStats, health, productsData, loadedCategories, loadedBlogs, subscribersData] = await Promise.all([
         getAllOrdersForAdmin(),
         getContactMessagesForAdmin(),
         getSiteMetrics(),
@@ -309,6 +368,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
         fetchMarketplaceProducts(),
         fetchCategories(),
         fetchBlogs(),
+        fetchSubscribers(),
       ]);
 
       setOrders(ordersList);
@@ -318,10 +378,66 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
       setProductsList(productsData.products);
       setCategoriesList(loadedCategories);
       setBlogsList(loadedBlogs);
+      setSubscribersList(subscribersData.subscribers);
+      setSubscribersTableMissing(!!subscribersData.isTableMissing);
+      if (subscribersData.error && !subscribersData.isTableMissing) {
+        setSubscribersError(subscribersData.error);
+      }
     } catch (err) {
       console.warn('Dashboard data load error:', err);
     } finally {
       setLoadingData(false);
+    }
+  };
+
+  const handleCopySubscribersSql = async () => {
+    try {
+      await navigator.clipboard.writeText(SUBSCRIBERS_SCHEMA_SQL);
+      setCopiedSubscribersSql(true);
+      setTimeout(() => setCopiedSubscribersSql(false), 3000);
+    } catch {
+      setCopiedSubscribersSql(false);
+    }
+  };
+
+  const handleConfirmDeleteSubscriber = async () => {
+    if (!deletingSubscriber) return;
+    setDeletingSubscriberSubmitting(true);
+    try {
+      await deleteSubscriber(deletingSubscriber.id);
+      setSubscribersList((prev) => prev.filter((s) => s.id !== deletingSubscriber.id));
+      setSubscriberActionSuccess(`Removed subscriber: ${deletingSubscriber.email}`);
+      setDeletingSubscriber(null);
+      setTimeout(() => setSubscriberActionSuccess(null), 5000);
+    } catch (err: any) {
+      alert(`Error removing subscriber: ${err?.message || 'Unknown error'}`);
+    } finally {
+      setDeletingSubscriberSubmitting(false);
+    }
+  };
+
+  const handleSaveManualSubscriber = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newSubEmail.trim()) return;
+    setNewSubSubmitting(true);
+    setNewSubError(null);
+    try {
+      const res = await subscribeEmail(newSubEmail.trim(), newSubSource);
+      if (res.success) {
+        setSubscriberActionSuccess(
+          res.isDuplicate ? `Email already registered: ${newSubEmail}` : `Successfully added subscriber: ${newSubEmail}`
+        );
+        setShowAddSubscriberModal(false);
+        setNewSubEmail('');
+        loadSubscribers();
+        setTimeout(() => setSubscriberActionSuccess(null), 5000);
+      } else {
+        setNewSubError(res.message);
+      }
+    } catch (err: any) {
+      setNewSubError(err?.message || 'Failed to add subscriber');
+    } finally {
+      setNewSubSubmitting(false);
     }
   };
 
@@ -1670,6 +1786,24 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
           </button>
 
           <button
+            onClick={() => {
+              setActiveTab('subscribers');
+              loadSubscribers();
+            }}
+            className={`px-4 py-2 rounded-xl font-headline text-xs font-bold transition-all flex items-center gap-2 shrink-0 ${
+              activeTab === 'subscribers'
+                ? 'bg-[#fa8221] text-white shadow-sm'
+                : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
+            }`}
+          >
+            <Mail className="w-4 h-4" />
+            <span>Explorer Club</span>
+            <span className="px-1.5 py-0.2 bg-white/20 rounded-full text-[10px]">
+              {subscribersList.length}
+            </span>
+          </button>
+
+          <button
             onClick={() => setActiveTab('messages')}
             className={`px-4 py-2 rounded-xl font-headline text-xs font-bold transition-all flex items-center gap-2 ${
               activeTab === 'messages'
@@ -2764,6 +2898,409 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
                 </div>
               </div>
             )}
+
+            {/* ========================================================
+                TAB: EXPLORER CLUB & COMMUNITY SUBSCRIBERS
+               ======================================================== */}
+            {activeTab === 'subscribers' && (() => {
+              const filteredSubscribers = subscribersList.filter((s) => {
+                const matchesSearch = subscriberSearch.trim() === '' || s.email.toLowerCase().includes(subscriberSearch.trim().toLowerCase());
+                const matchesSource = subscriberSourceFilter === 'all' || s.source === subscriberSourceFilter;
+                return matchesSearch && matchesSource;
+              });
+
+              const explorerClubCount = subscribersList.filter((s) => s.source === 'explorer_club').length;
+              const parentingDigestCount = subscribersList.filter((s) => s.source === 'parenting_digest').length;
+              const newThisMonthCount = subscribersList.filter((s) => {
+                try {
+                  const created = new Date(s.createdAt).getTime();
+                  return (Date.now() - created) < 30 * 24 * 3600 * 1000;
+                } catch {
+                  return false;
+                }
+              }).length;
+
+              return (
+                <div className="space-y-6">
+                  {/* Top Header & Actions Bar */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <Badge variant="secondary" size="sm">Explorer Club Community</Badge>
+                        <span className="font-headline font-bold text-xs text-slate-400">
+                          {subscribersList.length} Total Subscribed
+                        </span>
+                      </div>
+                      <h2 className="font-headline text-2xl font-black text-slate-900">
+                        Explorer Club & Newsletter Subscribers
+                      </h2>
+                      <p className="font-body text-xs text-slate-500">
+                        Real-time parent subscriber leads persisted directly in Supabase PostgreSQL.
+                      </p>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => exportSubscribersToCSV(filteredSubscribers)}
+                        icon={<Download className="w-4 h-4" />}
+                        iconPosition="left"
+                      >
+                        Export CSV ({filteredSubscribers.length})
+                      </Button>
+
+                      <Button
+                        variant="cta"
+                        size="sm"
+                        onClick={() => {
+                          setNewSubEmail('');
+                          setNewSubSource('explorer_club');
+                          setNewSubError(null);
+                          setShowAddSubscriberModal(true);
+                        }}
+                        icon={<Plus className="w-4 h-4" />}
+                        iconPosition="left"
+                      >
+                        Add Subscriber
+                      </Button>
+
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setShowSubscribersSqlModal(true)}
+                        icon={<Database className="w-4 h-4" />}
+                        iconPosition="left"
+                      >
+                        SQL Setup
+                      </Button>
+
+                      <button
+                        onClick={loadSubscribers}
+                        disabled={subscribersLoading}
+                        className="p-2.5 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-600 transition-colors cursor-pointer disabled:opacity-50"
+                        title="Refresh Subscribers"
+                      >
+                        <RefreshCw className={`w-4 h-4 ${subscribersLoading ? 'animate-spin text-[#016ba5]' : ''}`} />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Success Toast Banner */}
+                  {subscriberActionSuccess && (
+                    <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-between gap-3 text-emerald-800 animate-fadeIn">
+                      <div className="flex items-center gap-2 font-headline font-bold text-xs">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                        <span>{subscriberActionSuccess}</span>
+                      </div>
+                      <button
+                        onClick={() => setSubscriberActionSuccess(null)}
+                        className="text-emerald-500 hover:text-emerald-800 p-1"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Error Toast Banner */}
+                  {subscribersError && !subscribersTableMissing && (
+                    <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 flex items-center justify-between gap-3 text-rose-800 animate-fadeIn">
+                      <div className="flex items-center gap-2 font-headline font-bold text-xs">
+                        <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                        <span>{subscribersError}</span>
+                      </div>
+                      <button
+                        onClick={() => setSubscribersError(null)}
+                        className="text-rose-500 hover:text-rose-800 p-1"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Missing Table Attention Alert */}
+                  {subscribersTableMissing && (
+                    <div className="p-5 rounded-2xl bg-amber-50 border border-amber-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-amber-900 animate-fadeIn shadow-sm">
+                      <div className="flex items-start gap-3">
+                        <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                        <div>
+                          <h4 className="font-headline font-black text-sm text-amber-900">
+                            Remote Supabase Table &quot;subscribers&quot; Pending Setup
+                          </h4>
+                          <p className="font-body text-xs text-amber-800 mt-0.5">
+                            Subscribers are temporarily safeguarded locally. Run the idempotent SQL migration in your Supabase SQL Editor to enable full remote cloud persistence.
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          onClick={handleCopySubscribersSql}
+                          className="px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-headline text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
+                        >
+                          {copiedSubscribersSql ? (
+                            <>
+                              <Check className="w-3.5 h-3.5" />
+                              <span>Copied SQL!</span>
+                            </>
+                          ) : (
+                            <>
+                              <Copy className="w-3.5 h-3.5" />
+                              <span>Copy SQL Script</span>
+                            </>
+                          )}
+                        </button>
+                        <button
+                          onClick={() => setShowSubscribersSqlModal(true)}
+                          className="px-3 py-2 rounded-xl border border-amber-300 hover:bg-amber-100 text-amber-800 font-headline text-xs font-bold transition-all cursor-pointer"
+                        >
+                          View SQL
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Summary Metric Cards */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center justify-between">
+                      <div>
+                        <span className="font-body text-xs font-semibold text-slate-500 uppercase tracking-wider block">
+                          Total Subscribers
+                        </span>
+                        <span className="font-headline font-black text-2xl text-slate-900 mt-1 block">
+                          {subscribersList.length}
+                        </span>
+                        <span className="font-body text-[11px] text-emerald-600 font-bold mt-0.5 inline-block">
+                          Active Community Leads
+                        </span>
+                      </div>
+                      <div className="w-12 h-12 rounded-2xl bg-blue-50 text-[#016ba5] flex items-center justify-center">
+                        <Users className="w-6 h-6" />
+                      </div>
+                    </div>
+
+                    <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center justify-between">
+                      <div>
+                        <span className="font-body text-xs font-semibold text-slate-500 uppercase tracking-wider block">
+                          Explorer Club
+                        </span>
+                        <span className="font-headline font-black text-2xl text-[#016ba5] mt-1 block">
+                          {explorerClubCount}
+                        </span>
+                        <span className="font-body text-[11px] text-slate-400 font-medium mt-0.5 inline-block">
+                          Store & Quest Blueprints
+                        </span>
+                      </div>
+                      <div className="w-12 h-12 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center">
+                        <Sparkles className="w-6 h-6" />
+                      </div>
+                    </div>
+
+                    <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center justify-between">
+                      <div>
+                        <span className="font-body text-xs font-semibold text-slate-500 uppercase tracking-wider block">
+                          Parenting Digest
+                        </span>
+                        <span className="font-headline font-black text-2xl text-emerald-600 mt-1 block">
+                          {parentingDigestCount}
+                        </span>
+                        <span className="font-body text-[11px] text-slate-400 font-medium mt-0.5 inline-block">
+                          Resource Guides & Blogs
+                        </span>
+                      </div>
+                      <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                        <BookOpen className="w-6 h-6" />
+                      </div>
+                    </div>
+
+                    <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center justify-between">
+                      <div>
+                        <span className="font-body text-xs font-semibold text-slate-500 uppercase tracking-wider block">
+                          New (Last 30 Days)
+                        </span>
+                        <span className="font-headline font-black text-2xl text-[#fa8221] mt-1 block">
+                          {newThisMonthCount}
+                        </span>
+                        <span className="font-body text-[11px] text-[#fa8221] font-bold mt-0.5 inline-block">
+                          Recent Growth
+                        </span>
+                      </div>
+                      <div className="w-12 h-12 rounded-2xl bg-amber-50 text-[#fa8221] flex items-center justify-center">
+                        <UserPlus className="w-6 h-6" />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Search and Filters Bar */}
+                  <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3">
+                    <div className="relative flex-1 w-full sm:w-auto">
+                      <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="text"
+                        value={subscriberSearch}
+                        onChange={(e) => setSubscriberSearch(e.target.value)}
+                        placeholder="Search subscribers by email address..."
+                        className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-xs font-body focus:outline-none focus:border-[#016ba5] focus:ring-1 focus:ring-[#016ba5] transition-all"
+                      />
+                      {subscriberSearch && (
+                        <button
+                          onClick={() => setSubscriberSearch('')}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-2 w-full sm:w-auto">
+                      <span className="text-xs font-body text-slate-500 whitespace-nowrap">Filter Source:</span>
+                      <select
+                        value={subscriberSourceFilter}
+                        onChange={(e) => setSubscriberSourceFilter(e.target.value)}
+                        className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-body bg-white focus:outline-none focus:border-[#016ba5]"
+                      >
+                        <option value="all">All Sources ({subscribersList.length})</option>
+                        <option value="explorer_club">Explorer Club ({explorerClubCount})</option>
+                        <option value="parenting_digest">Parenting Digest ({parentingDigestCount})</option>
+                        <option value="admin_manual">Admin Manual</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Subscribers Data Table */}
+                  <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left border-collapse">
+                        <thead>
+                          <tr className="border-b border-slate-200 bg-slate-50/75">
+                            <th className="py-3.5 px-6 font-headline font-bold text-xs text-slate-700 uppercase tracking-wider">
+                              Subscriber Email
+                            </th>
+                            <th className="py-3.5 px-6 font-headline font-bold text-xs text-slate-700 uppercase tracking-wider">
+                              Acquisition Channel
+                            </th>
+                            <th className="py-3.5 px-6 font-headline font-bold text-xs text-slate-700 uppercase tracking-wider">
+                              Subscribed At
+                            </th>
+                            <th className="py-3.5 px-6 font-headline font-bold text-xs text-slate-700 uppercase tracking-wider">
+                              Status
+                            </th>
+                            <th className="py-3.5 px-6 font-headline font-bold text-xs text-slate-700 uppercase tracking-wider text-right">
+                              Actions
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 text-xs font-body">
+                          {subscribersLoading ? (
+                            <tr>
+                              <td colSpan={5} className="py-12 text-center text-slate-500">
+                                <Loader2 className="w-6 h-6 text-[#016ba5] animate-spin mx-auto mb-2" />
+                                <span>Loading subscribers list...</span>
+                              </td>
+                            </tr>
+                          ) : filteredSubscribers.length === 0 ? (
+                            <tr>
+                              <td colSpan={5} className="py-16 text-center text-slate-500">
+                                <Mail className="w-10 h-10 text-slate-300 mx-auto mb-3" />
+                                <h4 className="font-headline font-bold text-slate-700 text-sm">No Subscribers Found</h4>
+                                <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
+                                  {subscriberSearch || subscriberSourceFilter !== 'all'
+                                    ? 'No subscriber matches your current search filters.'
+                                    : 'When parents subscribe via the Explorer Club footer form or parenting digest, their emails will appear here in real time.'}
+                                </p>
+                                {(subscriberSearch || subscriberSourceFilter !== 'all') && (
+                                  <button
+                                    onClick={() => {
+                                      setSubscriberSearch('');
+                                      setSubscriberSourceFilter('all');
+                                    }}
+                                    className="mt-3 text-xs font-headline font-bold text-[#016ba5] hover:underline"
+                                  >
+                                    Reset Filters
+                                  </button>
+                                )}
+                              </td>
+                            </tr>
+                          ) : (
+                            filteredSubscribers.map((sub) => {
+                              const isExplorerClub = sub.source === 'explorer_club';
+                              const isParenting = sub.source === 'parenting_digest';
+
+                              return (
+                                <tr key={sub.id} className="hover:bg-slate-50/80 transition-colors">
+                                  <td className="py-4 px-6 font-medium text-slate-900">
+                                    <div className="flex items-center gap-3">
+                                      <div className="w-8 h-8 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center shrink-0">
+                                        <Mail className="w-4 h-4" />
+                                      </div>
+                                      <div>
+                                        <span className="font-bold block text-slate-900 select-all">{sub.email}</span>
+                                        <span className="text-[10px] text-slate-400 font-mono">ID: {sub.id.slice(0, 13)}...</span>
+                                      </div>
+                                    </div>
+                                  </td>
+
+                                  <td className="py-4 px-6">
+                                    {isExplorerClub ? (
+                                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-headline font-bold bg-sky-50 text-sky-700 border border-sky-200">
+                                        <Sparkles className="w-3 h-3 text-sky-600" />
+                                        <span>Explorer Club</span>
+                                      </span>
+                                    ) : isParenting ? (
+                                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-headline font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                        <BookOpen className="w-3 h-3 text-emerald-600" />
+                                        <span>Parenting Digest</span>
+                                      </span>
+                                    ) : (
+                                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-headline font-bold bg-purple-50 text-purple-700 border border-purple-200">
+                                        <UserCheck className="w-3 h-3 text-purple-600" />
+                                        <span>{sub.source}</span>
+                                      </span>
+                                    )}
+                                  </td>
+
+                                  <td className="py-4 px-6 text-slate-600">
+                                    <div className="flex flex-col">
+                                      <span className="font-semibold text-slate-800">
+                                        {new Date(sub.createdAt).toLocaleDateString(undefined, {
+                                          year: 'numeric',
+                                          month: 'short',
+                                          day: 'numeric'
+                                        })}
+                                      </span>
+                                      <span className="text-[10px] text-slate-400">
+                                        {new Date(sub.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                      </span>
+                                    </div>
+                                  </td>
+
+                                  <td className="py-4 px-6">
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                      Active
+                                    </span>
+                                  </td>
+
+                                  <td className="py-4 px-6 text-right">
+                                    <button
+                                      type="button"
+                                      onClick={() => setDeletingSubscriber(sub)}
+                                      className="p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                                      title="Remove subscriber"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </button>
+                                  </td>
+                                </tr>
+                              );
+                            })
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* ========================================================
                 TAB 2: CONTACT MESSAGES
@@ -4766,6 +5303,196 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
                   variant="outline"
                   size="sm"
                   onClick={() => setShowSqlModal(false)}
+                >
+                  Close
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Delete Subscriber Confirmation Modal */}
+      {deletingSubscriber && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
+          <div className="relative w-full max-w-md bg-white rounded-3xl p-6 sm:p-8 shadow-2xl border border-slate-100 text-center">
+            <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center mx-auto mb-4">
+              <Trash2 className="w-6 h-6" />
+            </div>
+
+            <h3 className="font-headline font-black text-xl text-slate-900 mb-2">
+              Remove Subscriber?
+            </h3>
+            <p className="font-body text-xs text-slate-500 mb-6 leading-relaxed">
+              Are you sure you want to remove <strong className="text-slate-800">{deletingSubscriber.email}</strong> from the Explorer Club subscribers list? This action cannot be undone.
+            </p>
+
+            <div className="flex items-center justify-center gap-3">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setDeletingSubscriber(null)}
+                disabled={deletingSubscriberSubmitting}
+              >
+                Cancel
+              </Button>
+              <button
+                type="button"
+                onClick={handleConfirmDeleteSubscriber}
+                disabled={deletingSubscriberSubmitting}
+                className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-headline text-xs font-bold transition-all shadow-sm flex items-center gap-2 cursor-pointer disabled:opacity-50"
+              >
+                {deletingSubscriberSubmitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Removing...</span>
+                  </>
+                ) : (
+                  <span>Delete Subscriber</span>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Subscriber Modal */}
+      {showAddSubscriberModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
+          <div className="relative w-full max-w-md bg-white rounded-3xl p-6 sm:p-8 shadow-2xl border border-slate-100">
+            <button
+              onClick={() => setShowAddSubscriberModal(false)}
+              className="absolute top-5 right-5 p-2 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-2 mb-2">
+              <Badge variant="secondary" size="sm">Community Lead</Badge>
+            </div>
+
+            <h3 className="font-headline text-xl font-black text-slate-900 mb-1">
+              Add Subscriber Manually
+            </h3>
+            <p className="font-body text-xs text-slate-500 mb-5">
+              Register a parent or community member email directly into Supabase.
+            </p>
+
+            {newSubError && (
+              <div className="mb-4 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 font-headline text-xs font-bold flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{newSubError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSaveManualSubscriber} className="space-y-4">
+              <div>
+                <label className="block text-xs font-headline font-bold text-slate-700 mb-1.5">
+                  Email Address *
+                </label>
+                <input
+                  type="email"
+                  required
+                  value={newSubEmail}
+                  onChange={(e) => setNewSubEmail(e.target.value)}
+                  placeholder="parent@example.com"
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-body focus:outline-none focus:border-[#016ba5] focus:ring-1 focus:ring-[#016ba5]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-headline font-bold text-slate-700 mb-1.5">
+                  Acquisition Channel / Source
+                </label>
+                <select
+                  value={newSubSource}
+                  onChange={(e) => setNewSubSource(e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-xs font-body bg-white focus:outline-none focus:border-[#016ba5]"
+                >
+                  <option value="explorer_club">Explorer Club (Store Footer)</option>
+                  <option value="parenting_digest">Parenting Digest (Blog)</option>
+                  <option value="admin_manual">Admin Direct Registration</option>
+                  <option value="partner_event">Partner / School Event</option>
+                </select>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  type="button"
+                  onClick={() => setShowAddSubscriberModal(false)}
+                  disabled={newSubSubmitting}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="cta"
+                  size="sm"
+                  type="submit"
+                  disabled={newSubSubmitting || !newSubEmail.trim()}
+                  icon={newSubSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                  iconPosition="left"
+                >
+                  {newSubSubmitting ? 'Adding...' : 'Add Subscriber'}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Subscribers SQL Migration Modal */}
+      {showSubscribersSqlModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
+          <div className="relative w-full max-w-2xl bg-white rounded-3xl p-6 sm:p-8 shadow-2xl border border-slate-100 max-h-[90vh] flex flex-col">
+            <button
+              type="button"
+              onClick={() => setShowSubscribersSqlModal(false)}
+              className="absolute top-5 right-5 p-2 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-2 mb-2">
+              <Badge variant="secondary" size="sm">Supabase Database Setup</Badge>
+            </div>
+
+            <h3 className="font-headline text-xl font-black text-slate-900 mb-1">
+              Explorer Club Subscribers SQL Migration
+            </h3>
+            <p className="font-body text-xs text-slate-500 mb-4">
+              Execute this script in your Supabase SQL Editor to create the <code className="text-[#016ba5] bg-sky-50 px-1 py-0.5 rounded font-mono">public.subscribers</code> table and configure public insert + admin read/delete Row-Level Security policies.
+            </p>
+
+            <div className="relative flex-1 bg-slate-900 rounded-2xl p-4 overflow-y-auto font-mono text-xs text-emerald-400 max-h-[50vh] border border-slate-800">
+              <pre className="whitespace-pre-wrap">{SUBSCRIBERS_SCHEMA_SQL}</pre>
+            </div>
+
+            <div className="flex items-center justify-between pt-4 mt-4 border-t border-slate-200">
+              <a
+                href="https://supabase.com/dashboard/project/sdatbzgyqwxburnsjbax/sql/new"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-xs font-headline font-bold text-[#016ba5] hover:underline"
+              >
+                <span>Open Supabase SQL Editor</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="cta"
+                  size="sm"
+                  onClick={handleCopySubscribersSql}
+                  icon={copiedSubscribersSql ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                  iconPosition="left"
+                >
+                  {copiedSubscribersSql ? 'Copied SQL!' : 'Copy to Clipboard'}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowSubscribersSqlModal(false)}
                 >
                   Close
                 </Button>

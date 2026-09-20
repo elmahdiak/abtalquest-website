@@ -9,10 +9,14 @@ import {
   Brain,
   Compass,
   Wrench,
-  Heart
+  Heart,
+  Loader2,
+  CheckCircle2,
+  AlertCircle
 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import { cn } from '../../lib/utils';
+import { subscribeEmail, isValidEmail } from '../../services/subscriberService';
 
 export interface MarketplaceFooterProps {
   onFilterPlanet: (planetKey: string) => void;
@@ -23,14 +27,54 @@ export const MarketplaceFooter: React.FC<MarketplaceFooterProps> = ({
 }) => {
   const { t, direction } = useLanguage();
   const [newsletterEmail, setNewsletterEmail] = useState('');
-  const [newsletterSubscribed, setNewsletterSubscribed] = useState(false);
+  const [newsletterSubmitting, setNewsletterSubmitting] = useState(false);
+  const [feedback, setFeedback] = useState<{ type: 'success' | 'duplicate' | 'error'; message: string } | null>(null);
 
-  const handleSubscribe = (e: React.FormEvent) => {
+  const handleSubscribe = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (newsletterEmail.trim()) {
-      setNewsletterSubscribed(true);
-      setNewsletterEmail('');
-      setTimeout(() => setNewsletterSubscribed(false), 4000);
+    if (newsletterSubmitting) return;
+
+    if (!isValidEmail(newsletterEmail)) {
+      setFeedback({
+        type: 'error',
+        message: t('marketplace.mp_footer_newsletter_invalid'),
+      });
+      setTimeout(() => setFeedback(null), 4000);
+      return;
+    }
+
+    setNewsletterSubmitting(true);
+    setFeedback(null);
+
+    try {
+      const res = await subscribeEmail(newsletterEmail, 'explorer_club');
+      if (res.success) {
+        if (res.isDuplicate) {
+          setFeedback({
+            type: 'duplicate',
+            message: t('marketplace.mp_footer_newsletter_already'),
+          });
+        } else {
+          setFeedback({
+            type: 'success',
+            message: t('marketplace.mp_footer_newsletter_success'),
+          });
+          setNewsletterEmail(''); // Clear input on successful subscription
+        }
+      } else {
+        setFeedback({
+          type: 'error',
+          message: res.message || t('marketplace.mp_footer_newsletter_error'),
+        });
+      }
+    } catch (err: any) {
+      setFeedback({
+        type: 'error',
+        message: err?.message || t('marketplace.mp_footer_newsletter_error'),
+      });
+    } finally {
+      setNewsletterSubmitting(false);
+      setTimeout(() => setFeedback(null), 6000);
     }
   };
 
@@ -59,19 +103,34 @@ export const MarketplaceFooter: React.FC<MarketplaceFooterProps> = ({
               <input
                 type="email"
                 required
+                disabled={newsletterSubmitting}
                 value={newsletterEmail}
-                onChange={(e) => setNewsletterEmail(e.target.value)}
+                onChange={(e) => {
+                  setNewsletterEmail(e.target.value);
+                  if (feedback) setFeedback(null);
+                }}
                 placeholder={t('marketplace.mp_footer_newsletter_placeholder')}
-                className="flex-1 px-4 py-3 rounded-2xl bg-white/10 hover:bg-white/15 focus:bg-white/20 backdrop-blur-md border border-white/30 text-white placeholder:text-white/70 outline-none text-sm transition-all focus:border-white"
+                className="flex-1 px-4 py-3 rounded-2xl bg-white/10 hover:bg-white/15 focus:bg-white/20 backdrop-blur-md border border-white/30 text-white placeholder:text-white/70 outline-none text-sm transition-all focus:border-white disabled:opacity-60"
               />
               <button
                 type="submit"
-                className="px-6 py-3 rounded-2xl bg-white text-slate-900 hover:bg-slate-100 font-bold text-sm shadow-md transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-2 shrink-0"
+                disabled={newsletterSubmitting}
+                className="px-6 py-3 rounded-2xl bg-white text-slate-900 hover:bg-slate-100 font-bold text-sm shadow-md transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-2 shrink-0 disabled:opacity-75"
               >
-                {newsletterSubscribed ? (
+                {newsletterSubmitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 text-[#016ba5] animate-spin" />
+                    <span>{t('marketplace.mp_footer_newsletter_btn')}...</span>
+                  </>
+                ) : feedback?.type === 'success' ? (
                   <>
                     <Check className="w-4 h-4 text-emerald-600" />
                     <span>Subscribed!</span>
+                  </>
+                ) : feedback?.type === 'duplicate' ? (
+                  <>
+                    <Check className="w-4 h-4 text-sky-600" />
+                    <span>Subscribed</span>
                   </>
                 ) : (
                   <>
@@ -81,10 +140,27 @@ export const MarketplaceFooter: React.FC<MarketplaceFooterProps> = ({
                 )}
               </button>
             </div>
-            {newsletterSubscribed && (
-              <p className="text-xs text-amber-200 mt-2 font-semibold text-center md:text-start">
-                {t('marketplace.mp_footer_newsletter_success')}
-              </p>
+            {feedback && (
+              <div className="mt-2.5 text-xs font-semibold text-center md:text-start flex items-center justify-center md:justify-start gap-1.5 animate-fadeIn">
+                {feedback.type === 'success' && (
+                  <>
+                    <CheckCircle2 className="w-4 h-4 text-emerald-300 shrink-0" />
+                    <span className="text-emerald-100">{feedback.message}</span>
+                  </>
+                )}
+                {feedback.type === 'duplicate' && (
+                  <>
+                    <Sparkles className="w-4 h-4 text-amber-300 shrink-0" />
+                    <span className="text-amber-100">{feedback.message}</span>
+                  </>
+                )}
+                {feedback.type === 'error' && (
+                  <>
+                    <AlertCircle className="w-4 h-4 text-rose-300 shrink-0" />
+                    <span className="text-rose-100">{feedback.message}</span>
+                  </>
+                )}
+              </div>
             )}
           </form>
         </div>

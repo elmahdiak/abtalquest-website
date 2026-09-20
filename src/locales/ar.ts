@@ -298,6 +298,9 @@ export const ar = {
     mp_footer_newsletter_btn: 'اشتراك',
     mp_footer_newsletter_placeholder: 'أدخل بريدك الإلكتروني كولي أمر',
     mp_footer_newsletter_success: 'أهلاً بك في نادي المستكشفين!',
+    mp_footer_newsletter_already: 'أنت مشترك بالفعل في نادي المستكشفين!',
+    mp_footer_newsletter_invalid: 'يرجى إدخال عنوان بريد إلكتروني صحيح.',
+    mp_footer_newsletter_error: 'تعذر معالجة الاشتراك الآن. يرجى المحاولة مرة أخرى.',
   },
   auth: {
     badge: 'بوابة عائلة أبطال كويست',

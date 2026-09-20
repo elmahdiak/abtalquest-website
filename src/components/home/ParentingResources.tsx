@@ -8,8 +8,11 @@ import {
   Compass,
   X,
   Share2,
-  Check,
-  Sparkles
+  Check, 
+  Sparkles,
+  Loader2,
+  CheckCircle2,
+  AlertCircle
 } from 'lucide-react';
 import Badge from '../common/Badge';
 import Button from '../common/Button';
@@ -19,6 +22,7 @@ import {
   incrementBlogViews, 
   type BlogPost 
 } from '../../services/blogService';
+import { subscribeEmail, isValidEmail } from '../../services/subscriberService';
 
 export const ParentingResources: React.FC = () => {
   const { t } = useLanguage();
@@ -27,6 +31,57 @@ export const ParentingResources: React.FC = () => {
   const [selectedBlog, setSelectedBlog] = useState<BlogPost | null>(null);
   const [activeCategory, setActiveCategory] = useState<string>('all');
   const [copiedLink, setCopiedLink] = useState<boolean>(false);
+  const [newsletterEmail, setNewsletterEmail] = useState<string>('');
+  const [newsletterSubmitting, setNewsletterSubmitting] = useState<boolean>(false);
+  const [newsletterFeedback, setNewsletterFeedback] = useState<{ type: 'success' | 'duplicate' | 'error'; message: string } | null>(null);
+
+  const handleParentingSubscribe = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newsletterSubmitting) return;
+
+    if (!isValidEmail(newsletterEmail)) {
+      setNewsletterFeedback({
+        type: 'error',
+        message: 'Please enter a valid email address.',
+      });
+      setTimeout(() => setNewsletterFeedback(null), 4000);
+      return;
+    }
+
+    setNewsletterSubmitting(true);
+    setNewsletterFeedback(null);
+
+    try {
+      const res = await subscribeEmail(newsletterEmail, 'parenting_digest');
+      if (res.success) {
+        if (res.isDuplicate) {
+          setNewsletterFeedback({
+            type: 'duplicate',
+            message: "You're already subscribed to our newsletter!",
+          });
+        } else {
+          setNewsletterFeedback({
+            type: 'success',
+            message: t('parenting.newsletter_success'),
+          });
+          setNewsletterEmail('');
+        }
+      } else {
+        setNewsletterFeedback({
+          type: 'error',
+          message: res.message || 'Unable to subscribe. Please try again.',
+        });
+      }
+    } catch (err: any) {
+      setNewsletterFeedback({
+        type: 'error',
+        message: err?.message || 'A network error occurred.',
+      });
+    } finally {
+      setNewsletterSubmitting(false);
+      setTimeout(() => setNewsletterFeedback(null), 6000);
+    }
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -266,20 +321,63 @@ export const ParentingResources: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex items-center gap-2 w-full sm:w-auto">
-            <input
-              type="email"
-              placeholder={t('parenting.newsletter_placeholder')}
-              className="font-body text-xs px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:border-[#016ba5] focus:ring-1 focus:ring-[#016ba5] w-full sm:w-64"
-            />
-            <button
-              type="button"
-              onClick={() => alert(t('parenting.newsletter_success'))}
-              className="font-headline text-xs font-bold px-5 py-2.5 bg-[#fa8221] hover:bg-[#e87313] text-white rounded-xl shadow-sm whitespace-nowrap transition-colors"
-            >
-              {t('parenting.newsletter_submit')}
-            </button>
-          </div>
+          <form onSubmit={handleParentingSubscribe} className="flex flex-col gap-2 w-full sm:w-auto">
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <input
+                type="email"
+                required
+                disabled={newsletterSubmitting}
+                value={newsletterEmail}
+                onChange={(e) => {
+                  setNewsletterEmail(e.target.value);
+                  if (newsletterFeedback) setNewsletterFeedback(null);
+                }}
+                placeholder={t('parenting.newsletter_placeholder')}
+                className="font-body text-xs px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:border-[#016ba5] focus:ring-1 focus:ring-[#016ba5] w-full sm:w-64 disabled:opacity-60"
+              />
+              <button
+                type="submit"
+                disabled={newsletterSubmitting}
+                className="font-headline text-xs font-bold px-5 py-2.5 bg-[#fa8221] hover:bg-[#e87313] text-white rounded-xl shadow-sm whitespace-nowrap transition-colors flex items-center justify-center gap-1.5 disabled:opacity-75 cursor-pointer"
+              >
+                {newsletterSubmitting ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Subscribing...</span>
+                  </>
+                ) : newsletterFeedback?.type === 'success' ? (
+                  <>
+                    <Check className="w-3.5 h-3.5 text-white" />
+                    <span>Subscribed!</span>
+                  </>
+                ) : (
+                  <span>{t('parenting.newsletter_submit')}</span>
+                )}
+              </button>
+            </div>
+            {newsletterFeedback && (
+              <div className="text-[11px] font-semibold flex items-center gap-1 animate-fadeIn">
+                {newsletterFeedback.type === 'success' && (
+                  <>
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                    <span className="text-emerald-600 dark:text-emerald-400">{newsletterFeedback.message}</span>
+                  </>
+                )}
+                {newsletterFeedback.type === 'duplicate' && (
+                  <>
+                    <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                    <span className="text-amber-600 dark:text-amber-400">{newsletterFeedback.message}</span>
+                  </>
+                )}
+                {newsletterFeedback.type === 'error' && (
+                  <>
+                    <AlertCircle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                    <span className="text-rose-600 dark:text-rose-400">{newsletterFeedback.message}</span>
+                  </>
+                )}
+              </div>
+            )}
+          </form>
         </div>
 
       </div>

@@ -950,6 +950,63 @@ CREATE POLICY "Allow delete on blog images"
 
 
 -- ==============================================================================
+-- 10. SUBSCRIBERS TABLE (Explorer Club & Community Newsletter)
+-- ==============================================================================
+CREATE TABLE IF NOT EXISTS public.subscribers (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  email TEXT NOT NULL UNIQUE,
+  source TEXT DEFAULT 'explorer_club',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Case-insensitive unique index on email
+CREATE UNIQUE INDEX IF NOT EXISTS idx_subscribers_email_lower 
+  ON public.subscribers (LOWER(email));
+
+-- Enable RLS
+ALTER TABLE public.subscribers ENABLE ROW LEVEL SECURITY;
+
+-- Clean existing policies if re-running
+DROP POLICY IF EXISTS "Allow anon insert on subscribers" ON public.subscribers;
+DROP POLICY IF EXISTS "Allow admin read on subscribers" ON public.subscribers;
+DROP POLICY IF EXISTS "Allow admin delete on subscribers" ON public.subscribers;
+DROP POLICY IF EXISTS "Allow admin update on subscribers" ON public.subscribers;
+
+-- Policies:
+-- 1. Anonymous & authenticated users can insert (subscribe)
+CREATE POLICY "Allow anon insert on subscribers"
+  ON public.subscribers
+  FOR INSERT
+  TO anon, authenticated
+  WITH CHECK (true);
+
+-- 2. Authenticated and anon can view subscribers list in admin dashboard
+CREATE POLICY "Allow admin read on subscribers"
+  ON public.subscribers
+  FOR SELECT
+  TO anon, authenticated
+  USING (true);
+
+-- 3. Allow deleting subscriber records
+CREATE POLICY "Allow admin delete on subscribers"
+  ON public.subscribers
+  FOR DELETE
+  TO anon, authenticated
+  USING (true);
+
+-- 4. Allow updating subscriber records
+CREATE POLICY "Allow admin update on subscribers"
+  ON public.subscribers
+  FOR UPDATE
+  TO anon, authenticated
+  USING (true)
+  WITH CHECK (true);
+
+-- Grant permissions
+GRANT ALL ON public.subscribers TO anon, authenticated, service_role;
+
+-- ==============================================================================
 -- 11. GRANT PERMISSIONS & RELOAD SCHEMA CACHE
 -- ==============================================================================
 GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated, service_role;
@@ -958,3 +1015,4 @@ GRANT ALL ON ALL ROUTINES IN SCHEMA public TO anon, authenticated, service_role;
 
 -- Refresh PostgREST schema cache
 NOTIFY pgrst, 'reload schema';
+
