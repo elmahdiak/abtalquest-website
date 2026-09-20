@@ -87,28 +87,34 @@ export const BRAND_COLORS = {
 } as const;
 
 export const BRAND_FONTS = {
+  primary: {
+    family: 'Inter',
+    roles: ['Headlines', 'Titles', 'Buttons', 'Paragraphs', 'Body text', 'UI text', 'Badges'],
+    why: 'Clean, modern geometric sans-serif with exceptional readability and universal consistency',
+    weights: ['Light', 'Regular', 'Medium', 'SemiBold', 'Bold', 'ExtraBold', 'Black'],
+  },
   headline: {
-    family: 'Montserrat',
+    family: 'Inter',
     roles: ['Headlines', 'Titles', 'Buttons', 'Hero Text'],
-    why: 'Clean, geometric, modern; works perfect for startups and heroic themes',
+    why: 'Clean, geometric, modern sans-serif with crisp rendering',
     weights: ['Bold', 'SemiBold', 'Medium', 'Black'],
   },
   body: {
-    family: 'Roboto Mono',
+    family: 'Inter',
     roles: ['Paragraphs', 'Body text', 'UI text', 'App content'],
-    why: 'Extremely readable with a modern technical touch',
+    why: 'Extremely readable, clean modern geometric sans-serif',
     weights: ['Regular', 'Medium', 'Bold'],
   },
   gamified: {
-    family: 'Baloo 2',
+    family: 'Inter',
     roles: ['Badges', 'Rewards', 'Quest Levels', 'Gamified Elements'],
-    why: 'Rounded, friendly for kids, playful excitement',
+    why: 'Unified geometric modern aesthetic',
     weights: ['Bold', 'ExtraBold'],
   },
   arabic: {
-    headlines: ['Cairo', 'Amiri'],
+    headlines: ['Cairo', 'Tajawal'],
     body: 'Tajawal',
-    rewards: 'Baloo Bhaijaan 2',
+    rewards: 'Cairo',
   },
 } as const;
 

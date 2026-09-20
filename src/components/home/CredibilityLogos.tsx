@@ -48,7 +48,7 @@ export const ExplorerLogo: React.FC<LogoProps> = ({ className = 'h-7 w-auto' }) 
     <text 
       x="31" 
       y="25" 
-      fontFamily="Montserrat, system-ui, sans-serif" 
+      fontFamily="Inter, system-ui, sans-serif" 
       fontWeight="900" 
       fontSize="19" 
       letterSpacing="0.06em"
@@ -74,7 +74,7 @@ export const Ibda3LabLogo: React.FC<LogoProps> = ({ className = 'h-8 w-auto' }) 
     <text 
       x="2" 
       y="18" 
-      fontFamily="Montserrat, sans-serif" 
+      fontFamily="Inter, system-ui, sans-serif" 
       fontWeight="900" 
       fontSize="17" 
       fill="#E11D48"
@@ -87,7 +87,7 @@ export const Ibda3LabLogo: React.FC<LogoProps> = ({ className = 'h-8 w-auto' }) 
     <text 
       x="95" 
       y="18" 
-      fontFamily="Montserrat, sans-serif" 
+      fontFamily="Inter, system-ui, sans-serif" 
       fontWeight="900" 
       fontSize="18" 
       fill="#E11D48"
@@ -128,7 +128,7 @@ export const Ibda3LabLogo: React.FC<LogoProps> = ({ className = 'h-8 w-auto' }) 
     <text 
       x="10" 
       y="38" 
-      fontFamily="Montserrat, sans-serif" 
+      fontFamily="Inter, system-ui, sans-serif" 
       fontWeight="900" 
       fontSize="17" 
       className="fill-slate-900 dark:fill-white transition-colors"
@@ -138,7 +138,7 @@ export const Ibda3LabLogo: React.FC<LogoProps> = ({ className = 'h-8 w-auto' }) 
     <text 
       x="95" 
       y="38" 
-      fontFamily="Montserrat, sans-serif" 
+      fontFamily="Inter, system-ui, sans-serif" 
       fontWeight="900" 
       fontSize="17" 
       className="fill-slate-900 dark:fill-white transition-colors"
@@ -179,7 +179,7 @@ export const InjazLogo: React.FC<LogoProps> = ({ className = 'h-7 w-auto' }) => 
     <text 
       x="46" 
       y="19" 
-      fontFamily="Montserrat, sans-serif" 
+      fontFamily="Inter, system-ui, sans-serif" 
       fontWeight="800" 
       fontSize="17" 
       letterSpacing="0.04em"
@@ -191,7 +191,7 @@ export const InjazLogo: React.FC<LogoProps> = ({ className = 'h-7 w-auto' }) => 
     <text 
       x="46" 
       y="32" 
-      fontFamily="Montserrat, sans-serif" 
+      fontFamily="Inter, system-ui, sans-serif" 
       fontWeight="600" 
       fontSize="11" 
       letterSpacing="0.02em"
@@ -264,7 +264,7 @@ export const CriFesMeknesLogo: React.FC<LogoProps> = ({ className = 'h-8 w-auto'
       <text 
         x="0" 
         y="33" 
-        fontFamily="Montserrat, sans-serif" 
+        fontFamily="Inter, system-ui, sans-serif" 
         fontWeight="600" 
         fontSize="7" 
         letterSpacing="0.02em"
@@ -310,7 +310,7 @@ export const NexayaLogo: React.FC<LogoProps> = ({ className = 'h-7 w-auto' }) =>
     <text 
       x="38" 
       y="24" 
-      fontFamily="Montserrat, sans-serif" 
+      fontFamily="Inter, system-ui, sans-serif" 
       fontWeight="900" 
       fontSize="22" 
       letterSpacing="-0.03em"
@@ -336,7 +336,7 @@ export const EnvestorsLogo: React.FC<LogoProps> = ({ className = 'h-7 w-auto' })
     <text 
       x="2" 
       y="16" 
-      fontFamily="Montserrat, sans-serif" 
+      fontFamily="Inter, system-ui, sans-serif" 
       fontWeight="700" 
       fontSize="14.5" 
       letterSpacing="0.28em"
@@ -354,7 +354,7 @@ export const EnvestorsLogo: React.FC<LogoProps> = ({ className = 'h-7 w-auto' })
         x="75" 
         y="7.5" 
         textAnchor="middle" 
-        fontFamily="Montserrat, sans-serif" 
+        fontFamily="Inter, system-ui, sans-serif" 
         fontWeight="800" 
         fontSize="6.8" 
         letterSpacing="0.08em"
@@ -402,7 +402,7 @@ export const MyGenerousPlanetLogo: React.FC<LogoProps> = ({ className = 'h-8 w-a
       <text 
         x="0" 
         y="12" 
-        fontFamily="Montserrat, sans-serif" 
+        fontFamily="Inter, system-ui, sans-serif" 
         fontWeight="800" 
         fontSize="12.5" 
         className="fill-slate-900 dark:fill-white transition-colors"
@@ -412,7 +412,7 @@ export const MyGenerousPlanetLogo: React.FC<LogoProps> = ({ className = 'h-8 w-a
       <text 
         x="0" 
         y="23" 
-        fontFamily="Montserrat, sans-serif" 
+        fontFamily="Inter, system-ui, sans-serif" 
         fontWeight="900" 
         fontSize="12" 
         fill="#7C3AED"
@@ -422,7 +422,7 @@ export const MyGenerousPlanetLogo: React.FC<LogoProps> = ({ className = 'h-8 w-a
       <text 
         x="0" 
         y="32" 
-        fontFamily="Montserrat, sans-serif" 
+        fontFamily="Inter, system-ui, sans-serif" 
         fontWeight="600" 
         fontSize="7.5" 
         className="fill-slate-600 dark:fill-slate-400 transition-colors"
@@ -455,7 +455,7 @@ export const StartupUniverseLogo: React.FC<LogoProps> = ({ className = 'h-7 w-au
       <text 
         x="0" 
         y="15" 
-        fontFamily="Montserrat, sans-serif" 
+        fontFamily="Inter, system-ui, sans-serif" 
         fontWeight="800" 
         fontSize="13" 
         className="fill-slate-900 dark:fill-white transition-colors"
@@ -465,7 +465,7 @@ export const StartupUniverseLogo: React.FC<LogoProps> = ({ className = 'h-7 w-au
       <text 
         x="54" 
         y="15" 
-        fontFamily="Montserrat, sans-serif" 
+        fontFamily="Inter, system-ui, sans-serif" 
         fontWeight="600" 
         fontSize="13" 
         className="fill-slate-700 dark:fill-slate-300 transition-colors"
@@ -475,7 +475,7 @@ export const StartupUniverseLogo: React.FC<LogoProps> = ({ className = 'h-7 w-au
       <text 
         x="0" 
         y="30" 
-        fontFamily="Montserrat, sans-serif" 
+        fontFamily="Inter, system-ui, sans-serif" 
         fontWeight="800" 
         fontSize="11" 
         fill="#FA8221"
@@ -571,7 +571,7 @@ export const UemfLogo: React.FC<LogoProps> = ({ className = 'h-8 w-auto' }) => (
     <text 
       x="27" 
       y="22" 
-      fontFamily="Montserrat, sans-serif" 
+      fontFamily="Inter, system-ui, sans-serif" 
       fontWeight="900" 
       fontSize="20" 
       letterSpacing="0.02em"
@@ -595,7 +595,7 @@ export const UemfLogo: React.FC<LogoProps> = ({ className = 'h-8 w-auto' }) => (
       <text 
         x="0" 
         y="11" 
-        fontFamily="Montserrat, sans-serif" 
+        fontFamily="Inter, system-ui, sans-serif" 
         fontWeight="600" 
         fontSize="5.5" 
         letterSpacing="0.02em"
@@ -622,7 +622,7 @@ export const GitexAfricaLogo: React.FC<LogoProps> = ({ className = 'h-8 w-auto' 
     <text 
       x="2" 
       y="18" 
-      fontFamily="Montserrat, sans-serif" 
+      fontFamily="Inter, system-ui, sans-serif" 
       fontWeight="900" 
       fontSize="18" 
       letterSpacing="0.12em"
@@ -635,7 +635,7 @@ export const GitexAfricaLogo: React.FC<LogoProps> = ({ className = 'h-8 w-auto' 
     <text 
       x="3" 
       y="28" 
-      fontFamily="Montserrat, sans-serif" 
+      fontFamily="Inter, system-ui, sans-serif" 
       fontWeight="800" 
       fontSize="8.5" 
       letterSpacing="0.32em"
@@ -687,7 +687,7 @@ export const Morocco300Logo: React.FC<LogoProps> = ({ className = 'h-8 w-auto' }
     <text 
       x="88" 
       y="24" 
-      fontFamily="Montserrat, sans-serif" 
+      fontFamily="Inter, system-ui, sans-serif" 
       fontWeight="900" 
       fontSize="22" 
       className="fill-slate-900 dark:fill-white transition-colors"
@@ -700,7 +700,7 @@ export const Morocco300Logo: React.FC<LogoProps> = ({ className = 'h-8 w-auto' }
       x="70" 
       y="38" 
       textAnchor="middle" 
-      fontFamily="Montserrat, sans-serif" 
+      fontFamily="Inter, system-ui, sans-serif" 
       fontWeight="800" 
       fontSize="7.5" 
       letterSpacing="0.14em"

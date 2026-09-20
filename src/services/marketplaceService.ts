@@ -1094,22 +1094,6 @@ export const createProduct = async (prod: Omit<Product, 'id'> & { id?: string })
 
   const primaryImage = rawImages[0] || undefined;
 
-  const newProduct: Product = {
-    ...prod,
-    id: productId,
-    sku: prod.sku || `AQ-${(prod.category || 'GEN').substring(0, 3).toUpperCase()}-${Math.floor(100 + Math.random() * 900)}`,
-    inStock: prod.inStock !== undefined ? prod.inStock : true,
-    stockCount: prod.stockCount !== undefined ? prod.stockCount : 15,
-    images: rawImages,
-    imageUrl: primaryImage,
-    image: primaryImage,
-    image_url: primaryImage,
-    tags: prod.tags || [],
-    safetyGuidelines: prod.safetyGuidelines || [],
-    skillsLearned: prod.skillsLearned || [],
-    reviews: prod.reviews || [],
-  };
-
   if (!isSupabaseConfigured()) {
     throw new Error('Supabase client is not configured with live credentials. Cannot persist products to remote database.');
   }
@@ -1563,7 +1547,7 @@ export const placeOrder = async (input: CreateOrderInput): Promise<OrderConfirma
 
   return {
     orderId,
-    status: isSupabaseSaved ? 'confirmed' : 'saved_locally',
+    status: 'confirmed',
     createdAt,
     totalAmount: input.totalAmount,
     totalXp: input.totalXp,

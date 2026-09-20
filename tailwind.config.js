@@ -62,22 +62,19 @@ export default {
         },
       },
       fontFamily: {
-        // Enforce AbtalQuest Brand Typography:
-        // Default text & sans-serif default to Roboto Mono for maximum readability
-        sans: ['"Roboto Mono"', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace'],
-        body: ['"Roboto Mono"', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace'],
-        mono: ['"Roboto Mono"', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace'],
-        
-        // Primary Brand Font: Montserrat for all headlines, titles, and button labels
-        headline: ['Montserrat', 'system-ui', 'sans-serif'],
-        heading: ['Montserrat', 'system-ui', 'sans-serif'],
-        title: ['Montserrat', 'system-ui', 'sans-serif'],
-        button: ['Montserrat', 'system-ui', 'sans-serif'],
-        
-        // Gamification Font: Baloo 2 exclusively for badges, rewards, and gamified levels
-        gamification: ['"Baloo 2"', 'cursive', 'sans-serif'],
-        badge: ['"Baloo 2"', 'cursive', 'sans-serif'],
-        reward: ['"Baloo 2"', 'cursive', 'sans-serif'],
+        // Unified clean, modern geometric sans-serif font family (Inter + system-ui fallbacks)
+        sans: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'sans-serif'],
+        body: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'sans-serif'],
+        headline: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'sans-serif'],
+        heading: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'sans-serif'],
+        title: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'sans-serif'],
+        button: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'sans-serif'],
+        gamification: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'sans-serif'],
+        badge: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'sans-serif'],
+        reward: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'sans-serif'],
+
+        // Monospace font reserved for technical PINs, SQL blocks, and code elements
+        mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', '"Liberation Mono"', '"Courier New"', 'monospace'],
       },
       boxShadow: {
         'cta': '0 10px 25px -5px rgba(250, 130, 33, 0.4), 0 8px 10px -6px rgba(250, 130, 33, 0.2)',

@@ -61,8 +61,8 @@ export const VisionMission: React.FC = () => {
               </h3>
 
               {/* Vision Statement Quote */}
-              <blockquote className="font-body text-base sm:text-lg text-slate-800 dark:text-slate-100 leading-relaxed font-medium bg-white/80 dark:bg-slate-900/60 p-5 rounded-2xl border border-[#016ba5]/10 dark:border-[#016ba5]/30 shadow-sm mb-6 relative">
-                <span className="text-3xl text-[#016ba5] font-serif absolute -top-2 left-2 rtl:left-auto rtl:right-2 opacity-30 select-none">“</span>
+              <blockquote className="text-base sm:text-lg text-slate-800 dark:text-slate-100 leading-relaxed font-medium bg-white/80 dark:bg-slate-900/60 p-5 rounded-2xl border border-[#016ba5]/10 dark:border-[#016ba5]/30 shadow-sm mb-6 relative">
+                <span className="text-3xl text-[#016ba5] font-bold absolute -top-2 left-2 rtl:left-auto rtl:right-2 opacity-30 select-none">“</span>
                 <p className="relative z-10 pl-3 rtl:pl-0 rtl:pr-3">
                   {t('vision.vision_desc')}
                 </p>
@@ -137,8 +137,8 @@ export const VisionMission: React.FC = () => {
               </h3>
 
               {/* Mission Statement Quote */}
-              <blockquote className="font-body text-base sm:text-lg text-slate-800 dark:text-slate-100 leading-relaxed font-medium bg-white/80 dark:bg-slate-900/60 p-5 rounded-2xl border border-[#fa8221]/15 dark:border-[#fa8221]/30 shadow-sm mb-6 relative">
-                <span className="text-3xl text-[#fa8221] font-serif absolute -top-2 left-2 rtl:left-auto rtl:right-2 opacity-30 select-none">“</span>
+              <blockquote className="text-base sm:text-lg text-slate-800 dark:text-slate-100 leading-relaxed font-medium bg-white/80 dark:bg-slate-900/60 p-5 rounded-2xl border border-[#fa8221]/15 dark:border-[#fa8221]/30 shadow-sm mb-6 relative">
+                <span className="text-3xl text-[#fa8221] font-bold absolute -top-2 left-2 rtl:left-auto rtl:right-2 opacity-30 select-none">“</span>
                 <p className="relative z-10 pl-3 rtl:pl-0 rtl:pr-3">
                   {t('vision.mission_desc')}
                 </p>
