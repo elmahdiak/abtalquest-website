@@ -202,7 +202,12 @@ CREATE TABLE IF NOT EXISTS public.orders (
   shipping_cost NUMERIC(10, 2) NOT NULL DEFAULT 0.00,
   total_amount NUMERIC(10, 2) NOT NULL,
   total_xp INTEGER NOT NULL DEFAULT 0,
-  status TEXT NOT NULL DEFAULT 'confirmed' CHECK (status IN ('confirmed', 'processing', 'shipped', 'delivered', 'cancelled')),
+  status TEXT NOT NULL DEFAULT 'confirmed',
+  payment_method TEXT DEFAULT 'cod', -- 'cod' (Cash on Delivery) or 'payzone' (Credit Card / CMI)
+  payment_status TEXT DEFAULT 'pending_cod', -- 'pending_cod', 'pending_payment', 'paid', 'failed'
+  payment_token TEXT, -- Token hash from Payzone/CMI tokenization (never raw card credentials)
+  payment_ref TEXT, -- CMI / Payzone transaction authorization ID
+  cndp_consent BOOLEAN DEFAULT true, -- Moroccan Law 09-08 user consent compliance
   items JSONB NOT NULL DEFAULT '[]'::jsonb, -- Self-contained array of order items for fast single-query retrieval
   notes TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW()
@@ -220,10 +225,29 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'orders' AND column_name = 'notes') THEN
     ALTER TABLE public.orders ADD COLUMN notes TEXT;
   END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'orders' AND column_name = 'payment_method') THEN
+    ALTER TABLE public.orders ADD COLUMN payment_method TEXT DEFAULT 'cod';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'orders' AND column_name = 'payment_status') THEN
+    ALTER TABLE public.orders ADD COLUMN payment_status TEXT DEFAULT 'pending_cod';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'orders' AND column_name = 'payment_token') THEN
+    ALTER TABLE public.orders ADD COLUMN payment_token TEXT;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'orders' AND column_name = 'payment_ref') THEN
+    ALTER TABLE public.orders ADD COLUMN payment_ref TEXT;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'orders' AND column_name = 'cndp_consent') THEN
+    ALTER TABLE public.orders ADD COLUMN cndp_consent BOOLEAN DEFAULT true;
+  END IF;
   -- Ensure user_id column allows TEXT
   IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'orders' AND column_name = 'user_id' AND data_type = 'uuid') THEN
     ALTER TABLE public.orders ALTER COLUMN user_id TYPE TEXT USING user_id::text;
   END IF;
+  -- Update status check constraint to support pending_cod and payment states
+  ALTER TABLE public.orders DROP CONSTRAINT IF EXISTS orders_status_check;
+  ALTER TABLE public.orders ADD CONSTRAINT orders_status_check 
+    CHECK (status IN ('pending_cod', 'pending_payment', 'paid', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled'));
 END $$;
 
 -- Indexes for lightning fast queries across devices
@@ -231,6 +255,8 @@ CREATE INDEX IF NOT EXISTS idx_orders_created_at ON public.orders(created_at DES
 CREATE INDEX IF NOT EXISTS idx_orders_user_id ON public.orders(user_id);
 CREATE INDEX IF NOT EXISTS idx_orders_customer_email ON public.orders(customer_email);
 CREATE INDEX IF NOT EXISTS idx_orders_status ON public.orders(status);
+CREATE INDEX IF NOT EXISTS idx_orders_payment_method ON public.orders(payment_method);
+CREATE INDEX IF NOT EXISTS idx_orders_payment_status ON public.orders(payment_status);
 
 -- Enable RLS for orders
 ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;

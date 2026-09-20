@@ -1,4 +1,5 @@
 import { supabase, isSupabaseConfigured } from '../supabaseClient';
+import { assertPciCompliant } from './payzoneService';
 
 export interface SkillLearned {
   name: string;
@@ -91,21 +92,21 @@ export interface Product {
   id: string;
   sku?: string;
   title: string;
-  category: 'thinkers' | 'brave' | 'solvers' | 'heart' | string;
+  category: string;
   planetName: string;
-  productType: 'Physical Kit' | 'Storybook' | 'Quest Gear' | 'Family Game' | 'Learning Tool' | string;
-  ageGroup: '6-8' | '9-11' | '12+' | string;
+  productType: string;
+  ageGroup: string;
   ageLabel: string;
   price: number;
   originalPrice?: number;
   discountPercent?: number;
-  inStock?: boolean;
-  stockCount?: number;
+  inStock: boolean;
+  stockCount: number;
   isBestSeller?: boolean;
   isNew?: boolean;
-  images?: string[];
-  imageUrl?: string;
+  images: string[];
   image?: string;
+  imageUrl?: string;
   image_url?: string;
   variants?: ProductVariant[];
   xpBonus: number;
@@ -113,8 +114,8 @@ export interface Product {
   reviewsCount: number;
   shortDescription: string;
   fullDescription: string;
-  iconBg?: string;
-  accentColor?: string;
+  iconBg: string;
+  accentColor: string;
   tags: string[];
   safetyGuidelines: string[];
   skillsLearned: SkillLearned[];
@@ -143,14 +144,22 @@ export interface CreateOrderInput {
   totalAmount: number;
   totalXp: number;
   notes?: string;
+  paymentMethod?: 'cod' | 'payzone';
+  paymentStatus?: 'pending_cod' | 'pending_payment' | 'paid' | 'failed';
+  paymentToken?: string;
+  paymentRef?: string;
+  cndpConsent?: boolean;
 }
 
 export interface OrderConfirmation {
   orderId: string;
-  status: 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
+  status: 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'pending_cod' | 'pending_payment' | 'paid';
   createdAt?: string;
   totalAmount: number;
   totalXp: number;
+  paymentMethod?: 'cod' | 'payzone';
+  paymentStatus?: string;
+  paymentRef?: string;
   isSupabaseSaved: boolean;
   supabaseError?: string;
 }
@@ -1408,16 +1417,29 @@ export const isValidUUID = (id?: string | null): boolean => {
  * Place and record an order in Supabase
  */
 export const placeOrder = async (input: CreateOrderInput): Promise<OrderConfirmation> => {
+  // Enforce PCI-DSS compliance before any processing
+  assertPciCompliant(input as any);
+
   const sessionId = getSessionId();
   const orderId = `ABQ-${Date.now().toString().slice(-6)}-${Math.floor(100 + Math.random() * 900)}`;
   const createdAt = new Date().toISOString();
+
+  const paymentMethod = input.paymentMethod || 'cod';
+  const paymentStatus = input.paymentStatus || (paymentMethod === 'cod' ? 'pending_cod' : 'paid');
+  const paymentToken = input.paymentToken || null;
+  const paymentRef = input.paymentRef || null;
+  const cndpConsent = input.cndpConsent !== undefined ? input.cndpConsent : true;
+
+  // For COD: initial status is 'pending_cod' until delivery confirmation
+  // For Payzone: initial status is 'confirmed' (card paid & authenticated via 3D Secure)
+  const initialStatus: AdminOrder['status'] = paymentMethod === 'cod' ? 'pending_cod' : 'confirmed';
 
   let isSupabaseSaved = false;
   let supabaseError: string | undefined;
 
   if (isSupabaseConfigured()) {
     try {
-      // 1. Insert order record into Supabase orders table (with self-contained items JSONB)
+      // 1. Insert order record into Supabase orders table (with self-contained items JSONB & payment fields)
       const orderPayload: any = {
         id: orderId,
         user_id: input.userId || null,
@@ -1432,16 +1454,29 @@ export const placeOrder = async (input: CreateOrderInput): Promise<OrderConfirma
         shipping_cost: input.shippingCost,
         total_amount: input.totalAmount,
         total_xp: input.totalXp,
-        status: 'confirmed',
+        status: initialStatus,
+        payment_method: paymentMethod,
+        payment_status: paymentStatus,
+        payment_token: paymentToken,
+        payment_ref: paymentRef,
+        cndp_consent: cndpConsent,
         items: input.items || [],
       };
 
       let { error: orderError } = await supabase.from('orders').insert(orderPayload);
 
-      // If 'items' column is not yet added in table schema, retry without it
+      // If schema cache hasn't refreshed or optional columns are not yet added, retry with core fields
       if (orderError && (orderError.message.includes('column') || orderError.code === '42703')) {
         console.warn('[AbtalQuest Supabase] Retrying insert with standard columns...');
-        const { items: _omit, ...legacyPayload } = orderPayload;
+        const {
+          items: _omit,
+          payment_method: _pm,
+          payment_status: _ps,
+          payment_token: _pt,
+          payment_ref: _pr,
+          cndp_consent: _cc,
+          ...legacyPayload
+        } = orderPayload;
         const retryResult = await supabase.from('orders').insert(legacyPayload);
         orderError = retryResult.error;
       }
@@ -1495,7 +1530,12 @@ export const placeOrder = async (input: CreateOrderInput): Promise<OrderConfirma
     shippingCost: Number(input.shippingCost || 0),
     totalAmount: Number(input.totalAmount || 0),
     totalXp: Number(input.totalXp || 0),
-    status: 'confirmed',
+    status: initialStatus,
+    paymentMethod,
+    paymentStatus,
+    paymentToken: paymentToken || undefined,
+    paymentRef: paymentRef || undefined,
+    cndpConsent,
     createdAt,
     items: input.items || [],
     isSupabaseSaved,
@@ -1531,10 +1571,13 @@ export const placeOrder = async (input: CreateOrderInput): Promise<OrderConfirma
 
   return {
     orderId,
-    status: 'confirmed',
+    status: initialStatus,
     createdAt,
     totalAmount: input.totalAmount,
     totalXp: input.totalXp,
+    paymentMethod,
+    paymentStatus,
+    paymentRef: paymentRef || undefined,
     isSupabaseSaved,
     supabaseError,
   };
@@ -1557,7 +1600,12 @@ export interface AdminOrder {
   shippingCost: number;
   totalAmount: number;
   totalXp: number;
-  status: 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
+  status: 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'pending_cod' | 'pending_payment' | 'paid';
+  paymentMethod?: 'cod' | 'payzone';
+  paymentStatus?: string;
+  paymentToken?: string;
+  paymentRef?: string;
+  cndpConsent?: boolean;
   createdAt: string;
   items: {
     productId: string;
@@ -1602,6 +1650,11 @@ export const syncUnsavedOrdersToSupabase = async (
               totalAmount: Number(o.totalAmount || 0),
               totalXp: Number(o.totalXp || 0),
               status: o.status || 'confirmed',
+              paymentMethod: o.paymentMethod || 'cod',
+              paymentStatus: o.paymentStatus || (o.paymentMethod === 'payzone' ? 'paid' : 'pending_cod'),
+              paymentToken: o.paymentToken || undefined,
+              paymentRef: o.paymentRef || undefined,
+              cndpConsent: o.cndpConsent !== undefined ? Boolean(o.cndpConsent) : true,
               createdAt: o.createdAt || new Date().toISOString(),
               items: Array.isArray(o.items) ? o.items : [],
               isSupabaseSaved: false,
@@ -1634,6 +1687,11 @@ export const syncUnsavedOrdersToSupabase = async (
           total_amount: order.totalAmount,
           total_xp: order.totalXp,
           status: order.status,
+          payment_method: order.paymentMethod || 'cod',
+          payment_status: order.paymentStatus || (order.paymentMethod === 'payzone' ? 'paid' : 'pending_cod'),
+          payment_token: order.paymentToken || null,
+          payment_ref: order.paymentRef || null,
+          cndp_consent: order.cndpConsent !== undefined ? order.cndpConsent : true,
           created_at: order.createdAt,
         },
         { onConflict: 'id' }
@@ -1876,7 +1934,12 @@ CREATE TABLE IF NOT EXISTS public.orders (
   shipping_cost NUMERIC(10, 2) NOT NULL DEFAULT 0.00,
   total_amount NUMERIC(10, 2) NOT NULL,
   total_xp INTEGER NOT NULL DEFAULT 0,
-  status TEXT NOT NULL DEFAULT 'confirmed' CHECK (status IN ('confirmed', 'processing', 'shipped', 'delivered', 'cancelled')),
+  status TEXT NOT NULL DEFAULT 'confirmed',
+  payment_method TEXT DEFAULT 'cod',
+  payment_status TEXT DEFAULT 'pending_cod',
+  payment_token TEXT,
+  payment_ref TEXT,
+  cndp_consent BOOLEAN DEFAULT true,
   items JSONB NOT NULL DEFAULT '[]'::jsonb,
   notes TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW()
@@ -1893,15 +1956,35 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'orders' AND column_name = 'notes') THEN
     ALTER TABLE public.orders ADD COLUMN notes TEXT;
   END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'orders' AND column_name = 'payment_method') THEN
+    ALTER TABLE public.orders ADD COLUMN payment_method TEXT DEFAULT 'cod';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'orders' AND column_name = 'payment_status') THEN
+    ALTER TABLE public.orders ADD COLUMN payment_status TEXT DEFAULT 'pending_cod';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'orders' AND column_name = 'payment_token') THEN
+    ALTER TABLE public.orders ADD COLUMN payment_token TEXT;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'orders' AND column_name = 'payment_ref') THEN
+    ALTER TABLE public.orders ADD COLUMN payment_ref TEXT;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'orders' AND column_name = 'cndp_consent') THEN
+    ALTER TABLE public.orders ADD COLUMN cndp_consent BOOLEAN DEFAULT true;
+  END IF;
   IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'orders' AND column_name = 'user_id' AND data_type = 'uuid') THEN
     ALTER TABLE public.orders ALTER COLUMN user_id TYPE TEXT USING user_id::text;
   END IF;
+  ALTER TABLE public.orders DROP CONSTRAINT IF EXISTS orders_status_check;
+  ALTER TABLE public.orders ADD CONSTRAINT orders_status_check 
+    CHECK (status IN ('pending_cod', 'pending_payment', 'paid', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled'));
 END $$;
 
 CREATE INDEX IF NOT EXISTS idx_orders_created_at ON public.orders(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_orders_user_id ON public.orders(user_id);
 CREATE INDEX IF NOT EXISTS idx_orders_customer_email ON public.orders(customer_email);
 CREATE INDEX IF NOT EXISTS idx_orders_status ON public.orders(status);
+CREATE INDEX IF NOT EXISTS idx_orders_payment_method ON public.orders(payment_method);
+CREATE INDEX IF NOT EXISTS idx_orders_payment_status ON public.orders(payment_status);
 
 ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Allow public insert on orders" ON public.orders;
@@ -1978,6 +2061,11 @@ export const getAllOrdersForAdmin = async (): Promise<AdminOrder[]> => {
               totalAmount: Number(o.totalAmount || 0),
               totalXp: Number(o.totalXp || 0),
               status: (o.status || 'confirmed') as AdminOrder['status'],
+              paymentMethod: (o.paymentMethod || o.payment_method || 'cod') as AdminOrder['paymentMethod'],
+              paymentStatus: o.paymentStatus || o.payment_status || (o.paymentMethod === 'payzone' ? 'paid' : 'pending_cod'),
+              paymentToken: o.paymentToken || o.payment_token || undefined,
+              paymentRef: o.paymentRef || o.payment_ref || undefined,
+              cndpConsent: o.cndpConsent !== undefined ? Boolean(o.cndpConsent) : true,
               createdAt: o.createdAt || new Date().toISOString(),
               items: Array.isArray(o.items) ? o.items : [],
               isSupabaseSaved: Boolean(o.isSupabaseSaved),
@@ -2054,6 +2142,11 @@ export const getAllOrdersForAdmin = async (): Promise<AdminOrder[]> => {
         totalAmount: Number(row.total_amount || 0),
         totalXp: Number(row.total_xp || 0),
         status: (row.status || 'confirmed') as AdminOrder['status'],
+        paymentMethod: (row.payment_method || 'cod') as AdminOrder['paymentMethod'],
+        paymentStatus: row.payment_status || (row.payment_method === 'payzone' ? 'paid' : 'pending_cod'),
+        paymentToken: row.payment_token || undefined,
+        paymentRef: row.payment_ref || undefined,
+        cndpConsent: row.cndp_consent !== undefined ? Boolean(row.cndp_consent) : true,
         createdAt: row.created_at || new Date().toISOString(),
         items: lineItems,
         isSupabaseSaved: true,

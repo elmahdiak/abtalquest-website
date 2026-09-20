@@ -1,16 +1,26 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   X, 
   ShieldCheck, 
   Sparkles, 
   CheckCircle2, 
   Loader2, 
-  PackageCheck 
+  PackageCheck,
+  CreditCard,
+  Banknote,
+  FileText,
+  ChevronDown,
+  ChevronUp,
+  AlertCircle
 } from 'lucide-react';
 import Badge from '../common/Badge';
 import Button from '../common/Button';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 import { formatPrice } from '../../services/marketplaceService';
+import { 
+  CNDP_LEGAL_NOTICE_FR, 
+  CNDP_LEGAL_NOTICE_AR 
+} from '../../services/payzoneService';
 import { useLanguage } from '../../context/LanguageContext';
 import { cn } from '../../lib/utils';
 
@@ -35,7 +45,11 @@ export interface MarketplaceCheckoutModalProps {
   setFormData: React.Dispatch<React.SetStateAction<CheckoutFormData>>;
   formErrors: Record<string, string>;
   submittingOrder: boolean;
-  onSubmitOrder: (e: React.FormEvent) => void;
+  onSubmitOrder: (
+    e: React.FormEvent, 
+    paymentMethod: 'cod' | 'payzone', 
+    cndpConsent: boolean
+  ) => void;
 }
 
 export const MarketplaceCheckoutModal: React.FC<MarketplaceCheckoutModalProps> = ({
@@ -54,7 +68,31 @@ export const MarketplaceCheckoutModal: React.FC<MarketplaceCheckoutModalProps> =
 }) => {
   const { t, direction, language } = useLanguage();
 
+  // Payment method selection: 'cod' (Cash on delivery) or 'payzone' (Credit card via CMI)
+  const [paymentMethod, setPaymentMethod] = useState<'cod' | 'payzone'>('cod');
+  
+  // Moroccan Law 09-08 / CNDP Consent state
+  const [cndpConsent, setCndpConsent] = useState(true);
+  const [showCndpNotice, setShowCndpNotice] = useState(false);
+  const [cndpError, setCndpError] = useState<string | null>(null);
+
   if (!isOpen) return null;
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!cndpConsent) {
+      setCndpError(
+        language === 'ar'
+          ? 'يرجى الموافقة على معالجة البيانات وفق القانون 09-08 لمتابعة الطلب.'
+          : language === 'fr'
+          ? 'Veuillez accepter le traitement des données conformément à la loi 09-08.'
+          : 'Please consent to data processing under Moroccan Law 09-08 to proceed.'
+      );
+      return;
+    }
+    setCndpError(null);
+    onSubmitOrder(e, paymentMethod, cndpConsent);
+  };
 
   return (
     <div 
@@ -139,7 +177,7 @@ export const MarketplaceCheckoutModal: React.FC<MarketplaceCheckoutModalProps> =
         )}
 
         {/* Checkout Form */}
-        <form onSubmit={onSubmitOrder} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-xs font-headline font-bold text-slate-700 dark:text-slate-200 mb-1">
               {t('marketplace.checkout_name')}
@@ -222,18 +260,161 @@ export const MarketplaceCheckoutModal: React.FC<MarketplaceCheckoutModalProps> =
             </div>
           </div>
 
-          <div className="pt-4 border-t border-slate-100 dark:border-slate-700 flex flex-col gap-2.5">
+          {/* DUAL PAYMENT METHOD SELECTOR */}
+          <div className="pt-2">
+            <label className="block text-xs font-headline font-bold text-slate-700 dark:text-slate-200 mb-2">
+              {t('marketplace.checkout_payment_method')}
+            </label>
+
+            <div className="grid grid-cols-1 gap-2.5">
+              {/* Option 1: Cash on Delivery (COD) */}
+              <label
+                onClick={() => setPaymentMethod('cod')}
+                className={cn(
+                  "flex items-start gap-3 p-3.5 rounded-2xl border-2 cursor-pointer transition-all",
+                  paymentMethod === 'cod'
+                    ? "border-[#016ba5] bg-[#016ba5]/5 dark:bg-[#016ba5]/15 dark:border-[#38BDF8]"
+                    : "border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600"
+                )}
+              >
+                <input
+                  type="radio"
+                  name="paymentMethod"
+                  value="cod"
+                  checked={paymentMethod === 'cod'}
+                  onChange={() => setPaymentMethod('cod')}
+                  className="mt-1 text-[#016ba5] focus:ring-[#016ba5]"
+                />
+                <div className="flex-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-headline font-bold text-xs text-slate-900 dark:text-white flex items-center gap-1.5">
+                      <Banknote className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                      {t('marketplace.checkout_cod_title')}
+                    </span>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">
+                      {t('marketplace.checkout_cod_badge')}
+                    </span>
+                  </div>
+                  <p className="text-[11px] font-body text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">
+                    {t('marketplace.checkout_cod_desc')}
+                  </p>
+                </div>
+              </label>
+
+              {/* Option 2: Credit Card via Payzone / CMI */}
+              <label
+                onClick={() => setPaymentMethod('payzone')}
+                className={cn(
+                  "flex items-start gap-3 p-3.5 rounded-2xl border-2 cursor-pointer transition-all",
+                  paymentMethod === 'payzone'
+                    ? "border-[#016ba5] bg-[#016ba5]/5 dark:bg-[#016ba5]/15 dark:border-[#38BDF8]"
+                    : "border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600"
+                )}
+              >
+                <input
+                  type="radio"
+                  name="paymentMethod"
+                  value="payzone"
+                  checked={paymentMethod === 'payzone'}
+                  onChange={() => setPaymentMethod('payzone')}
+                  className="mt-1 text-[#016ba5] focus:ring-[#016ba5]"
+                />
+                <div className="flex-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-headline font-bold text-xs text-slate-900 dark:text-white flex items-center gap-1.5">
+                      <CreditCard className="w-4 h-4 text-[#016ba5] dark:text-[#38BDF8]" />
+                      {t('marketplace.checkout_payzone_title')}
+                    </span>
+                    <div className="flex items-center gap-1">
+                      <span className="px-1.5 py-0.5 rounded text-[9px] font-black bg-amber-500 text-white">
+                        CMI
+                      </span>
+                      <span className="px-1.5 py-0.5 rounded text-[9px] font-black bg-blue-600 text-white">
+                        VISA
+                      </span>
+                      <span className="px-1.5 py-0.5 rounded text-[9px] font-black bg-red-600 text-white">
+                        MC
+                      </span>
+                    </div>
+                  </div>
+                  <p className="text-[11px] font-body text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">
+                    {t('marketplace.checkout_payzone_desc')}
+                  </p>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          {/* CNDP Law No. 09-08 Compliance Checkbox & Disclosure */}
+          <div className="p-3 bg-slate-50 dark:bg-[#071727] rounded-2xl border border-slate-200 dark:border-slate-700/80 space-y-2">
+            <label className="flex items-start gap-2.5 cursor-pointer text-xs font-body text-slate-700 dark:text-slate-300">
+              <input
+                type="checkbox"
+                checked={cndpConsent}
+                onChange={(e) => {
+                  setCndpConsent(e.target.checked);
+                  if (e.target.checked) setCndpError(null);
+                }}
+                className="mt-0.5 w-4 h-4 text-[#016ba5] rounded border-slate-300 dark:border-slate-600 focus:ring-[#016ba5]"
+              />
+              <span className="flex-1 text-[11px] leading-relaxed">
+                {t('marketplace.checkout_cndp_consent_label')}
+              </span>
+            </label>
+
+            {cndpError && (
+              <div className="flex items-center gap-1.5 text-[11px] text-red-500 font-medium">
+                <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+                <span>{cndpError}</span>
+              </div>
+            )}
+
+            <div className="pt-1 border-t border-slate-200/60 dark:border-slate-700/60 flex items-center justify-between">
+              <button
+                type="button"
+                onClick={() => setShowCndpNotice(!showCndpNotice)}
+                className="text-[10px] font-headline font-semibold text-[#016ba5] dark:text-[#38BDF8] flex items-center gap-1 hover:underline cursor-pointer"
+              >
+                <FileText className="w-3 h-3" />
+                {showCndpNotice 
+                  ? t('marketplace.checkout_cndp_hide')
+                  : t('marketplace.checkout_cndp_read_more')}
+                {showCndpNotice ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+              </button>
+              <span className="text-[10px] text-slate-400 font-mono">
+                CNDP Dahir 1-09-15
+              </span>
+            </div>
+
+            {showCndpNotice && (
+              <div className="p-2.5 bg-white dark:bg-[#0A2540] rounded-xl text-[10px] font-body text-slate-600 dark:text-slate-300 leading-relaxed border border-slate-200 dark:border-slate-700 animate-in fade-in duration-150">
+                {language === 'ar' ? CNDP_LEGAL_NOTICE_AR : CNDP_LEGAL_NOTICE_FR}
+              </div>
+            )}
+          </div>
+
+          <div className="pt-2 border-t border-slate-100 dark:border-slate-700 flex flex-col gap-2.5">
             <Button
               variant="cta"
               size="lg"
               fullWidth
               disabled={submittingOrder}
-              icon={submittingOrder ? <Loader2 className="w-4 h-4 animate-spin" /> : <PackageCheck className="w-4 h-4" />}
+              icon={
+                submittingOrder ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : paymentMethod === 'payzone' ? (
+                  <CreditCard className="w-4 h-4" />
+                ) : (
+                  <PackageCheck className="w-4 h-4" />
+                )
+              }
               iconPosition={direction === 'rtl' ? 'right' : 'left'}
             >
               {submittingOrder
                 ? t('marketplace.checkout_saving')
-                : t('marketplace.checkout_confirm_btn', { total: formatPrice(cartSubtotal, language) })}
+                : paymentMethod === 'payzone'
+                ? t('marketplace.checkout_btn_payzone', { total: formatPrice(cartSubtotal, language) })
+                : t('marketplace.checkout_btn_cod', { total: formatPrice(cartSubtotal, language) })}
             </Button>
 
             <p className="text-[11px] font-body text-slate-400 dark:text-slate-500 text-center">
