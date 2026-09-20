@@ -980,5 +980,12 @@ CREATE POLICY "Allow delete on product images"
   TO anon, authenticated
   USING (bucket_id = 'product-images');
 
+-- ==============================================================================
+-- 11. GRANT PERMISSIONS & RELOAD SCHEMA CACHE
+-- ==============================================================================
+GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated, service_role;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated, service_role;
+GRANT ALL ON ALL ROUTINES IN SCHEMA public TO anon, authenticated, service_role;
 
-
+-- Refresh PostgREST schema cache
+NOTIFY pgrst, 'reload schema';

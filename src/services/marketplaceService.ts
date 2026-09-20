@@ -1110,196 +1110,162 @@ export const createProduct = async (prod: Omit<Product, 'id'> & { id?: string })
     reviews: prod.reviews || [],
   };
 
-  if (isSupabaseConfigured()) {
-    try {
-      const insertPayload = {
-        id: newProduct.id,
-        sku: newProduct.sku,
-        title: newProduct.title,
-        category: newProduct.category,
-        planet_name: newProduct.planetName,
-        product_type: newProduct.productType,
-        age_group: newProduct.ageGroup,
-        age_label: newProduct.ageLabel,
-        price: newProduct.price,
-        original_price: newProduct.originalPrice || null,
-        discount_percent: newProduct.discountPercent || 0,
-        in_stock: newProduct.inStock,
-        stock_count: newProduct.stockCount,
-        is_best_seller: newProduct.isBestSeller || false,
-        is_new: newProduct.isNew || false,
-        images: newProduct.images || [],
-        image_url: newProduct.imageUrl || (newProduct.images && newProduct.images[0]) || null,
-        variants: newProduct.variants || [],
-        xp_bonus: newProduct.xpBonus || 0,
-        rating: newProduct.rating || 5.0,
-        reviews_count: newProduct.reviewsCount || 0,
-        short_description: newProduct.shortDescription,
-        full_description: newProduct.fullDescription,
-        icon_bg: newProduct.iconBg || 'bg-slate-100 text-slate-700',
-        accent_color: newProduct.accentColor || '#016ba5',
-        tags: newProduct.tags || [],
-        safety_guidelines: newProduct.safetyGuidelines || [],
-        skills_learned: newProduct.skillsLearned || [],
-        reviews: newProduct.reviews || [],
-      };
-
-      const { error } = await supabase.from('products').insert(insertPayload);
-
-      if (error) {
-        console.error('[AbtalQuest Supabase] Create product failed:', error);
-        throw new Error(`Failed to save product to Supabase: ${error.message || 'Database error'} (${error.code || 'UNKNOWN'})`);
-      }
-    } catch (err: any) {
-      console.error('[AbtalQuest Supabase] Create product exception:', err);
-      throw err;
-    }
+  if (!isSupabaseConfigured()) {
+    throw new Error('Supabase client is not configured with live credentials. Cannot persist products to remote database.');
   }
 
-  // Local storage mirror updated on successful insert (or offline mode)
+  const insertPayload = {
+    id: productId,
+    sku: prod.sku || `AQ-${(prod.category || 'GEN').substring(0, 3).toUpperCase()}-${Math.floor(100 + Math.random() * 900)}`,
+    title: prod.title,
+    category: prod.category,
+    planet_name: prod.planetName || "Thinkers' Planet",
+    product_type: prod.productType || 'Physical Kit',
+    age_group: prod.ageGroup || '9-11',
+    age_label: prod.ageLabel || `Ages ${prod.ageGroup || '9-11'}`,
+    price: prod.price,
+    original_price: prod.originalPrice || null,
+    discount_percent: prod.discountPercent || 0,
+    in_stock: prod.inStock !== undefined ? prod.inStock : true,
+    stock_count: prod.stockCount !== undefined ? prod.stockCount : 15,
+    is_best_seller: prod.isBestSeller || false,
+    is_new: prod.isNew || false,
+    images: rawImages,
+    image_url: primaryImage || null,
+    variants: prod.variants || [],
+    xp_bonus: prod.xpBonus || 0,
+    rating: prod.rating || 5.0,
+    reviews_count: prod.reviewsCount || 0,
+    short_description: prod.shortDescription || '',
+    full_description: prod.fullDescription || '',
+    icon_bg: prod.iconBg || 'bg-slate-100 text-slate-700',
+    accent_color: prod.accentColor || '#016ba5',
+    tags: prod.tags || [],
+    safety_guidelines: prod.safetyGuidelines || [],
+    skills_learned: prod.skillsLearned || [],
+    reviews: prod.reviews || [],
+  };
+
+  const { data, error } = await supabase.from('products').insert(insertPayload).select().single();
+
+  if (error) {
+    console.error('[AbtalQuest Supabase] Create product failed:', error);
+    if (error.code === 'PGRST204') {
+      throw new Error(`Database Schema Error: Missing column in Supabase "products" table (${error.message}). Please execute the SQL migration script in your Supabase SQL editor.`);
+    }
+    if (error.code === '42501') {
+      throw new Error(`Database Permission Error: Row Level Security (RLS) on "products" blocked insertion (${error.message}). Please update RLS write policies in your Supabase SQL editor.`);
+    }
+    throw new Error(`Failed to save product to Supabase: ${error.message} (Code: ${error.code || 'UNKNOWN'})`);
+  }
+
+  const created = mapRowToProduct(data as unknown as SupabaseProductRow);
+
   if (typeof window !== 'undefined') {
-    const raw = localStorage.getItem('abtalquest_products_override');
-    const existing: Product[] = raw ? JSON.parse(raw) : [...DEFAULT_PRODUCTS];
-    const filtered = existing.filter((p) => p.id !== productId);
-    filtered.unshift(newProduct);
-    localStorage.setItem('abtalquest_products_override', JSON.stringify(filtered));
     try {
-      window.dispatchEvent(new CustomEvent('abtalquest_product_updated', { detail: newProduct }));
+      window.dispatchEvent(new CustomEvent('abtalquest_product_updated', { detail: created }));
     } catch {
       // ignore
     }
   }
 
-  return newProduct;
+  return created;
 };
 
 export const updateProduct = async (id: string, updates: Partial<Product>): Promise<Product> => {
-  let updatedProduct: Product;
-
-  if (isSupabaseConfigured()) {
-    try {
-      const payload: any = {};
-      if (updates.sku !== undefined) payload.sku = updates.sku;
-      if (updates.title !== undefined) payload.title = updates.title;
-      if (updates.category !== undefined) payload.category = updates.category;
-      if (updates.planetName !== undefined) payload.planet_name = updates.planetName;
-      if (updates.productType !== undefined) payload.product_type = updates.productType;
-      if (updates.ageGroup !== undefined) payload.age_group = updates.ageGroup;
-      if (updates.ageLabel !== undefined) payload.age_label = updates.ageLabel;
-      if (updates.price !== undefined) payload.price = updates.price;
-      if (updates.originalPrice !== undefined) payload.original_price = updates.originalPrice || null;
-      if (updates.discountPercent !== undefined) payload.discount_percent = updates.discountPercent;
-      if (updates.inStock !== undefined) payload.in_stock = updates.inStock;
-      if (updates.stockCount !== undefined) payload.stock_count = updates.stockCount;
-      if (updates.isBestSeller !== undefined) payload.is_best_seller = updates.isBestSeller;
-      if (updates.isNew !== undefined) payload.is_new = updates.isNew;
-      if (updates.images !== undefined) {
-        payload.images = updates.images;
-        payload.image_url = (updates.images && updates.images.length > 0) ? updates.images[0] : null;
-      }
-      if (updates.imageUrl !== undefined) {
-        payload.image_url = updates.imageUrl || null;
-        if (!payload.images || payload.images.length === 0) {
-          payload.images = updates.imageUrl ? [updates.imageUrl] : [];
-        }
-      }
-      if (updates.image !== undefined) {
-        payload.image_url = updates.image || null;
-        if (!payload.images || payload.images.length === 0) {
-          payload.images = updates.image ? [updates.image] : [];
-        }
-      }
-      if ((updates as any).image_url !== undefined) {
-        payload.image_url = (updates as any).image_url || null;
-      }
-      if (updates.variants !== undefined) payload.variants = updates.variants;
-      if (updates.xpBonus !== undefined) payload.xp_bonus = updates.xpBonus;
-      if (updates.rating !== undefined) payload.rating = updates.rating;
-      if (updates.reviewsCount !== undefined) payload.reviews_count = updates.reviewsCount;
-      if (updates.shortDescription !== undefined) payload.short_description = updates.shortDescription;
-      if (updates.fullDescription !== undefined) payload.full_description = updates.fullDescription;
-      if (updates.iconBg !== undefined) payload.icon_bg = updates.iconBg;
-      if (updates.accentColor !== undefined) payload.accent_color = updates.accentColor;
-      if (updates.tags !== undefined) payload.tags = updates.tags;
-      if (updates.safetyGuidelines !== undefined) payload.safety_guidelines = updates.safetyGuidelines;
-      if (updates.skillsLearned !== undefined) payload.skills_learned = updates.skillsLearned;
-      if (updates.reviews !== undefined) payload.reviews = updates.reviews;
-
-      const { error } = await supabase.from('products').update(payload).eq('id', id);
-      if (error) {
-        console.error('[AbtalQuest Supabase] Update product failed:', error);
-        throw new Error(`Failed to update product in Supabase: ${error.message || 'Database error'} (${error.code || 'UNKNOWN'})`);
-      }
-    } catch (err: any) {
-      console.error('[AbtalQuest Supabase] Update product exception:', err);
-      throw err;
-    }
+  if (!isSupabaseConfigured()) {
+    throw new Error('Supabase client is not configured with live credentials. Cannot update products in remote database.');
   }
 
-  // Local storage mirror updated on successful update (or offline mode)
-  if (typeof window !== 'undefined') {
-    const raw = localStorage.getItem('abtalquest_products_override');
-    const existing: Product[] = raw ? JSON.parse(raw) : [...DEFAULT_PRODUCTS];
-    const idx = existing.findIndex((p) => p.id === id);
-    if (idx >= 0) {
-      const mergedImages: string[] = updates.images || existing[idx].images || [];
-      if (updates.imageUrl && !mergedImages.includes(updates.imageUrl)) {
-        mergedImages.unshift(updates.imageUrl);
-      }
-      if (updates.image && !mergedImages.includes(updates.image)) {
-        mergedImages.unshift(updates.image);
-      }
-      if ((updates as any).image_url && !mergedImages.includes((updates as any).image_url)) {
-        mergedImages.unshift((updates as any).image_url);
-      }
-      const prime = mergedImages[0] || undefined;
-
-      updatedProduct = {
-        ...existing[idx],
-        ...updates,
-        images: mergedImages,
-        imageUrl: prime,
-        image: prime,
-        image_url: prime,
-      };
-      existing[idx] = updatedProduct;
-    } else {
-      const defaultMatch = DEFAULT_PRODUCTS.find((p) => p.id === id);
-      updatedProduct = { ...(defaultMatch || DEFAULT_PRODUCTS[0]), ...updates, id };
-      existing.unshift(updatedProduct);
+  const payload: any = {};
+  if (updates.sku !== undefined) payload.sku = updates.sku;
+  if (updates.title !== undefined) payload.title = updates.title;
+  if (updates.category !== undefined) payload.category = updates.category;
+  if (updates.planetName !== undefined) payload.planet_name = updates.planetName;
+  if (updates.productType !== undefined) payload.product_type = updates.productType;
+  if (updates.ageGroup !== undefined) payload.age_group = updates.ageGroup;
+  if (updates.ageLabel !== undefined) payload.age_label = updates.ageLabel;
+  if (updates.price !== undefined) payload.price = updates.price;
+  if (updates.originalPrice !== undefined) payload.original_price = updates.originalPrice || null;
+  if (updates.discountPercent !== undefined) payload.discount_percent = updates.discountPercent;
+  if (updates.inStock !== undefined) payload.in_stock = updates.inStock;
+  if (updates.stockCount !== undefined) payload.stock_count = updates.stockCount;
+  if (updates.isBestSeller !== undefined) payload.is_best_seller = updates.isBestSeller;
+  if (updates.isNew !== undefined) payload.is_new = updates.isNew;
+  if (updates.images !== undefined) {
+    payload.images = updates.images;
+    payload.image_url = (updates.images && updates.images.length > 0) ? updates.images[0] : null;
+  }
+  if (updates.imageUrl !== undefined) {
+    payload.image_url = updates.imageUrl || null;
+    if (!payload.images || payload.images.length === 0) {
+      payload.images = updates.imageUrl ? [updates.imageUrl] : [];
     }
-    localStorage.setItem('abtalquest_products_override', JSON.stringify(existing));
+  }
+  if (updates.image !== undefined) {
+    payload.image_url = updates.image || null;
+    if (!payload.images || payload.images.length === 0) {
+      payload.images = updates.image ? [updates.image] : [];
+    }
+  }
+  if ((updates as any).image_url !== undefined) {
+    payload.image_url = (updates as any).image_url || null;
+  }
+  if (updates.variants !== undefined) payload.variants = updates.variants;
+  if (updates.xpBonus !== undefined) payload.xp_bonus = updates.xpBonus;
+  if (updates.rating !== undefined) payload.rating = updates.rating;
+  if (updates.reviewsCount !== undefined) payload.reviews_count = updates.reviewsCount;
+  if (updates.shortDescription !== undefined) payload.short_description = updates.shortDescription;
+  if (updates.fullDescription !== undefined) payload.full_description = updates.fullDescription;
+  if (updates.iconBg !== undefined) payload.icon_bg = updates.iconBg;
+  if (updates.accentColor !== undefined) payload.accent_color = updates.accentColor;
+  if (updates.tags !== undefined) payload.tags = updates.tags;
+  if (updates.safetyGuidelines !== undefined) payload.safety_guidelines = updates.safetyGuidelines;
+  if (updates.skillsLearned !== undefined) payload.skills_learned = updates.skillsLearned;
+  if (updates.reviews !== undefined) payload.reviews = updates.reviews;
+
+  const { data, error } = await supabase.from('products').update(payload).eq('id', id).select().single();
+
+  if (error) {
+    console.error('[AbtalQuest Supabase] Update product failed:', error);
+    if (error.code === 'PGRST204') {
+      throw new Error(`Database Schema Error: Missing column in Supabase "products" table (${error.message}). Please execute the SQL migration script in your Supabase SQL editor.`);
+    }
+    if (error.code === '42501') {
+      throw new Error(`Database Permission Error: Row Level Security (RLS) on "products" blocked update (${error.message}). Please update RLS write policies in your Supabase SQL editor.`);
+    }
+    throw new Error(`Failed to update product in Supabase: ${error.message} (Code: ${error.code || 'UNKNOWN'})`);
+  }
+
+  const updated = mapRowToProduct(data as unknown as SupabaseProductRow);
+
+  if (typeof window !== 'undefined') {
     try {
-      window.dispatchEvent(new CustomEvent('abtalquest_product_updated', { detail: updatedProduct }));
+      window.dispatchEvent(new CustomEvent('abtalquest_product_updated', { detail: updated }));
     } catch {
       // ignore
     }
-  } else {
-    updatedProduct = { ...(DEFAULT_PRODUCTS[0]), ...updates, id };
   }
 
-  return updatedProduct;
+  return updated;
 };
 
 export const deleteProduct = async (id: string): Promise<boolean> => {
-  if (isSupabaseConfigured()) {
-    try {
-      const { error } = await supabase.from('products').delete().eq('id', id);
-      if (error) {
-        console.error('[AbtalQuest Supabase] Delete product failed:', error);
-        throw new Error(`Failed to delete product in Supabase: ${error.message || 'Database error'} (${error.code || 'UNKNOWN'})`);
-      }
-    } catch (err: any) {
-      console.error('[AbtalQuest Supabase] Delete product exception:', err);
-      throw err;
+  if (!isSupabaseConfigured()) {
+    throw new Error('Supabase client is not configured with live credentials. Cannot delete product from remote database.');
+  }
+
+  const { error } = await supabase.from('products').delete().eq('id', id);
+
+  if (error) {
+    console.error('[AbtalQuest Supabase] Delete product failed:', error);
+    if (error.code === '42501') {
+      throw new Error(`Database Permission Error: Row Level Security (RLS) on "products" blocked deletion (${error.message}). Please update RLS write policies in your Supabase SQL editor.`);
     }
+    throw new Error(`Failed to delete product in Supabase: ${error.message} (Code: ${error.code || 'UNKNOWN'})`);
   }
 
   if (typeof window !== 'undefined') {
-    const raw = localStorage.getItem('abtalquest_products_override');
-    const existing: Product[] = raw ? JSON.parse(raw) : [...DEFAULT_PRODUCTS];
-    const filtered = existing.filter((p) => p.id !== id);
-    localStorage.setItem('abtalquest_products_override', JSON.stringify(filtered));
     try {
       window.dispatchEvent(new CustomEvent('abtalquest_product_updated', { detail: { id, deleted: true } }));
     } catch {
@@ -1907,6 +1873,9 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'products' AND column_name = 'images') THEN
     ALTER TABLE public.products ADD COLUMN images TEXT[] DEFAULT '{}';
   END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'products' AND column_name = 'image_url') THEN
+    ALTER TABLE public.products ADD COLUMN image_url TEXT;
+  END IF;
   IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'products' AND column_name = 'variants') THEN
     ALTER TABLE public.products ADD COLUMN variants JSONB DEFAULT '[]'::jsonb;
   END IF;
@@ -1921,6 +1890,7 @@ CREATE POLICY "Allow public read on products" ON public.products FOR SELECT TO a
 CREATE POLICY "Allow admin insert on products" ON public.products FOR INSERT TO anon, authenticated WITH CHECK (true);
 CREATE POLICY "Allow admin update on products" ON public.products FOR UPDATE TO anon, authenticated USING (true) WITH CHECK (true);
 CREATE POLICY "Allow admin delete on products" ON public.products FOR DELETE TO anon, authenticated USING (true);
+GRANT ALL ON TABLE public.products TO anon, authenticated, service_role;
 
 -- 3. ORDERS TABLE
 CREATE TABLE IF NOT EXISTS public.orders (
@@ -2004,6 +1974,11 @@ DROP POLICY IF EXISTS "Allow public read on product images" ON storage.objects;
 DROP POLICY IF EXISTS "Allow upload on product images" ON storage.objects;
 CREATE POLICY "Allow public read on product images" ON storage.objects FOR SELECT TO anon, authenticated USING (bucket_id = 'product-images');
 CREATE POLICY "Allow upload on product images" ON storage.objects FOR INSERT TO anon, authenticated WITH CHECK (bucket_id = 'product-images');
+
+-- 6. GRANT PERMISSIONS & RELOAD SCHEMA CACHE
+GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated, service_role;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated, service_role;
+NOTIFY pgrst, 'reload schema';
 `;
 
 /**
