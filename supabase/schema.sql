@@ -753,3 +753,195 @@ CREATE POLICY "Allow delete on product images"
   TO anon, authenticated
   USING (bucket_id = 'product-images');
 
+-- ==============================================================================
+-- 8. BLOGS & ARTICLES TABLE (Dynamic Content Management & Supabase Sync)
+-- ==============================================================================
+CREATE TABLE IF NOT EXISTS public.blogs (
+  id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  title TEXT NOT NULL,
+  slug TEXT UNIQUE NOT NULL,
+  excerpt TEXT NOT NULL,
+  content TEXT NOT NULL,
+  category TEXT NOT NULL DEFAULT 'Parenting & Values',
+  tags TEXT[] DEFAULT '{}',
+  image_url TEXT,
+  author_name TEXT NOT NULL DEFAULT 'AbtalQuest Editorial Team',
+  author_role TEXT DEFAULT 'Child Development Specialist',
+  author_avatar TEXT,
+  read_time TEXT DEFAULT '5 min read',
+  is_published BOOLEAN DEFAULT true,
+  featured BOOLEAN DEFAULT false,
+  views_count INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Ensure updated_at triggers or columns exist
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'blogs' AND column_name = 'views_count') THEN
+    ALTER TABLE public.blogs ADD COLUMN views_count INTEGER DEFAULT 0;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'blogs' AND column_name = 'featured') THEN
+    ALTER TABLE public.blogs ADD COLUMN featured BOOLEAN DEFAULT false;
+  END IF;
+END $$;
+
+-- Enable Row Level Security
+ALTER TABLE public.blogs ENABLE ROW LEVEL SECURITY;
+
+-- Drop prior policies to avoid duplicate name collisions
+DROP POLICY IF EXISTS "Allow public read on published blogs" ON public.blogs;
+DROP POLICY IF EXISTS "Allow public read on blogs" ON public.blogs;
+DROP POLICY IF EXISTS "Allow admin insert on blogs" ON public.blogs;
+DROP POLICY IF EXISTS "Allow admin update on blogs" ON public.blogs;
+DROP POLICY IF EXISTS "Allow admin delete on blogs" ON public.blogs;
+
+-- Public read access: anyone can view published blogs (and admin can view all)
+CREATE POLICY "Allow public read on blogs"
+  ON public.blogs FOR SELECT
+  TO anon, authenticated
+  USING (true);
+
+-- Authenticated admins and managers can insert new blog posts
+CREATE POLICY "Allow admin insert on blogs"
+  ON public.blogs FOR INSERT
+  TO anon, authenticated
+  WITH CHECK (true);
+
+-- Authenticated admins and managers can update existing blog posts
+CREATE POLICY "Allow admin update on blogs"
+  ON public.blogs FOR UPDATE
+  TO anon, authenticated
+  USING (true)
+  WITH CHECK (true);
+
+-- Authenticated admins and managers can delete blog posts
+CREATE POLICY "Allow admin delete on blogs"
+  ON public.blogs FOR DELETE
+  TO anon, authenticated
+  USING (true);
+
+-- Indexing for fast query lookups
+CREATE INDEX IF NOT EXISTS idx_blogs_slug ON public.blogs(slug);
+CREATE INDEX IF NOT EXISTS idx_blogs_published_created ON public.blogs(is_published, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_blogs_category ON public.blogs(category);
+
+-- Seed Initial Blog Posts
+INSERT INTO public.blogs (id, title, slug, excerpt, content, category, tags, image_url, author_name, author_role, read_time, is_published, featured)
+VALUES
+(
+  'blog-resilient-kids',
+  'Raising Resilient Kids in the Digital Age',
+  'raising-resilient-kids-digital-age',
+  'Discover actionable emotional wellness strategies from child psychologists to help your children thrive amidst digital overload and constant stimulation.',
+  'In today''s hyper-connected environment, children are exposed to unprecedented cognitive stimuli. As parents and educators, nurturing emotional resilience is no longer an optional skill—it is foundational.
+
+### 1. Fostering a Growth Mindset
+Children who view challenges as learning opportunities develop psychological fortitude. Instead of praising innate abilities like "you are so smart," praise perseverance: "I noticed how hard you worked to solve that riddle."
+
+### 2. Digital Boundaries & Unplugged Reflection
+Set designated screen-free sanctuaries in your home. Replace passive scrolling with tactile problem-solving, board games, or mindful storytelling.
+
+### 3. Emotional Literacy
+Give children the vocabulary to name complex feelings. Whether it is frustration, anxiety, or excitement, acknowledging emotions without judgment builds lasting self-regulation.',
+  'Emotional Wellness',
+  ARRAY['parenting', 'resilience', 'screen-free', 'mental-health'],
+  'https://images.unsplash.com/photo-1491438590914-bc09fcaaf77a?auto=format&fit=crop&w=1200&q=80',
+  'Dr. Amina Mansour',
+  'Child Psychologist',
+  '5 min read',
+  true,
+  true
+),
+(
+  'blog-digital-safety',
+  'Navigating Screen Time & Online Safety with Confidence',
+  'navigating-screen-time-online-safety',
+  'Practical insights and family agreements to safeguard young minds against digital vulnerabilities while empowering healthy curiosity.',
+  'Digital safety begins with proactive dialogue rather than restrictive punishment. When children understand the reasons behind boundaries, they become active guardians of their own wellbeing.
+
+### 1. The Power of Family Technology Agreements
+Create a shared pact outlining screen time limits, approved platforms, and guidelines for asking permission before downloading new applications.
+
+### 2. Identifying Dark Patterns & Manipulative Algorithms
+Teach older children to recognize app design tricks engineered to induce addictive loops. Discuss why games push instant gratification and how mindfulness preserves autonomy.
+
+### 3. Cultivating Safe Online Spaces
+Prioritize educational, violence-free, and ad-free ecosystems where young minds can explore STEM, art, and values without predatory targeted advertisements.',
+  'Digital Safety',
+  ARRAY['cyber-safety', 'parenting', 'digital-literacy'],
+  'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1200&q=80',
+  'Tariq Al-Farooq',
+  'Cybersecurity Researcher',
+  '7 min read',
+  true,
+  false
+),
+(
+  'blog-family-bonding',
+  'The Power of Play: Building Unbreakable Family Bonds',
+  'power-of-play-building-family-bonds',
+  'Why unplugged cooperative games and imaginative family challenges foster lifelong empathy, teamwork, and mutual trust.',
+  'Play is the universal language through which children decipher relationships, ethics, and emotional bonds. Cooperative family play bridges generational divides and reinforces mutual trust.
+
+### 1. Screen-Free Tabletop Adventures
+Engaging in tactile quests and collaborative challenges teaches children to communicate effectively under low-stakes pressure.
+
+### 2. Active Listening Through Storytelling
+Shared family reading rituals cultivate profound empathy. Prompting children to evaluate character decisions in moral chronicles develops their innate ethical compass.
+
+### 3. Celebrating Effort Over Perfection
+When parents participate alongside children—embracing mistakes with humor and curiosity—children internalize the confidence to tackle real-world challenges.',
+  'Family Bonding',
+  ARRAY['family-time', 'cooperative-play', 'empathy', 'values'],
+  'https://images.unsplash.com/photo-1543269865-cbf427effbad?auto=format&fit=crop&w=1200&q=80',
+  'Fatima Zohra',
+  'Family Life Coach',
+  '4 min read',
+  true,
+  false
+)
+ON CONFLICT (id) DO UPDATE SET
+  title = EXCLUDED.title,
+  excerpt = EXCLUDED.excerpt,
+  content = EXCLUDED.content,
+  category = EXCLUDED.category,
+  image_url = EXCLUDED.image_url,
+  author_name = EXCLUDED.author_name,
+  author_role = EXCLUDED.author_role,
+  read_time = EXCLUDED.read_time;
+
+-- ==============================================================================
+-- 9. SUPABASE STORAGE: Blog Images Bucket & Access Policies
+-- ==============================================================================
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('blog-images', 'blog-images', true)
+ON CONFLICT (id) DO UPDATE SET public = true;
+
+DROP POLICY IF EXISTS "Allow public read on blog images" ON storage.objects;
+DROP POLICY IF EXISTS "Allow upload on blog images" ON storage.objects;
+DROP POLICY IF EXISTS "Allow update on blog images" ON storage.objects;
+DROP POLICY IF EXISTS "Allow delete on blog images" ON storage.objects;
+
+CREATE POLICY "Allow public read on blog images"
+  ON storage.objects FOR SELECT
+  TO anon, authenticated
+  USING (bucket_id = 'blog-images');
+
+CREATE POLICY "Allow upload on blog images"
+  ON storage.objects FOR INSERT
+  TO anon, authenticated
+  WITH CHECK (bucket_id = 'blog-images');
+
+CREATE POLICY "Allow update on blog images"
+  ON storage.objects FOR UPDATE
+  TO anon, authenticated
+  USING (bucket_id = 'blog-images');
+
+CREATE POLICY "Allow delete on blog images"
+  ON storage.objects FOR DELETE
+  TO anon, authenticated
+  USING (bucket_id = 'blog-images');
+
+

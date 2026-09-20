@@ -34,7 +34,11 @@ import {
   Tag,
   UploadCloud,
   Layers,
-  CheckCircle
+  CheckCircle,
+  BookOpen,
+  Eye,
+  FileText,
+  Globe
 } from 'lucide-react';
 import Badge from '../common/Badge';
 import Button from '../common/Button';
@@ -86,6 +90,15 @@ import {
   type Product,
   type ProductCategory
 } from '../../services/marketplaceService';
+import {
+  fetchBlogs,
+  createBlog,
+  updateBlog,
+  deleteBlog,
+  uploadBlogImage,
+  DEFAULT_BLOG_CATEGORIES,
+  type BlogPost
+} from '../../services/blogService';
 import type { User } from '@supabase/supabase-js';
 
 export interface AdminPortalProps {
@@ -114,7 +127,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
   const [dispatchedCode, setDispatchedCode] = useState<string | null>(null);
 
   // Dashboard state
-  const [activeTab, setActiveTab] = useState<'orders' | 'products' | 'categories' | 'messages' | 'analytics' | 'team' | 'settings'>('orders');
+  const [activeTab, setActiveTab] = useState<'orders' | 'products' | 'categories' | 'blogs' | 'messages' | 'analytics' | 'team' | 'settings'>('orders');
   const [whatsappPosition, setWhatsappPosition] = useState<WhatsAppPosition>(getStoredWhatsAppPosition);
   const [orders, setOrders] = useState<AdminOrder[]>([]);
   const [messages, setMessages] = useState<ContactMessage[]>([]);
@@ -174,6 +187,35 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
   const [catDescription, setCatDescription] = useState<string>('');
   const [catSubmitting, setCatSubmitting] = useState<boolean>(false);
   const [catModalError, setCatModalError] = useState<string | null>(null);
+
+  // Blogs & Articles state
+  const [blogsList, setBlogsList] = useState<BlogPost[]>([]);
+  const [blogSearch, setBlogSearch] = useState<string>('');
+  const [blogCategoryFilter, setBlogCategoryFilter] = useState<string>('all');
+  const [blogStatusFilter, setBlogStatusFilter] = useState<'all' | 'published' | 'draft'>('all');
+  const [showBlogModal, setShowBlogModal] = useState<boolean>(false);
+  const [editingBlog, setEditingBlog] = useState<BlogPost | null>(null);
+  const [deletingBlog, setDeletingBlog] = useState<BlogPost | null>(null);
+  const [deletingBlogSubmitting, setDeletingBlogSubmitting] = useState<boolean>(false);
+  const [previewingBlog, setPreviewingBlog] = useState<BlogPost | null>(null);
+  const [blogSubmitting, setBlogSubmitting] = useState<boolean>(false);
+  const [blogModalError, setBlogModalError] = useState<string | null>(null);
+  const [blogImageUploading, setBlogImageUploading] = useState<boolean>(false);
+
+  // Blog Form State
+  const [blogTitle, setBlogTitle] = useState<string>('');
+  const [blogSlug, setBlogSlug] = useState<string>('');
+  const [blogExcerpt, setBlogExcerpt] = useState<string>('');
+  const [blogContent, setBlogContent] = useState<string>('');
+  const [blogCategory, setBlogCategory] = useState<string>('Emotional Wellness');
+  const [blogCustomCategory, setBlogCustomCategory] = useState<string>('');
+  const [blogTags, setBlogTags] = useState<string>('parenting, emotional-wellness');
+  const [blogImageUrl, setBlogImageUrl] = useState<string>('');
+  const [blogAuthorName, setBlogAuthorName] = useState<string>('Dr. Amina Mansour');
+  const [blogAuthorRole, setBlogAuthorRole] = useState<string>('Child Psychologist');
+  const [blogReadTime, setBlogReadTime] = useState<string>('5 min read');
+  const [blogIsPublished, setBlogIsPublished] = useState<boolean>(true);
+  const [blogFeatured, setBlogFeatured] = useState<boolean>(false);
 
   // Super Admin: Team Management state
   const [adminList, setAdminList] = useState<AdminUserRecord[]>([]);
@@ -256,13 +298,14 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
   const loadDashboardData = async (force = false) => {
     if (force) setLoadingData(true);
     try {
-      const [ordersList, messagesList, siteStats, health, productsData, loadedCategories] = await Promise.all([
+      const [ordersList, messagesList, siteStats, health, productsData, loadedCategories, loadedBlogs] = await Promise.all([
         getAllOrdersForAdmin(),
         getContactMessagesForAdmin(),
         getSiteMetrics(),
         checkOrdersDatabaseHealth(),
         fetchMarketplaceProducts(),
         fetchCategories(),
+        fetchBlogs(),
       ]);
 
       setOrders(ordersList);
@@ -271,6 +314,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
       setDbHealth(health);
       setProductsList(productsData.products);
       setCategoriesList(loadedCategories);
+      setBlogsList(loadedBlogs);
     } catch (err) {
       console.warn('Dashboard data load error:', err);
     } finally {
@@ -538,6 +582,153 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
     }
   };
 
+  // Blog Action Handlers
+  const handleOpenAddBlog = () => {
+    setEditingBlog(null);
+    setBlogTitle('');
+    setBlogSlug('');
+    setBlogExcerpt('');
+    setBlogContent('');
+    setBlogCategory(DEFAULT_BLOG_CATEGORIES[0] || 'Emotional Wellness');
+    setBlogCustomCategory('');
+    setBlogTags('parenting, emotional-wellness, resilience');
+    setBlogImageUrl('');
+    setBlogAuthorName(currentUser?.user_metadata?.full_name || 'AbtalQuest Editorial Team');
+    setBlogAuthorRole('Child Development Specialist');
+    setBlogReadTime('5 min read');
+    setBlogIsPublished(true);
+    setBlogFeatured(false);
+    setBlogModalError(null);
+    setShowBlogModal(true);
+  };
+
+  const handleOpenEditBlog = (blog: BlogPost) => {
+    setEditingBlog(blog);
+    setBlogTitle(blog.title);
+    setBlogSlug(blog.slug);
+    setBlogExcerpt(blog.excerpt);
+    setBlogContent(blog.content);
+    if (DEFAULT_BLOG_CATEGORIES.includes(blog.category)) {
+      setBlogCategory(blog.category);
+      setBlogCustomCategory('');
+    } else {
+      setBlogCategory('custom');
+      setBlogCustomCategory(blog.category);
+    }
+    setBlogTags(blog.tags.join(', '));
+    setBlogImageUrl(blog.imageUrl || '');
+    setBlogAuthorName(blog.authorName);
+    setBlogAuthorRole(blog.authorRole || '');
+    setBlogReadTime(blog.readTime || '5 min read');
+    setBlogIsPublished(blog.isPublished);
+    setBlogFeatured(blog.featured);
+    setBlogModalError(null);
+    setShowBlogModal(true);
+  };
+
+  const handleBlogImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setBlogImageUploading(true);
+    setBlogModalError(null);
+    try {
+      const url = await uploadBlogImage(file);
+      setBlogImageUrl(url);
+    } catch (err: any) {
+      setBlogModalError(err?.message || 'Failed to upload blog image');
+    } finally {
+      setBlogImageUploading(false);
+    }
+  };
+
+  const handleSaveBlog = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!blogTitle.trim() || !blogExcerpt.trim() || !blogContent.trim()) {
+      setBlogModalError('Please fill in Title, Excerpt, and Full Content.');
+      return;
+    }
+
+    setBlogSubmitting(true);
+    setBlogModalError(null);
+    try {
+      const resolvedCategory =
+        blogCategory === 'custom' && blogCustomCategory.trim()
+          ? blogCustomCategory.trim()
+          : blogCategory;
+
+      const parsedTags = blogTags
+        .split(',')
+        .map((t) => t.trim().toLowerCase())
+        .filter(Boolean);
+
+      if (editingBlog) {
+        await updateBlog(editingBlog.id, {
+          title: blogTitle,
+          slug: blogSlug,
+          excerpt: blogExcerpt,
+          content: blogContent,
+          category: resolvedCategory,
+          tags: parsedTags,
+          imageUrl: blogImageUrl,
+          authorName: blogAuthorName,
+          authorRole: blogAuthorRole,
+          readTime: blogReadTime,
+          isPublished: blogIsPublished,
+          featured: blogFeatured,
+        });
+      } else {
+        await createBlog({
+          title: blogTitle,
+          slug: blogSlug,
+          excerpt: blogExcerpt,
+          content: blogContent,
+          category: resolvedCategory,
+          tags: parsedTags,
+          imageUrl: blogImageUrl,
+          authorName: blogAuthorName,
+          authorRole: blogAuthorRole,
+          readTime: blogReadTime,
+          isPublished: blogIsPublished,
+          featured: blogFeatured,
+        });
+      }
+
+      const refreshed = await fetchBlogs();
+      setBlogsList(refreshed);
+      setShowBlogModal(false);
+      setEditingBlog(null);
+    } catch (err: any) {
+      setBlogModalError(err?.message || 'Failed to save blog post');
+    } finally {
+      setBlogSubmitting(false);
+    }
+  };
+
+  const handleToggleBlogPublished = async (blog: BlogPost) => {
+    try {
+      await updateBlog(blog.id, { isPublished: !blog.isPublished });
+      const refreshed = await fetchBlogs();
+      setBlogsList(refreshed);
+    } catch (err) {
+      console.warn('Failed to toggle published status:', err);
+    }
+  };
+
+  const handleConfirmDeleteBlog = async () => {
+    if (!deletingBlog) return;
+    setDeletingBlogSubmitting(true);
+    try {
+      await deleteBlog(deletingBlog.id);
+      const refreshed = await fetchBlogs();
+      setBlogsList(refreshed);
+      setDeletingBlog(null);
+    } catch (err) {
+      console.warn('Failed to delete blog:', err);
+    } finally {
+      setDeletingBlogSubmitting(false);
+    }
+  };
+
   useEffect(() => {
     let isMounted = true;
     if (isAdmin) {
@@ -563,7 +754,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
     };
 
     const handleStorageEvent = (e: StorageEvent) => {
-      if (e.key === 'abtalquest_orders_history' || e.key === 'abtalquest_contact_messages') {
+      if (e.key === 'abtalquest_orders_history' || e.key === 'abtalquest_contact_messages' || e.key === 'abtalquest_blogs_local') {
         void loadDashboardData(false);
       }
     };
@@ -572,6 +763,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
     window.addEventListener('abtalquest_order_status_updated', handleOrderEvent);
     window.addEventListener('abtalquest_product_updated', handleOrderEvent);
     window.addEventListener('abtalquest_category_updated', handleOrderEvent);
+    window.addEventListener('abtalquest_blog_updated', handleOrderEvent);
     window.addEventListener('storage', handleStorageEvent);
 
     return () => {
@@ -579,6 +771,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
       window.removeEventListener('abtalquest_order_status_updated', handleOrderEvent);
       window.removeEventListener('abtalquest_product_updated', handleOrderEvent);
       window.removeEventListener('abtalquest_category_updated', handleOrderEvent);
+      window.removeEventListener('abtalquest_blog_updated', handleOrderEvent);
       window.removeEventListener('storage', handleStorageEvent);
     };
   }, [isAdmin]);
@@ -858,6 +1051,25 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
   const filteredMessages = messages.filter((m) => {
     if (messageFilter === 'all') return true;
     return m.status === messageFilter;
+  });
+
+  // Filtered blogs
+  const filteredBlogs = blogsList.filter((b) => {
+    const s = blogSearch.toLowerCase();
+    const matchesSearch =
+      !s ||
+      b.title.toLowerCase().includes(s) ||
+      b.excerpt.toLowerCase().includes(s) ||
+      b.authorName.toLowerCase().includes(s) ||
+      b.tags.some((t) => t.toLowerCase().includes(s));
+
+    const matchesCategory = blogCategoryFilter === 'all' || b.category === blogCategoryFilter;
+    const matchesStatus =
+      blogStatusFilter === 'all' ||
+      (blogStatusFilter === 'published' && b.isPublished) ||
+      (blogStatusFilter === 'draft' && !b.isPublished);
+
+    return matchesSearch && matchesCategory && matchesStatus;
   });
 
   const unreadCount = messages.filter((m) => m.status === 'unread').length;
@@ -1373,6 +1585,21 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
             <span>Categories & Planets</span>
             <span className="px-1.5 py-0.2 bg-white/20 rounded-full text-[10px]">
               {categoriesList.length}
+            </span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('blogs')}
+            className={`px-4 py-2 rounded-xl font-headline text-xs font-bold transition-all flex items-center gap-2 shrink-0 ${
+              activeTab === 'blogs'
+                ? 'bg-[#fa8221] text-white shadow-sm'
+                : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
+            }`}
+          >
+            <BookOpen className="w-4 h-4" />
+            <span>Blogs & Articles</span>
+            <span className="px-1.5 py-0.2 bg-white/20 rounded-full text-[10px]">
+              {blogsList.length}
             </span>
           </button>
 
@@ -2144,6 +2371,310 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
                       </div>
                     );
                   })}
+                </div>
+              </div>
+            )}
+
+            {/* ========================================================
+                TAB: BLOGS & ARTICLES MANAGEMENT
+               ======================================================== */}
+            {activeTab === 'blogs' && (
+              <div className="space-y-6">
+                {/* Header with Title and Action Button */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <Badge variant="primary" size="sm">Supabase Synced</Badge>
+                      <span className="font-body text-xs text-slate-400">Public Parenting Resources</span>
+                    </div>
+                    <h2 className="font-headline text-2xl font-black text-slate-900">
+                      Blogs & Parenting Resources ({blogsList.length})
+                    </h2>
+                    <p className="font-body text-xs text-slate-500">
+                      Manage articles, emotional wellness guides, and digital safety essays published on the AbtalQuest public portal.
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <Button
+                      variant="cta"
+                      size="sm"
+                      onClick={handleOpenAddBlog}
+                      icon={<Plus className="w-4 h-4" />}
+                      iconPosition="left"
+                    >
+                      Create Blog Post
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Top Metrics Row */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs">
+                    <div className="flex items-center justify-between text-slate-500 mb-2">
+                      <span className="font-headline text-xs font-bold uppercase tracking-wider">Total Articles</span>
+                      <BookOpen className="w-4 h-4 text-[#016ba5]" />
+                    </div>
+                    <div className="font-headline text-2xl font-black text-slate-900">
+                      {blogsList.length}
+                    </div>
+                    <span className="font-body text-[11px] text-slate-400">Authored content pieces</span>
+                  </div>
+
+                  <div className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs">
+                    <div className="flex items-center justify-between text-slate-500 mb-2">
+                      <span className="font-headline text-xs font-bold uppercase tracking-wider">Published</span>
+                      <Globe className="w-4 h-4 text-emerald-500" />
+                    </div>
+                    <div className="font-headline text-2xl font-black text-emerald-600">
+                      {blogsList.filter((b) => b.isPublished).length}
+                    </div>
+                    <span className="font-body text-[11px] text-emerald-600 font-semibold">Live on public website</span>
+                  </div>
+
+                  <div className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs">
+                    <div className="flex items-center justify-between text-slate-500 mb-2">
+                      <span className="font-headline text-xs font-bold uppercase tracking-wider">Drafts</span>
+                      <FileText className="w-4 h-4 text-amber-500" />
+                    </div>
+                    <div className="font-headline text-2xl font-black text-amber-600">
+                      {blogsList.filter((b) => !b.isPublished).length}
+                    </div>
+                    <span className="font-body text-[11px] text-slate-400">Unpublished or in-review</span>
+                  </div>
+
+                  <div className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs">
+                    <div className="flex items-center justify-between text-slate-500 mb-2">
+                      <span className="font-headline text-xs font-bold uppercase tracking-wider">Total Reads</span>
+                      <Eye className="w-4 h-4 text-purple-500" />
+                    </div>
+                    <div className="font-headline text-2xl font-black text-purple-600">
+                      {blogsList.reduce((acc, b) => acc + (b.viewsCount || 0), 0).toLocaleString()}
+                    </div>
+                    <span className="font-body text-[11px] text-slate-400">Combined visitor views</span>
+                  </div>
+                </div>
+
+                {/* Filter and Search Bar */}
+                <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex flex-col md:flex-row gap-3 items-center justify-between">
+                  <div className="relative w-full md:w-80">
+                    <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      placeholder="Search title, excerpt, author, tags..."
+                      value={blogSearch}
+                      onChange={(e) => setBlogSearch(e.target.value)}
+                      className="w-full pl-9 pr-4 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs font-body text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#016ba5]"
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-2.5 w-full md:w-auto overflow-x-auto">
+                    {/* Category Filter */}
+                    <select
+                      value={blogCategoryFilter}
+                      onChange={(e) => setBlogCategoryFilter(e.target.value)}
+                      className="px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs font-headline font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#016ba5]"
+                    >
+                      <option value="all">All Categories</option>
+                      {Array.from(new Set([...DEFAULT_BLOG_CATEGORIES, ...blogsList.map((b) => b.category)])).map((cat) => (
+                        <option key={cat} value={cat}>{cat}</option>
+                      ))}
+                    </select>
+
+                    {/* Status Filter */}
+                    <select
+                      value={blogStatusFilter}
+                      onChange={(e) => setBlogStatusFilter(e.target.value as any)}
+                      className="px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs font-headline font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#016ba5]"
+                    >
+                      <option value="all">All Statuses</option>
+                      <option value="published">Published Only</option>
+                      <option value="draft">Drafts Only</option>
+                    </select>
+
+                    {(blogSearch || blogCategoryFilter !== 'all' || blogStatusFilter !== 'all') && (
+                      <button
+                        onClick={() => {
+                          setBlogSearch('');
+                          setBlogCategoryFilter('all');
+                          setBlogStatusFilter('all');
+                        }}
+                        className="text-xs font-headline font-bold text-[#fa8221] hover:underline px-2 whitespace-nowrap"
+                      >
+                        Reset
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Blog Posts Table */}
+                <div className="rounded-3xl bg-white border border-slate-200/80 shadow-xs overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="border-b border-slate-100 bg-slate-50/70 text-[11px] font-headline font-bold text-slate-500 uppercase tracking-wider">
+                          <th className="py-3.5 px-4">Article</th>
+                          <th className="py-3.5 px-4">Category & Tags</th>
+                          <th className="py-3.5 px-4">Author</th>
+                          <th className="py-3.5 px-4">Read Time</th>
+                          <th className="py-3.5 px-4">Status</th>
+                          <th className="py-3.5 px-4">Published Date</th>
+                          <th className="py-3.5 px-4 text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 text-xs">
+                        {filteredBlogs.length === 0 ? (
+                          <tr>
+                            <td colSpan={7} className="py-12 text-center text-slate-400">
+                              <BookOpen className="w-10 h-10 mx-auto text-slate-300 mb-3 stroke-[1.5]" />
+                              <p className="font-headline font-bold text-slate-600">No blog posts found</p>
+                              <p className="font-body text-xs text-slate-400 mt-1">
+                                {blogSearch || blogCategoryFilter !== 'all' || blogStatusFilter !== 'all'
+                                  ? 'Try adjusting your search query or filters.'
+                                  : 'Click "Create Blog Post" to add your first article!'}
+                              </p>
+                            </td>
+                          </tr>
+                        ) : (
+                          filteredBlogs.map((blog) => (
+                            <tr key={blog.id} className="hover:bg-slate-50/80 transition-colors">
+                              {/* Article Cover & Title */}
+                              <td className="py-3.5 px-4 max-w-sm">
+                                <div className="flex items-center gap-3">
+                                  {blog.imageUrl ? (
+                                    <img
+                                      src={blog.imageUrl}
+                                      alt={blog.title}
+                                      className="w-12 h-12 rounded-xl object-cover border border-slate-200 shrink-0 shadow-xs"
+                                    />
+                                  ) : (
+                                    <div className="w-12 h-12 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-400 shrink-0">
+                                      <BookOpen className="w-5 h-5 text-slate-400" />
+                                    </div>
+                                  )}
+                                  <div className="min-w-0">
+                                    <h4 className="font-headline font-bold text-slate-900 line-clamp-1 leading-snug">
+                                      {blog.title}
+                                    </h4>
+                                    <p className="font-body text-[11px] text-slate-400 line-clamp-1 mt-0.5">
+                                      {blog.excerpt}
+                                    </p>
+                                    <span className="font-mono text-[10px] text-slate-400 block mt-0.5">
+                                      /{blog.slug}
+                                    </span>
+                                  </div>
+                                </div>
+                              </td>
+
+                              {/* Category & Tags */}
+                              <td className="py-3.5 px-4">
+                                <div className="space-y-1">
+                                  <span className="inline-block px-2 py-0.5 rounded-full bg-[#016ba5]/10 text-[#016ba5] font-headline font-bold text-[10px]">
+                                    {blog.category}
+                                  </span>
+                                  {blog.tags && blog.tags.length > 0 && (
+                                    <div className="flex flex-wrap gap-1">
+                                      {blog.tags.slice(0, 2).map((tag, idx) => (
+                                        <span
+                                          key={idx}
+                                          className="text-[9px] font-body text-slate-500 bg-slate-100 px-1.5 py-0.2 rounded"
+                                        >
+                                          #{tag}
+                                        </span>
+                                      ))}
+                                      {blog.tags.length > 2 && (
+                                        <span className="text-[9px] font-body text-slate-400">
+                                          +{blog.tags.length - 2}
+                                        </span>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              </td>
+
+                              {/* Author */}
+                              <td className="py-3.5 px-4">
+                                <div>
+                                  <span className="font-headline font-bold text-slate-800 block">
+                                    {blog.authorName}
+                                  </span>
+                                  {blog.authorRole && (
+                                    <span className="font-body text-[11px] text-slate-400 block">
+                                      {blog.authorRole}
+                                    </span>
+                                  )}
+                                </div>
+                              </td>
+
+                              {/* Read Time */}
+                              <td className="py-3.5 px-4">
+                                <span className="font-body text-xs text-slate-600 flex items-center gap-1">
+                                  <Clock className="w-3.5 h-3.5 text-[#fa8221]" />
+                                  {blog.readTime || '5 min read'}
+                                </span>
+                              </td>
+
+                              {/* Status Toggle */}
+                              <td className="py-3.5 px-4">
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleBlogPublished(blog)}
+                                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-headline font-bold cursor-pointer transition-all ${
+                                    blog.isPublished
+                                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100'
+                                      : 'bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100'
+                                  }`}
+                                  title="Click to toggle status"
+                                >
+                                  <span className={`w-1.5 h-1.5 rounded-full ${blog.isPublished ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                                  <span>{blog.isPublished ? 'Published' : 'Draft'}</span>
+                                </button>
+                              </td>
+
+                              {/* Creation Date */}
+                              <td className="py-3.5 px-4 font-body text-xs text-slate-400">
+                                {new Date(blog.createdAt).toLocaleDateString(undefined, {
+                                  month: 'short',
+                                  day: 'numeric',
+                                  year: 'numeric',
+                                })}
+                              </td>
+
+                              {/* Actions */}
+                              <td className="py-3.5 px-4 text-right">
+                                <div className="inline-flex items-center gap-1.5">
+                                  <button
+                                    type="button"
+                                    onClick={() => setPreviewingBlog(blog)}
+                                    className="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors cursor-pointer"
+                                    title="Preview / Read Full Article"
+                                  >
+                                    <Eye className="w-4 h-4" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOpenEditBlog(blog)}
+                                    className="p-1.5 rounded-lg text-slate-500 hover:text-[#016ba5] hover:bg-slate-100 transition-colors cursor-pointer"
+                                    title="Edit Post"
+                                  >
+                                    <Edit3 className="w-4 h-4" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setDeletingBlog(blog)}
+                                    className="p-1.5 rounded-lg text-slate-500 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                                    title="Delete Post"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               </div>
             )}
@@ -3427,6 +3958,468 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
                 iconPosition="left"
               >
                 {deletingCategorySubmitting ? 'Deleting...' : 'Confirm Delete'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================
+          BLOG MODALS (Create/Edit, Delete, Preview)
+         ======================================================== */}
+
+      {/* 1. Add / Edit Blog Post Modal */}
+      {showBlogModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
+          <div className="relative w-full max-w-3xl bg-white rounded-3xl p-6 sm:p-8 shadow-2xl border border-slate-100 max-h-[92vh] overflow-y-auto">
+            <button
+              type="button"
+              onClick={() => {
+                setShowBlogModal(false);
+                setEditingBlog(null);
+              }}
+              className="absolute top-5 right-5 p-2 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-2 mb-2">
+              <Badge variant="primary" size="sm">
+                {editingBlog ? 'Edit Article' : 'New Article'}
+              </Badge>
+              <span className="font-body text-xs text-slate-400">
+                Supabase Blogs Database Sync
+              </span>
+            </div>
+
+            <h3 className="font-headline text-2xl font-black text-slate-900 mb-1">
+              {editingBlog ? 'Update Blog Post' : 'Create Blog Post'}
+            </h3>
+            <p className="font-body text-xs text-slate-500 mb-6">
+              Publish educational articles and child development guides directly to the public website.
+            </p>
+
+            {blogModalError && (
+              <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 flex items-start gap-2.5 text-xs font-body text-red-600 mb-5">
+                <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+                <span>{blogModalError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSaveBlog} className="space-y-4">
+              {/* Title & Slug */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-headline font-bold text-slate-700 mb-1">
+                    Article Title *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={blogTitle}
+                    onChange={(e) => {
+                      setBlogTitle(e.target.value);
+                      if (!editingBlog && !blogSlug) {
+                        setBlogSlug(e.target.value.toLowerCase().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-'));
+                      }
+                    }}
+                    placeholder="e.g. Raising Resilient Kids in the Digital Age"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-body text-xs focus:outline-none focus:ring-2 focus:ring-[#016ba5]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-headline font-bold text-slate-700 mb-1">
+                    URL Slug (Optional identifier)
+                  </label>
+                  <input
+                    type="text"
+                    value={blogSlug}
+                    onChange={(e) => setBlogSlug(e.target.value)}
+                    placeholder="e.g. raising-resilient-kids"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-mono text-xs focus:outline-none focus:ring-2 focus:ring-[#016ba5]"
+                  />
+                </div>
+              </div>
+
+              {/* Category */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-headline font-bold text-slate-700 mb-1">
+                    Category *
+                  </label>
+                  <select
+                    value={blogCategory}
+                    onChange={(e) => setBlogCategory(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-body text-xs focus:outline-none focus:ring-2 focus:ring-[#016ba5]"
+                  >
+                    {DEFAULT_BLOG_CATEGORIES.map((cat) => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                    <option value="custom">+ Custom Category</option>
+                  </select>
+                </div>
+
+                {blogCategory === 'custom' ? (
+                  <div>
+                    <label className="block text-xs font-headline font-bold text-slate-700 mb-1">
+                      Custom Category Name *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={blogCustomCategory}
+                      onChange={(e) => setBlogCustomCategory(e.target.value)}
+                      placeholder="e.g. Early Childhood Psychology"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-body text-xs focus:outline-none focus:ring-2 focus:ring-[#016ba5]"
+                    />
+                  </div>
+                ) : (
+                  <div>
+                    <label className="block text-xs font-headline font-bold text-slate-700 mb-1">
+                      Estimated Read Time
+                    </label>
+                    <input
+                      type="text"
+                      value={blogReadTime}
+                      onChange={(e) => setBlogReadTime(e.target.value)}
+                      placeholder="e.g. 5 min read"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-body text-xs focus:outline-none focus:ring-2 focus:ring-[#016ba5]"
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Excerpt */}
+              <div>
+                <label className="block text-xs font-headline font-bold text-slate-700 mb-1">
+                  Article Excerpt (Card Summary) *
+                </label>
+                <textarea
+                  required
+                  rows={2}
+                  value={blogExcerpt}
+                  onChange={(e) => setBlogExcerpt(e.target.value)}
+                  placeholder="A concise, compelling 1-2 sentence summary displayed on card previews..."
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-body text-xs focus:outline-none focus:ring-2 focus:ring-[#016ba5]"
+                />
+              </div>
+
+              {/* Full Article Content */}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-headline font-bold text-slate-700">
+                    Full Content (Markdown / Multi-paragraph text) *
+                  </label>
+                  <span className="font-body text-[11px] text-slate-400">
+                    Supports ### Headings and paragraphs
+                  </span>
+                </div>
+                <textarea
+                  required
+                  rows={8}
+                  value={blogContent}
+                  onChange={(e) => setBlogContent(e.target.value)}
+                  placeholder="Write or paste your article content here. Use paragraphs and Markdown headers (### Section Title) for structured formatting..."
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-body text-xs focus:outline-none focus:ring-2 focus:ring-[#016ba5] leading-relaxed"
+                />
+              </div>
+
+              {/* Author & Role */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-headline font-bold text-slate-700 mb-1">
+                    Author Name
+                  </label>
+                  <input
+                    type="text"
+                    value={blogAuthorName}
+                    onChange={(e) => setBlogAuthorName(e.target.value)}
+                    placeholder="e.g. Dr. Amina Mansour"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-body text-xs focus:outline-none focus:ring-2 focus:ring-[#016ba5]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-headline font-bold text-slate-700 mb-1">
+                    Author Credentials / Role
+                  </label>
+                  <input
+                    type="text"
+                    value={blogAuthorRole}
+                    onChange={(e) => setBlogAuthorRole(e.target.value)}
+                    placeholder="e.g. Child Development Specialist"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-body text-xs focus:outline-none focus:ring-2 focus:ring-[#016ba5]"
+                  />
+                </div>
+              </div>
+
+              {/* Cover Image URL & Direct Upload */}
+              <div>
+                <label className="block text-xs font-headline font-bold text-slate-700 mb-1">
+                  Cover Image
+                </label>
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                  <input
+                    type="url"
+                    value={blogImageUrl}
+                    onChange={(e) => setBlogImageUrl(e.target.value)}
+                    placeholder="https://images.unsplash.com/... or upload file"
+                    className="flex-1 px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-body text-xs focus:outline-none focus:ring-2 focus:ring-[#016ba5]"
+                  />
+
+                  <label className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-headline font-bold cursor-pointer transition-colors shrink-0">
+                    {blogImageUploading ? (
+                      <Loader2 className="w-4 h-4 animate-spin text-[#016ba5]" />
+                    ) : (
+                      <UploadCloud className="w-4 h-4 text-[#016ba5]" />
+                    )}
+                    <span>{blogImageUploading ? 'Uploading...' : 'Upload Image'}</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      disabled={blogImageUploading}
+                      onChange={handleBlogImageUpload}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+
+                {blogImageUrl && (
+                  <div className="mt-2.5 flex items-center gap-3 p-2 rounded-xl bg-slate-50 border border-slate-200">
+                    <img
+                      src={blogImageUrl}
+                      alt="Cover preview"
+                      className="w-14 h-14 rounded-lg object-cover border border-slate-200"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <span className="font-headline font-bold text-xs text-slate-800 block">Cover Image Preview</span>
+                      <span className="font-mono text-[10px] text-slate-400 truncate block">{blogImageUrl}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setBlogImageUrl('')}
+                      className="text-xs text-red-500 hover:text-red-700 font-headline font-bold px-2"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Tags */}
+              <div>
+                <label className="block text-xs font-headline font-bold text-slate-700 mb-1">
+                  Tags (Comma separated)
+                </label>
+                <input
+                  type="text"
+                  value={blogTags}
+                  onChange={(e) => setBlogTags(e.target.value)}
+                  placeholder="e.g. parenting, screen-free, emotional-wellness, values"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-body text-xs focus:outline-none focus:ring-2 focus:ring-[#016ba5]"
+                />
+                {blogTags && (
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    {blogTags.split(',').map((t) => t.trim()).filter(Boolean).map((tag, idx) => (
+                      <span
+                        key={idx}
+                        className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 font-body text-[10px] font-semibold"
+                      >
+                        #{tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Toggles: Published & Featured */}
+              <div className="pt-2 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <label className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 border border-slate-200 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={blogIsPublished}
+                    onChange={(e) => setBlogIsPublished(e.target.checked)}
+                    className="w-4 h-4 text-[#fa8221] rounded border-slate-300 focus:ring-[#fa8221]"
+                  />
+                  <div>
+                    <span className="font-headline font-bold text-xs text-slate-800 block">
+                      Published Status
+                    </span>
+                    <span className="font-body text-[11px] text-slate-500 block">
+                      {blogIsPublished ? 'Live on the public website' : 'Saved as private draft'}
+                    </span>
+                  </div>
+                </label>
+
+                <label className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 border border-slate-200 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={blogFeatured}
+                    onChange={(e) => setBlogFeatured(e.target.checked)}
+                    className="w-4 h-4 text-[#fa8221] rounded border-slate-300 focus:ring-[#fa8221]"
+                  />
+                  <div>
+                    <span className="font-headline font-bold text-xs text-slate-800 block">
+                      Featured Highlight
+                    </span>
+                    <span className="font-body text-[11px] text-slate-500 block">
+                      Pinned at the top of parenting resources
+                    </span>
+                  </div>
+                </label>
+              </div>
+
+              {/* Form Action Buttons */}
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  type="button"
+                  onClick={() => {
+                    setShowBlogModal(false);
+                    setEditingBlog(null);
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="cta"
+                  size="sm"
+                  type="submit"
+                  disabled={blogSubmitting}
+                  icon={blogSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                  iconPosition="left"
+                >
+                  {blogSubmitting ? 'Saving Post...' : editingBlog ? 'Update Post' : 'Publish Blog Post'}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 2. Delete Blog Confirmation Modal */}
+      {deletingBlog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
+          <div className="relative w-full max-w-md bg-white rounded-3xl p-6 sm:p-8 shadow-2xl border border-slate-100">
+            <button
+              onClick={() => setDeletingBlog(null)}
+              className="absolute top-5 right-5 p-2 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="w-12 h-12 rounded-2xl bg-red-100 text-red-600 flex items-center justify-center mb-4">
+              <Trash2 className="w-6 h-6" />
+            </div>
+
+            <h3 className="font-headline text-xl font-black text-slate-900 mb-2">
+              Delete Blog Post?
+            </h3>
+            <p className="font-body text-xs text-slate-500 mb-6 leading-relaxed">
+              Are you sure you want to permanently delete <strong>{deletingBlog.title}</strong>? This action will remove the article from the public portal and delete its Supabase record.
+            </p>
+
+            <div className="flex items-center justify-end gap-3">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setDeletingBlog(null)}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                disabled={deletingBlogSubmitting}
+                onClick={handleConfirmDeleteBlog}
+                className="bg-red-600 hover:bg-red-700 text-white"
+                icon={deletingBlogSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                iconPosition="left"
+              >
+                {deletingBlogSubmitting ? 'Deleting...' : 'Confirm Delete'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 3. Preview Blog Article Modal */}
+      {previewingBlog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
+          <div className="relative w-full max-w-2xl bg-white rounded-3xl p-6 sm:p-8 shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto">
+            <button
+              type="button"
+              onClick={() => setPreviewingBlog(null)}
+              className="absolute top-5 right-5 p-2 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            {previewingBlog.imageUrl && (
+              <div className="mb-6 rounded-2xl overflow-hidden max-h-64 bg-slate-100 border border-slate-200">
+                <img
+                  src={previewingBlog.imageUrl}
+                  alt={previewingBlog.title}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            )}
+
+            <div className="flex items-center gap-2 mb-3">
+              <Badge variant="primary" size="sm">{previewingBlog.category}</Badge>
+              <span className="font-body text-xs text-slate-400 flex items-center gap-1">
+                <Clock className="w-3 h-3" />
+                {previewingBlog.readTime}
+              </span>
+              <span className="font-body text-xs text-slate-400">
+                • {new Date(previewingBlog.createdAt).toLocaleDateString()}
+              </span>
+            </div>
+
+            <h2 className="font-headline text-2xl sm:text-3xl font-black text-slate-900 mb-3 leading-tight">
+              {previewingBlog.title}
+            </h2>
+
+            <div className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 border border-slate-200 mb-6">
+              <div className="w-10 h-10 rounded-full bg-[#016ba5] text-white flex items-center justify-center font-headline font-bold text-sm">
+                {previewingBlog.authorName.charAt(0)}
+              </div>
+              <div>
+                <span className="font-headline font-bold text-xs text-slate-800 block">
+                  {previewingBlog.authorName}
+                </span>
+                <span className="font-body text-[11px] text-slate-500 block">
+                  {previewingBlog.authorRole || 'Contributor'}
+                </span>
+              </div>
+            </div>
+
+            <div className="font-body text-xs sm:text-sm text-slate-700 leading-relaxed space-y-4 whitespace-pre-wrap">
+              {previewingBlog.content}
+            </div>
+
+            {previewingBlog.tags && previewingBlog.tags.length > 0 && (
+              <div className="mt-6 pt-4 border-t border-slate-100 flex flex-wrap gap-1.5">
+                {previewingBlog.tags.map((tag, idx) => (
+                  <span
+                    key={idx}
+                    className="px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 font-body text-xs"
+                  >
+                    #{tag}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            <div className="flex items-center justify-end gap-3 mt-6 pt-4 border-t border-slate-100">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPreviewingBlog(null)}
+              >
+                Close Preview
               </Button>
             </div>
           </div>
