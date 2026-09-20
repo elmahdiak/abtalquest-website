@@ -4,6 +4,9 @@ import {
   type Product, 
   DEFAULT_PRODUCTS,
   fetchMarketplaceProducts, 
+  fetchCategories,
+  type ProductCategory,
+  DEFAULT_CATEGORIES,
   syncCartToSupabase, 
   loadCartFromSupabase, 
   placeOrder, 
@@ -39,6 +42,7 @@ export const Marketplace: React.FC<MarketplaceProps> = ({
 }) => {
   // Products and database health state
   const [products, setProducts] = useState<Product[]>(DEFAULT_PRODUCTS);
+  const [categories, setCategories] = useState<ProductCategory[]>(DEFAULT_CATEGORIES);
   const [loadingProducts, setLoadingProducts] = useState<boolean>(true);
   const [isFromSupabase, setIsFromSupabase] = useState<boolean>(false);
   const [_supabaseStatus, setSupabaseStatus] = useState<SupabaseHealth | null>(null);
@@ -156,35 +160,62 @@ export const Marketplace: React.FC<MarketplaceProps> = ({
     }
   }, [user]);
 
-  // Load products and health from Supabase on mount
+  // Load products, categories, and health from Supabase on mount
   useEffect(() => {
     let isMounted = true;
 
     async function loadData() {
       try {
-        const [result, health] = await Promise.all([
+        const [result, health, loadedCategories] = await Promise.all([
           fetchMarketplaceProducts(),
           checkSupabaseHealth(),
+          fetchCategories(),
         ]);
 
         if (isMounted) {
           setProducts(result.products);
+          setCategories(loadedCategories);
           setIsFromSupabase(result.isFromSupabase);
           setSupabaseStatus(health);
           setLoadingProducts(false);
         }
       } catch (err) {
-        console.warn('Error loading products:', err);
+        console.warn('Error loading products/categories:', err);
         if (isMounted) {
           setProducts(DEFAULT_PRODUCTS);
+          setCategories(DEFAULT_CATEGORIES);
           setLoadingProducts(false);
         }
       }
     }
 
     loadData();
+
+    // Listen for live product & category updates dispatched across dashboard & window
+    const handleProductChange = () => {
+      fetchMarketplaceProducts().then((res) => {
+        if (isMounted) {
+          setProducts(res.products);
+          setIsFromSupabase(res.isFromSupabase);
+        }
+      });
+    };
+
+    const handleCategoryChange = () => {
+      fetchCategories().then((cats) => {
+        if (isMounted) {
+          setCategories(cats);
+        }
+      });
+    };
+
+    window.addEventListener('abtalquest_product_updated', handleProductChange);
+    window.addEventListener('abtalquest_category_updated', handleCategoryChange);
+
     return () => {
       isMounted = false;
+      window.removeEventListener('abtalquest_product_updated', handleProductChange);
+      window.removeEventListener('abtalquest_category_updated', handleCategoryChange);
     };
   }, []);
 
@@ -298,6 +329,17 @@ export const Marketplace: React.FC<MarketplaceProps> = ({
     }, 0);
   }, [cart, products]);
 
+  // Computed Category Counts
+  const categoryCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    products.forEach((p) => {
+      if (p.category) {
+        counts[p.category] = (counts[p.category] || 0) + 1;
+      }
+    });
+    return counts;
+  }, [products]);
+
   // Category Pill Selection Handler
   const handleSelectPill = useCallback((pillId: string) => {
     setActivePill(pillId);
@@ -305,12 +347,14 @@ export const Marketplace: React.FC<MarketplaceProps> = ({
       setSelectedPlanet('all');
       setSelectedType('all');
       setSearchTerm('');
-    } else if (['thinkers', 'brave', 'solvers', 'heart'].includes(pillId)) {
-      setSelectedPlanet(pillId);
+    } else if (['bestsellers', 'new', 'deals'].includes(pillId)) {
+      setSelectedPlanet('all');
     } else if (pillId === 'format-book') {
       setSelectedType('Storybook');
     } else if (pillId === 'format-game') {
       setSelectedType('Family Game');
+    } else {
+      setSelectedPlanet(pillId);
     }
   }, []);
 
@@ -331,9 +375,16 @@ export const Marketplace: React.FC<MarketplaceProps> = ({
         }
       }
 
-      // Planet filter
-      if (selectedPlanet !== 'all' && product.category !== selectedPlanet) {
-        return false;
+      // Planet / Category filter
+      if (selectedPlanet !== 'all') {
+        const catLower = (product.category || '').toLowerCase();
+        const planetLower = (product.planetName || '').toLowerCase();
+        const filterLower = selectedPlanet.toLowerCase();
+        const isDirectCategoryMatch = catLower === filterLower;
+        const isPlanetMatch = planetLower === filterLower || planetLower.includes(filterLower);
+        if (!isDirectCategoryMatch && !isPlanetMatch) {
+          return false;
+        }
       }
 
       // Age filter
@@ -501,6 +552,8 @@ export const Marketplace: React.FC<MarketplaceProps> = ({
             activePill={activePill}
             onSelectPill={handleSelectPill}
             totalProductsCount={products.length}
+            categories={categories}
+            categoryCounts={categoryCounts}
           />
 
           {/* 4. Product Grid & Instant Sorting */}

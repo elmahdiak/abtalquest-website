@@ -28,7 +28,13 @@ import {
   SlidersHorizontal,
   Database,
   Copy,
-  Check
+  Check,
+  Plus,
+  Edit3,
+  Tag,
+  UploadCloud,
+  Layers,
+  CheckCircle
 } from 'lucide-react';
 import Badge from '../common/Badge';
 import Button from '../common/Button';
@@ -63,9 +69,22 @@ import {
   getContactMessagesForAdmin, 
   updateContactMessageStatus, 
   getSiteMetrics,
+  fetchMarketplaceProducts,
+  createProduct,
+  updateProduct,
+  deleteProduct,
+  uploadProductImage,
+  fetchCategories,
+  createCategory,
+  updateCategory,
+  deleteCategory,
+  DEFAULT_CATEGORIES,
+  formatPrice,
   type AdminOrder,
   type ContactMessage,
-  type SiteMetrics 
+  type SiteMetrics,
+  type Product,
+  type ProductCategory
 } from '../../services/marketplaceService';
 import type { User } from '@supabase/supabase-js';
 
@@ -95,12 +114,66 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
   const [dispatchedCode, setDispatchedCode] = useState<string | null>(null);
 
   // Dashboard state
-  const [activeTab, setActiveTab] = useState<'orders' | 'messages' | 'analytics' | 'team' | 'settings'>('orders');
+  const [activeTab, setActiveTab] = useState<'orders' | 'products' | 'categories' | 'messages' | 'analytics' | 'team' | 'settings'>('orders');
   const [whatsappPosition, setWhatsappPosition] = useState<WhatsAppPosition>(getStoredWhatsAppPosition);
   const [orders, setOrders] = useState<AdminOrder[]>([]);
   const [messages, setMessages] = useState<ContactMessage[]>([]);
   const [metrics, setMetrics] = useState<SiteMetrics | null>(null);
   const [loadingData, setLoadingData] = useState<boolean>(true);
+
+  // Products & Inventory state
+  const [productsList, setProductsList] = useState<Product[]>([]);
+  const [productSearch, setProductSearch] = useState<string>('');
+  const [productCategoryFilter, setProductCategoryFilter] = useState<string>('all');
+  const [productStockFilter, setProductStockFilter] = useState<'all' | 'in_stock' | 'low_stock' | 'out_of_stock'>('all');
+  const [showProductModal, setShowProductModal] = useState<boolean>(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [deletingProduct, setDeletingProduct] = useState<Product | null>(null);
+  const [deletingProductSubmitting, setDeletingProductSubmitting] = useState<boolean>(false);
+
+  // Product Form state
+  const [prodTitle, setProdTitle] = useState<string>('');
+  const [prodSku, setProdSku] = useState<string>('');
+  const [prodCategory, setProdCategory] = useState<string>('thinkers');
+  const [prodPlanetName, setProdPlanetName] = useState<string>("Thinkers' Planet");
+  const [prodProductType, setProdProductType] = useState<string>('Physical Kit');
+  const [prodAgeGroup, setProdAgeGroup] = useState<string>('9-11');
+  const [prodAgeLabel, setProdAgeLabel] = useState<string>('Ages 9–11');
+  const [prodPrice, setProdPrice] = useState<string>('299');
+  const [prodOriginalPrice, setProdOriginalPrice] = useState<string>('');
+  const [prodDiscountPercent, setProdDiscountPercent] = useState<string>('0');
+  const [prodStockCount, setProdStockCount] = useState<string>('15');
+  const [prodInStock, setProdInStock] = useState<boolean>(true);
+  const [prodIsBestSeller, setProdIsBestSeller] = useState<boolean>(false);
+  const [prodIsNew, setProdIsNew] = useState<boolean>(false);
+  const [prodXpBonus, setProdXpBonus] = useState<string>('300');
+  const [prodShortDesc, setProdShortDesc] = useState<string>('');
+  const [prodFullDesc, setProdFullDesc] = useState<string>('');
+  const [prodImageUrl, setProdImageUrl] = useState<string>('');
+  const [prodTags, setProdTags] = useState<string>('');
+  const [prodSafetyGuidelines, setProdSafetyGuidelines] = useState<string>('');
+  const [uploadingProdImage, setUploadingProdImage] = useState<boolean>(false);
+  const [prodSubmitting, setProdSubmitting] = useState<boolean>(false);
+  const [prodModalError, setProdModalError] = useState<string | null>(null);
+
+  // Categories & Planets state
+  const [categoriesList, setCategoriesList] = useState<ProductCategory[]>(DEFAULT_CATEGORIES);
+  const [categorySearch, setCategorySearch] = useState<string>('');
+  const [showCategoryModal, setShowCategoryModal] = useState<boolean>(false);
+  const [editingCategory, setEditingCategory] = useState<ProductCategory | null>(null);
+  const [deletingCategory, setDeletingCategory] = useState<ProductCategory | null>(null);
+  const [deletingCategorySubmitting, setDeletingCategorySubmitting] = useState<boolean>(false);
+  const [deletingCategoryError, setDeletingCategoryError] = useState<string | null>(null);
+
+  // Category Form state
+  const [catName, setCatName] = useState<string>('');
+  const [catSlug, setCatSlug] = useState<string>('');
+  const [catPlanetName, setCatPlanetName] = useState<string>('');
+  const [catAccentColor, setCatAccentColor] = useState<string>('#016ba5');
+  const [catIcon, setCatIcon] = useState<string>('Sparkles');
+  const [catDescription, setCatDescription] = useState<string>('');
+  const [catSubmitting, setCatSubmitting] = useState<boolean>(false);
+  const [catModalError, setCatModalError] = useState<string | null>(null);
 
   // Super Admin: Team Management state
   const [adminList, setAdminList] = useState<AdminUserRecord[]>([]);
@@ -183,17 +256,21 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
   const loadDashboardData = async (force = false) => {
     if (force) setLoadingData(true);
     try {
-      const [ordersList, messagesList, siteStats, health] = await Promise.all([
+      const [ordersList, messagesList, siteStats, health, productsData, loadedCategories] = await Promise.all([
         getAllOrdersForAdmin(),
         getContactMessagesForAdmin(),
         getSiteMetrics(),
         checkOrdersDatabaseHealth(),
+        fetchMarketplaceProducts(),
+        fetchCategories(),
       ]);
 
       setOrders(ordersList);
       setMessages(messagesList);
       setMetrics(siteStats);
       setDbHealth(health);
+      setProductsList(productsData.products);
+      setCategoriesList(loadedCategories);
     } catch (err) {
       console.warn('Dashboard data load error:', err);
     } finally {
@@ -208,6 +285,256 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
       setTimeout(() => setCopiedSql(false), 3000);
     } catch {
       setCopiedSql(false);
+    }
+  };
+
+  // Product CRUD Action Handlers
+  const handleOpenAddProduct = () => {
+    setEditingProduct(null);
+    setProdTitle('');
+    setProdSku(`AQ-${(categoriesList[0]?.slug || 'THK').toUpperCase().slice(0, 3)}-${Math.floor(100 + Math.random() * 900)}`);
+    setProdCategory(categoriesList[0]?.id || 'thinkers');
+    setProdPlanetName(categoriesList[0]?.planetName || "Thinkers' Planet");
+    setProdProductType('Physical Kit');
+    setProdAgeGroup('9-11');
+    setProdAgeLabel('Ages 9–11');
+    setProdPrice('299');
+    setProdOriginalPrice('399');
+    setProdDiscountPercent('25');
+    setProdStockCount('15');
+    setProdInStock(true);
+    setProdIsBestSeller(false);
+    setProdIsNew(true);
+    setProdXpBonus('350');
+    setProdShortDesc('');
+    setProdFullDesc('');
+    setProdImageUrl('');
+    setProdTags('STEM, Physical Kit, Birchwood');
+    setProdSafetyGuidelines('100% sustainably harvested natural birchwood\nSmooth hand-sanded edges with zero splinter hazards\nChild-safe non-toxic organic vegetable stain');
+    setProdModalError(null);
+    setShowProductModal(true);
+  };
+
+  const handleOpenEditProduct = (prod: Product) => {
+    setEditingProduct(prod);
+    setProdTitle(prod.title);
+    setProdSku(prod.sku || '');
+    setProdCategory(prod.category);
+    setProdPlanetName(prod.planetName);
+    setProdProductType(prod.productType);
+    setProdAgeGroup(prod.ageGroup);
+    setProdAgeLabel(prod.ageLabel);
+    setProdPrice(String(prod.price));
+    setProdOriginalPrice(prod.originalPrice ? String(prod.originalPrice) : '');
+    setProdDiscountPercent(String(prod.discountPercent || 0));
+    setProdStockCount(String(prod.stockCount !== undefined ? prod.stockCount : 15));
+    setProdInStock(prod.inStock !== false);
+    setProdIsBestSeller(Boolean(prod.isBestSeller));
+    setProdIsNew(Boolean(prod.isNew));
+    setProdXpBonus(String(prod.xpBonus || 0));
+    setProdShortDesc(prod.shortDescription || '');
+    setProdFullDesc(prod.fullDescription || '');
+    setProdImageUrl(prod.images && prod.images.length > 0 ? prod.images[0] : '');
+    setProdTags(Array.isArray(prod.tags) ? prod.tags.join(', ') : '');
+    setProdSafetyGuidelines(Array.isArray(prod.safetyGuidelines) ? prod.safetyGuidelines.join('\n') : '');
+    setProdModalError(null);
+    setShowProductModal(true);
+  };
+
+  const handleProdCategoryChange = (newCat: string) => {
+    setProdCategory(newCat);
+    const matched = categoriesList.find((c) => c.id === newCat || c.slug === newCat);
+    if (matched?.planetName) {
+      setProdPlanetName(matched.planetName);
+    }
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingProdImage(true);
+    try {
+      const url = await uploadProductImage(file);
+      setProdImageUrl(url);
+    } catch (err: any) {
+      setProdModalError('Failed to upload image: ' + (err?.message || 'Unknown error'));
+    } finally {
+      setUploadingProdImage(false);
+    }
+  };
+
+  const handleSaveProduct = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!prodTitle.trim()) {
+      setProdModalError('Product title is required');
+      return;
+    }
+    const numPrice = parseFloat(prodPrice);
+    if (isNaN(numPrice) || numPrice < 0) {
+      setProdModalError('A valid non-negative price is required');
+      return;
+    }
+
+    setProdSubmitting(true);
+    setProdModalError(null);
+
+    try {
+      const tagsArray = prodTags.split(',').map((t) => t.trim()).filter(Boolean);
+      const safetyArray = prodSafetyGuidelines.split('\n').map((s) => s.trim()).filter(Boolean);
+      const numOriginal = prodOriginalPrice ? parseFloat(prodOriginalPrice) : undefined;
+      const numDiscount = prodDiscountPercent ? parseInt(prodDiscountPercent, 10) : 0;
+      const numStock = prodStockCount ? parseInt(prodStockCount, 10) : 15;
+      const numXp = prodXpBonus ? parseInt(prodXpBonus, 10) : 300;
+
+      const productData: Partial<Product> = {
+        title: prodTitle.trim(),
+        sku: prodSku.trim() || undefined,
+        category: prodCategory,
+        planetName: prodPlanetName.trim() || 'AbtalQuest Universe',
+        productType: prodProductType,
+        ageGroup: prodAgeGroup,
+        ageLabel: prodAgeLabel.trim() || `Ages ${prodAgeGroup}`,
+        price: numPrice,
+        originalPrice: numOriginal,
+        discountPercent: numDiscount,
+        stockCount: numStock,
+        inStock: prodInStock && numStock > 0,
+        isBestSeller: prodIsBestSeller,
+        isNew: prodIsNew,
+        xpBonus: numXp,
+        shortDescription: prodShortDesc.trim(),
+        fullDescription: prodFullDesc.trim(),
+        tags: tagsArray,
+        safetyGuidelines: safetyArray,
+        images: prodImageUrl.trim() ? [prodImageUrl.trim()] : [],
+      };
+
+      if (editingProduct) {
+        await updateProduct(editingProduct.id, productData);
+      } else {
+        await createProduct(productData as any);
+      }
+
+      const refreshed = await fetchMarketplaceProducts();
+      setProductsList(refreshed.products);
+      setShowProductModal(false);
+      setEditingProduct(null);
+    } catch (err: any) {
+      setProdModalError(err?.message || 'Failed to save product');
+    } finally {
+      setProdSubmitting(false);
+    }
+  };
+
+  const handleConfirmDeleteProduct = async () => {
+    if (!deletingProduct) return;
+    setDeletingProductSubmitting(true);
+    try {
+      await deleteProduct(deletingProduct.id);
+      const refreshed = await fetchMarketplaceProducts();
+      setProductsList(refreshed.products);
+      setDeletingProduct(null);
+    } catch (err: any) {
+      console.warn('Failed to delete product:', err);
+    } finally {
+      setDeletingProductSubmitting(false);
+    }
+  };
+
+  // Category CRUD Action Handlers
+  const handleOpenAddCategory = () => {
+    setEditingCategory(null);
+    setCatName('');
+    setCatSlug('');
+    setCatPlanetName('');
+    setCatAccentColor('#016ba5');
+    setCatIcon('Sparkles');
+    setCatDescription('');
+    setCatModalError(null);
+    setShowCategoryModal(true);
+  };
+
+  const handleOpenEditCategory = (cat: ProductCategory) => {
+    setEditingCategory(cat);
+    setCatName(cat.name);
+    setCatSlug(cat.slug);
+    setCatPlanetName(cat.planetName || cat.name);
+    setCatAccentColor(cat.accentColor || '#016ba5');
+    setCatIcon(cat.icon || 'Sparkles');
+    setCatDescription(cat.description || '');
+    setCatModalError(null);
+    setShowCategoryModal(true);
+  };
+
+  const handleSaveCategory = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!catName.trim()) {
+      setCatModalError('Category name is required');
+      return;
+    }
+    const generatedSlug = (catSlug.trim() || catName.trim()).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+
+    setCatSubmitting(true);
+    setCatModalError(null);
+
+    try {
+      if (editingCategory) {
+        await updateCategory(editingCategory.id, {
+          name: catName.trim(),
+          slug: generatedSlug,
+          planetName: catPlanetName.trim() || catName.trim(),
+          accentColor: catAccentColor || '#016ba5',
+          icon: catIcon || 'Sparkles',
+          description: catDescription.trim(),
+        });
+      } else {
+        await createCategory({
+          id: generatedSlug,
+          name: catName.trim(),
+          slug: generatedSlug,
+          planetName: catPlanetName.trim() || catName.trim(),
+          accentColor: catAccentColor || '#016ba5',
+          icon: catIcon || 'Sparkles',
+          description: catDescription.trim(),
+        });
+      }
+
+      const refreshed = await fetchCategories();
+      setCategoriesList(refreshed);
+      setShowCategoryModal(false);
+      setEditingCategory(null);
+    } catch (err: any) {
+      setCatModalError(err?.message || 'Failed to save category');
+    } finally {
+      setCatSubmitting(false);
+    }
+  };
+
+  const handleConfirmDeleteCategory = async () => {
+    if (!deletingCategory) return;
+    setDeletingCategorySubmitting(true);
+    setDeletingCategoryError(null);
+    try {
+      const countAssigned = productsList.filter(
+        (p) => p.category === deletingCategory.id || p.category === deletingCategory.slug
+      ).length;
+
+      if (countAssigned > 0) {
+        setDeletingCategoryError(
+          `Cannot delete "${deletingCategory.name}" because ${countAssigned} product(s) are assigned to it. Please reassign or delete them first.`
+        );
+        setDeletingCategorySubmitting(false);
+        return;
+      }
+
+      await deleteCategory(deletingCategory.id);
+      const refreshed = await fetchCategories();
+      setCategoriesList(refreshed);
+      setDeletingCategory(null);
+    } catch (err: any) {
+      setDeletingCategoryError(err?.message || 'Failed to delete category');
+    } finally {
+      setDeletingCategorySubmitting(false);
     }
   };
 
@@ -243,11 +570,15 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
 
     window.addEventListener('abtalquest_order_created', handleOrderEvent);
     window.addEventListener('abtalquest_order_status_updated', handleOrderEvent);
+    window.addEventListener('abtalquest_product_updated', handleOrderEvent);
+    window.addEventListener('abtalquest_category_updated', handleOrderEvent);
     window.addEventListener('storage', handleStorageEvent);
 
     return () => {
       window.removeEventListener('abtalquest_order_created', handleOrderEvent);
       window.removeEventListener('abtalquest_order_status_updated', handleOrderEvent);
+      window.removeEventListener('abtalquest_product_updated', handleOrderEvent);
+      window.removeEventListener('abtalquest_category_updated', handleOrderEvent);
       window.removeEventListener('storage', handleStorageEvent);
     };
   }, [isAdmin]);
@@ -1002,7 +1333,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center gap-2 border-t border-slate-800/80 pt-2 pb-1 overflow-x-auto">
           <button
             onClick={() => setActiveTab('orders')}
-            className={`px-4 py-2 rounded-xl font-headline text-xs font-bold transition-all flex items-center gap-2 ${
+            className={`px-4 py-2 rounded-xl font-headline text-xs font-bold transition-all flex items-center gap-2 shrink-0 ${
               activeTab === 'orders'
                 ? 'bg-[#fa8221] text-white shadow-sm'
                 : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
@@ -1012,6 +1343,36 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
             <span>Orders Management</span>
             <span className="px-1.5 py-0.2 bg-white/20 rounded-full text-[10px]">
               {orders.length}
+            </span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('products')}
+            className={`px-4 py-2 rounded-xl font-headline text-xs font-bold transition-all flex items-center gap-2 shrink-0 ${
+              activeTab === 'products'
+                ? 'bg-[#fa8221] text-white shadow-sm'
+                : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
+            }`}
+          >
+            <Layers className="w-4 h-4" />
+            <span>Products Inventory</span>
+            <span className="px-1.5 py-0.2 bg-white/20 rounded-full text-[10px]">
+              {productsList.length}
+            </span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('categories')}
+            className={`px-4 py-2 rounded-xl font-headline text-xs font-bold transition-all flex items-center gap-2 shrink-0 ${
+              activeTab === 'categories'
+                ? 'bg-[#fa8221] text-white shadow-sm'
+                : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
+            }`}
+          >
+            <Tag className="w-4 h-4" />
+            <span>Categories & Planets</span>
+            <span className="px-1.5 py-0.2 bg-white/20 rounded-full text-[10px]">
+              {categoriesList.length}
             </span>
           </button>
 
@@ -1342,6 +1703,447 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
                       </table>
                     </div>
                   )}
+                </div>
+              </div>
+            )}
+
+            {/* ========================================================
+                TAB: PRODUCTS INVENTORY (CRUD)
+               ======================================================== */}
+            {activeTab === 'products' && (
+              <div className="space-y-6">
+                {/* Header & Controls */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <div className="flex items-center gap-3">
+                      <h2 className="font-headline text-2xl font-black text-slate-900">
+                        Products Inventory ({productsList.length})
+                      </h2>
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-blue-50 text-[#016ba5] border border-blue-200">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#016ba5] animate-pulse" />
+                        Live Supabase Sync
+                      </span>
+                    </div>
+                    <p className="font-body text-xs text-slate-500 mt-1">
+                      Manage official learning kits, storybooks, pricing, discounts, and real-time inventory counts across devices.
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onClick={() => void loadDashboardData(true)}
+                      icon={<RefreshCw className="w-3.5 h-3.5" />}
+                      iconPosition="left"
+                    >
+                      Refresh
+                    </Button>
+                    <Button
+                      variant="cta"
+                      size="sm"
+                      onClick={handleOpenAddProduct}
+                      icon={<Plus className="w-4 h-4" />}
+                      iconPosition="left"
+                    >
+                      Add New Product
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Metric Summary Cards */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+                  <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs">
+                    <span className="font-body text-xs text-slate-500 block mb-1">Total Catalog</span>
+                    <span className="font-headline font-black text-2xl text-slate-900">{productsList.length}</span>
+                  </div>
+                  <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs">
+                    <span className="font-body text-xs text-slate-500 block mb-1">In Stock</span>
+                    <span className="font-headline font-black text-2xl text-emerald-600">
+                      {productsList.filter((p) => p.inStock !== false && (p.stockCount ?? 15) > 0).length}
+                    </span>
+                  </div>
+                  <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs">
+                    <span className="font-body text-xs text-slate-500 block mb-1">Low Stock (≤10)</span>
+                    <span className="font-headline font-black text-2xl text-amber-500">
+                      {productsList.filter((p) => (p.stockCount ?? 15) <= 10 && (p.stockCount ?? 15) > 0).length}
+                    </span>
+                  </div>
+                  <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs">
+                    <span className="font-body text-xs text-slate-500 block mb-1">Total Stock Units</span>
+                    <span className="font-headline font-black text-2xl text-[#016ba5]">
+                      {productsList.reduce((sum, p) => sum + (p.stockCount ?? 15), 0)}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Filter and Search Bar */}
+                <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="relative flex-1">
+                    <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      placeholder="Search products by title, SKU, or tags..."
+                      value={productSearch}
+                      onChange={(e) => setProductSearch(e.target.value)}
+                      className="w-full pl-9 pr-4 py-2 rounded-xl bg-slate-50 border border-slate-200 font-body text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#016ba5]"
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-2 overflow-x-auto">
+                    <select
+                      value={productCategoryFilter}
+                      onChange={(e) => setProductCategoryFilter(e.target.value)}
+                      className="px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs font-headline font-bold text-slate-700 cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#016ba5]"
+                    >
+                      <option value="all">All Categories</option>
+                      {categoriesList.map((cat) => (
+                        <option key={cat.id} value={cat.id}>
+                          {cat.name}
+                        </option>
+                      ))}
+                    </select>
+
+                    <select
+                      value={productStockFilter}
+                      onChange={(e) => setProductStockFilter(e.target.value as any)}
+                      className="px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs font-headline font-bold text-slate-700 cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#016ba5]"
+                    >
+                      <option value="all">All Stock Statuses</option>
+                      <option value="in_stock">In Stock (&gt;10)</option>
+                      <option value="low_stock">Low Stock (1–10)</option>
+                      <option value="out_of_stock">Out of Stock (0)</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Products Table */}
+                <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+                  {productsList.length === 0 ? (
+                    <div className="py-16 text-center">
+                      <Layers className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                      <h4 className="font-headline font-bold text-slate-700 mb-1">No Products Found</h4>
+                      <p className="font-body text-xs text-slate-400 mb-4">
+                        Your product catalog is empty or waiting for initial database sync.
+                      </p>
+                      <Button variant="cta" size="sm" onClick={handleOpenAddProduct}>
+                        Create First Product
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left border-collapse">
+                        <thead>
+                          <tr className="border-b border-slate-200/80 bg-slate-50/50 text-[11px] font-headline font-bold text-slate-500 uppercase tracking-wider">
+                            <th className="py-3 px-4">Product</th>
+                            <th className="py-3 px-4">Category & Planet</th>
+                            <th className="py-3 px-4">Age / Type</th>
+                            <th className="py-3 px-4">Price / XP</th>
+                            <th className="py-3 px-4">Stock Level</th>
+                            <th className="py-3 px-4 text-right">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 text-xs">
+                          {productsList
+                            .filter((prod) => {
+                              if (productSearch.trim()) {
+                                const q = productSearch.toLowerCase();
+                                const matchTitle = prod.title.toLowerCase().includes(q);
+                                const matchSku = prod.sku ? prod.sku.toLowerCase().includes(q) : false;
+                                const matchPlanet = prod.planetName.toLowerCase().includes(q);
+                                if (!matchTitle && !matchSku && !matchPlanet) return false;
+                              }
+                              if (productCategoryFilter !== 'all') {
+                                if (prod.category !== productCategoryFilter && prod.planetName !== productCategoryFilter) {
+                                  return false;
+                                }
+                              }
+                              const stock = prod.stockCount !== undefined ? prod.stockCount : 15;
+                              if (productStockFilter === 'in_stock' && (stock <= 10 || !prod.inStock)) return false;
+                              if (productStockFilter === 'low_stock' && (stock > 10 || stock === 0)) return false;
+                              if (productStockFilter === 'out_of_stock' && (stock > 0 && prod.inStock !== false)) return false;
+                              return true;
+                            })
+                            .map((prod) => {
+                              const stock = prod.stockCount !== undefined ? prod.stockCount : 15;
+                              const isLow = stock > 0 && stock <= 10;
+                              const isOut = stock === 0 || prod.inStock === false;
+
+                              return (
+                                <tr key={prod.id} className="hover:bg-slate-50/80 transition-colors">
+                                  {/* Product title & SKU */}
+                                  <td className="py-3.5 px-4">
+                                    <div className="flex items-center gap-3">
+                                      <div className="w-11 h-11 rounded-xl bg-slate-100 border border-slate-200 shrink-0 overflow-hidden flex items-center justify-center">
+                                        {prod.images && prod.images.length > 0 ? (
+                                          <img
+                                            src={prod.images[0]}
+                                            alt={prod.title}
+                                            className="w-full h-full object-cover"
+                                            onError={(e) => {
+                                              (e.target as HTMLElement).style.display = 'none';
+                                            }}
+                                          />
+                                        ) : (
+                                          <Package className="w-5 h-5 text-slate-400" />
+                                        )}
+                                      </div>
+                                      <div>
+                                        <div className="font-headline font-bold text-slate-900 flex items-center gap-1.5">
+                                          <span>{prod.title}</span>
+                                          {prod.isBestSeller && (
+                                            <span className="px-1.5 py-0.2 rounded-md bg-amber-100 text-amber-800 text-[9px] font-black">
+                                              BEST
+                                            </span>
+                                          )}
+                                          {prod.isNew && (
+                                            <span className="px-1.5 py-0.2 rounded-md bg-purple-100 text-purple-800 text-[9px] font-black">
+                                              NEW
+                                            </span>
+                                          )}
+                                        </div>
+                                        <div className="font-mono text-[11px] text-slate-400 mt-0.5">
+                                          SKU: {prod.sku || prod.id}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </td>
+
+                                  {/* Category & Planet */}
+                                  <td className="py-3.5 px-4">
+                                    <div className="space-y-0.5">
+                                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-800">
+                                        {prod.category}
+                                      </span>
+                                      <span className="font-body text-[11px] text-slate-500 block">
+                                        {prod.planetName}
+                                      </span>
+                                    </div>
+                                  </td>
+
+                                  {/* Age Group & Type */}
+                                  <td className="py-3.5 px-4">
+                                    <div className="space-y-0.5">
+                                      <span className="font-headline font-bold text-slate-700 block">
+                                        {prod.ageLabel || prod.ageGroup}
+                                      </span>
+                                      <span className="font-body text-[11px] text-slate-400 block">
+                                        {prod.productType}
+                                      </span>
+                                    </div>
+                                  </td>
+
+                                  {/* Price & XP */}
+                                  <td className="py-3.5 px-4">
+                                    <div>
+                                      <div className="font-headline font-black text-slate-900 text-sm">
+                                        {formatPrice(prod.price, 'en')}
+                                      </div>
+                                      {prod.originalPrice && prod.originalPrice > prod.price && (
+                                        <span className="font-body text-[10px] text-slate-400 line-through mr-1">
+                                          {formatPrice(prod.originalPrice, 'en')}
+                                        </span>
+                                      )}
+                                      <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.2 rounded-full mt-0.5">
+                                        <Sparkles className="w-2.5 h-2.5" />
+                                        +{prod.xpBonus} XP
+                                      </span>
+                                    </div>
+                                  </td>
+
+                                  {/* Stock Level */}
+                                  <td className="py-3.5 px-4">
+                                    <span
+                                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-headline font-bold ${
+                                        isOut
+                                          ? 'bg-red-50 text-red-700 border border-red-200'
+                                          : isLow
+                                          ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                                          : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                      }`}
+                                    >
+                                      <span
+                                        className={`w-1.5 h-1.5 rounded-full ${
+                                          isOut ? 'bg-red-500' : isLow ? 'bg-amber-500' : 'bg-emerald-500'
+                                        }`}
+                                      />
+                                      {isOut ? 'Out of Stock' : isLow ? `Low Stock (${stock})` : `In Stock (${stock})`}
+                                    </span>
+                                  </td>
+
+                                  {/* Actions */}
+                                  <td className="py-3.5 px-4 text-right">
+                                    <div className="flex items-center justify-end gap-1.5">
+                                      <button
+                                        onClick={() => handleOpenEditProduct(prod)}
+                                        className="p-1.5 rounded-lg bg-slate-100 hover:bg-[#016ba5] hover:text-white text-slate-600 transition-colors cursor-pointer"
+                                        title="Edit Product"
+                                      >
+                                        <Edit3 className="w-3.5 h-3.5" />
+                                      </button>
+                                      <button
+                                        onClick={() => setDeletingProduct(prod)}
+                                        className="p-1.5 rounded-lg bg-red-50 hover:bg-red-600 hover:text-white text-red-600 transition-colors cursor-pointer"
+                                        title="Delete Product"
+                                      >
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                      </button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* ========================================================
+                TAB: CATEGORIES & PLANETS (CRUD)
+               ======================================================== */}
+            {activeTab === 'categories' && (
+              <div className="space-y-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <div className="flex items-center gap-3">
+                      <h2 className="font-headline text-2xl font-black text-slate-900">
+                        Categories & Planets ({categoriesList.length})
+                      </h2>
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-200">
+                        <Tag className="w-3 h-3" />
+                        Taxonomy Hub
+                      </span>
+                    </div>
+                    <p className="font-body text-xs text-slate-500 mt-1">
+                      Structure your marketplace with themed planets and category pills. Changes sync to customer navigation immediately.
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <div className="relative">
+                      <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="text"
+                        placeholder="Search categories..."
+                        value={categorySearch}
+                        onChange={(e) => setCategorySearch(e.target.value)}
+                        className="pl-8 pr-3 py-1.5 rounded-xl bg-white border border-slate-200 font-body text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#016ba5] w-44"
+                      />
+                    </div>
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onClick={() => void loadDashboardData(true)}
+                      icon={<RefreshCw className="w-3.5 h-3.5" />}
+                      iconPosition="left"
+                    >
+                      Refresh
+                    </Button>
+                    <Button
+                      variant="cta"
+                      size="sm"
+                      onClick={handleOpenAddCategory}
+                      icon={<Plus className="w-4 h-4" />}
+                      iconPosition="left"
+                    >
+                      Add Category
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Categories Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+                  {categoriesList
+                    .filter((cat) => {
+                      if (!categorySearch.trim()) return true;
+                      const q = categorySearch.toLowerCase();
+                      return (
+                        cat.name.toLowerCase().includes(q) ||
+                        (cat.planetName && cat.planetName.toLowerCase().includes(q)) ||
+                        (cat.slug && cat.slug.toLowerCase().includes(q))
+                      );
+                    })
+                    .map((cat) => {
+                    const assignedProducts = productsList.filter(
+                      (p) => p.category === cat.id || p.category === cat.slug
+                    );
+
+                    return (
+                      <div
+                        key={cat.id}
+                        className="p-5 rounded-3xl bg-white border border-slate-200/80 shadow-xs hover:shadow-md transition-all flex flex-col justify-between"
+                      >
+                        <div>
+                          <div className="flex items-start justify-between gap-3 mb-3">
+                            <div className="flex items-center gap-3">
+                              <div
+                                className="w-10 h-10 rounded-2xl flex items-center justify-center text-white shadow-xs font-headline font-bold text-sm shrink-0"
+                                style={{ backgroundColor: cat.accentColor || '#016ba5' }}
+                              >
+                                {cat.name.charAt(0)}
+                              </div>
+                              <div>
+                                <h4 className="font-headline font-black text-base text-slate-900 leading-tight">
+                                  {cat.name}
+                                </h4>
+                                <span className="font-mono text-[11px] text-slate-400 block">
+                                  slug: {cat.slug || cat.id}
+                                </span>
+                              </div>
+                            </div>
+
+                            <span
+                              className="w-3 h-3 rounded-full shrink-0 mt-1"
+                              style={{ backgroundColor: cat.accentColor || '#016ba5' }}
+                              title={`Accent color: ${cat.accentColor}`}
+                            />
+                          </div>
+
+                          <div className="space-y-2 mb-4">
+                            <div className="flex items-center gap-2 text-xs font-headline font-semibold text-slate-600">
+                              <span className="text-slate-400 font-normal">Planet:</span>
+                              <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700">
+                                {cat.planetName || cat.name}
+                              </span>
+                            </div>
+
+                            <p className="font-body text-xs text-slate-500 line-clamp-2">
+                              {cat.description || 'No description provided.'}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
+                          <span className="font-headline font-bold text-xs text-slate-700">
+                            {assignedProducts.length} {assignedProducts.length === 1 ? 'kit assigned' : 'kits assigned'}
+                          </span>
+
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => handleOpenEditCategory(cat)}
+                              className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-[#016ba5] hover:text-white font-headline text-xs font-semibold text-slate-700 transition-colors flex items-center gap-1 cursor-pointer"
+                            >
+                              <Edit3 className="w-3 h-3" />
+                              <span>Edit</span>
+                            </button>
+                            <button
+                              onClick={() => {
+                                setDeletingCategory(cat);
+                                setDeletingCategoryError(null);
+                              }}
+                              className="px-2.5 py-1 rounded-lg bg-red-50 hover:bg-red-600 hover:text-white font-headline text-xs font-semibold text-red-600 transition-colors flex items-center gap-1 cursor-pointer"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                              <span>Delete</span>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -2010,6 +2812,626 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
           </>
         )}
       </main>
+
+      {/* ========================================================
+          MODAL 1: ADD / EDIT PRODUCT
+         ======================================================== */}
+      {showProductModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/70 backdrop-blur-sm animate-fadeIn">
+          <div className="relative w-full max-w-3xl bg-white rounded-3xl p-6 sm:p-8 shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto">
+            <button
+              type="button"
+              onClick={() => setShowProductModal(false)}
+              className="absolute top-5 right-5 p-2 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-2 mb-1">
+              <span className="px-2.5 py-0.5 rounded-full bg-blue-100 text-[#016ba5] font-headline font-black text-[10px] uppercase tracking-wider flex items-center gap-1">
+                <Layers className="w-3 h-3" /> {editingProduct ? 'Inventory Update' : 'Catalog Expansion'}
+              </span>
+            </div>
+
+            <h3 className="font-headline text-2xl font-black text-slate-900 mb-1">
+              {editingProduct ? `Edit Product: ${editingProduct.title}` : 'Add New Learning Kit / Product'}
+            </h3>
+            <p className="font-body text-xs text-slate-500 mb-5">
+              Enter product details, category taxonomy, pricing, inventory stock, and media. Changes write directly to Supabase.
+            </p>
+
+            {prodModalError && (
+              <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 flex items-start gap-2.5 text-xs font-body text-red-600 mb-5">
+                <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+                <span>{prodModalError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSaveProduct} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Column 1: Core Info */}
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-headline font-bold text-slate-700 mb-1">
+                      Product Title *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={prodTitle}
+                      onChange={(e) => setProdTitle(e.target.value)}
+                      placeholder="e.g. Celestial Astrolabe & Stargazer Map"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-body text-xs focus:outline-none focus:ring-2 focus:ring-[#016ba5]"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <div>
+                      <label className="block text-xs font-headline font-bold text-slate-700 mb-1">
+                        SKU Identifier
+                      </label>
+                      <input
+                        type="text"
+                        value={prodSku}
+                        onChange={(e) => setProdSku(e.target.value)}
+                        placeholder="e.g. AQ-THK-109"
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-body text-xs focus:outline-none focus:ring-2 focus:ring-[#016ba5]"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-headline font-bold text-slate-700 mb-1">
+                        Category & Planet *
+                      </label>
+                      <select
+                        value={prodCategory}
+                        onChange={(e) => handleProdCategoryChange(e.target.value)}
+                        className="w-full px-3 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-body text-xs focus:outline-none focus:ring-2 focus:ring-[#016ba5]"
+                      >
+                        {categoriesList.map((cat) => (
+                          <option key={cat.id} value={cat.id}>
+                            {cat.name} ({cat.planetName || 'Planet'})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <div>
+                      <label className="block text-xs font-headline font-bold text-slate-700 mb-1">
+                        Product Type
+                      </label>
+                      <select
+                        value={prodProductType}
+                        onChange={(e) => setProdProductType(e.target.value)}
+                        className="w-full px-3 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-body text-xs focus:outline-none focus:ring-2 focus:ring-[#016ba5]"
+                      >
+                        <option value="Physical Kit">Physical Kit</option>
+                        <option value="Storybook">Storybook</option>
+                        <option value="Quest Gear">Quest Gear</option>
+                        <option value="Family Game">Family Game</option>
+                        <option value="Learning Tool">Learning Tool</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-headline font-bold text-slate-700 mb-1">
+                        Age Group & Label
+                      </label>
+                      <select
+                        value={prodAgeGroup}
+                        onChange={(e) => {
+                          setProdAgeGroup(e.target.value);
+                          setProdAgeLabel(`Ages ${e.target.value}`);
+                        }}
+                        className="w-full px-3 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-body text-xs focus:outline-none focus:ring-2 focus:ring-[#016ba5]"
+                      >
+                        <option value="6-8">Ages 6–8</option>
+                        <option value="9-11">Ages 9–11</option>
+                        <option value="12+">Ages 12+</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <div>
+                      <label className="block text-xs font-headline font-bold text-slate-700 mb-1">
+                        Selling Price (MAD) *
+                      </label>
+                      <input
+                        type="number"
+                        step="0.5"
+                        required
+                        value={prodPrice}
+                        onChange={(e) => setProdPrice(e.target.value)}
+                        placeholder="299"
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-body text-xs focus:outline-none focus:ring-2 focus:ring-[#016ba5]"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-headline font-bold text-slate-700 mb-1">
+                        Original Price (MAD)
+                      </label>
+                      <input
+                        type="number"
+                        step="0.5"
+                        value={prodOriginalPrice}
+                        onChange={(e) => setProdOriginalPrice(e.target.value)}
+                        placeholder="399 (optional)"
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-body text-xs focus:outline-none focus:ring-2 focus:ring-[#016ba5]"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <div>
+                      <label className="block text-xs font-headline font-bold text-slate-700 mb-1">
+                        Discount %
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={prodDiscountPercent}
+                        onChange={(e) => setProdDiscountPercent(e.target.value)}
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-body text-xs focus:outline-none focus:ring-2 focus:ring-[#016ba5]"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-headline font-bold text-slate-700 mb-1">
+                        Quest XP Bonus
+                      </label>
+                      <input
+                        type="number"
+                        value={prodXpBonus}
+                        onChange={(e) => setProdXpBonus(e.target.value)}
+                        placeholder="300"
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-body text-xs focus:outline-none focus:ring-2 focus:ring-[#016ba5]"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Badges & Flags */}
+                  <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center justify-between">
+                    <label className="flex items-center gap-2 cursor-pointer text-xs font-headline font-bold text-slate-700">
+                      <input
+                        type="checkbox"
+                        checked={prodIsBestSeller}
+                        onChange={(e) => setProdIsBestSeller(e.target.checked)}
+                        className="w-4 h-4 rounded text-[#fa8221] focus:ring-[#fa8221]"
+                      />
+                      <span>Best Seller</span>
+                    </label>
+
+                    <label className="flex items-center gap-2 cursor-pointer text-xs font-headline font-bold text-slate-700">
+                      <input
+                        type="checkbox"
+                        checked={prodIsNew}
+                        onChange={(e) => setProdIsNew(e.target.checked)}
+                        className="w-4 h-4 rounded text-purple-600 focus:ring-purple-600"
+                      />
+                      <span>New Arrival</span>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Column 2: Inventory, Media, and Descriptions */}
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <div>
+                      <label className="block text-xs font-headline font-bold text-slate-700 mb-1">
+                        Stock Count Units
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={prodStockCount}
+                        onChange={(e) => setProdStockCount(e.target.value)}
+                        placeholder="15"
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-body text-xs focus:outline-none focus:ring-2 focus:ring-[#016ba5]"
+                      />
+                    </div>
+
+                    <div className="flex flex-col justify-end">
+                      <label className="flex items-center gap-2 p-2.5 rounded-xl bg-slate-50 border border-slate-200 cursor-pointer text-xs font-headline font-bold text-slate-700">
+                        <input
+                          type="checkbox"
+                          checked={prodInStock}
+                          onChange={(e) => setProdInStock(e.target.checked)}
+                          className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-600"
+                        />
+                        <span>In Stock Active</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Image Upload & URL */}
+                  <div>
+                    <label className="block text-xs font-headline font-bold text-slate-700 mb-1">
+                      Product Image (Upload or URL)
+                    </label>
+                    <div className="flex items-center gap-2 mb-2">
+                      <input
+                        type="text"
+                        value={prodImageUrl}
+                        onChange={(e) => setProdImageUrl(e.target.value)}
+                        placeholder="Paste image URL (https://...)"
+                        className="flex-1 px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-body text-xs focus:outline-none focus:ring-2 focus:ring-[#016ba5]"
+                      />
+                      <label className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-headline text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer shrink-0">
+                        {uploadingProdImage ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <UploadCloud className="w-3.5 h-3.5" />
+                        )}
+                        <span>{uploadingProdImage ? 'Uploading...' : 'Upload'}</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleImageUpload}
+                          disabled={uploadingProdImage}
+                          className="hidden"
+                        />
+                      </label>
+                    </div>
+
+                    {prodImageUrl && (
+                      <div className="relative w-full h-24 rounded-xl bg-slate-100 border border-slate-200 overflow-hidden flex items-center justify-center">
+                        <img
+                          src={prodImageUrl}
+                          alt="Product Preview"
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            (e.target as HTMLElement).style.display = 'none';
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setProdImageUrl('')}
+                          className="absolute top-1.5 right-1.5 p-1 rounded-full bg-slate-900/60 text-white hover:bg-slate-900"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-headline font-bold text-slate-700 mb-1">
+                      Tags (Comma-separated)
+                    </label>
+                    <input
+                      type="text"
+                      value={prodTags}
+                      onChange={(e) => setProdTags(e.target.value)}
+                      placeholder="e.g. Birchwood Gears, No Batteries, Screen-Free"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-body text-xs focus:outline-none focus:ring-2 focus:ring-[#016ba5]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-headline font-bold text-slate-700 mb-1">
+                      Short Tagline / Teaser
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={prodShortDesc}
+                      onChange={(e) => setProdShortDesc(e.target.value)}
+                      placeholder="Punchy one-sentence summary for card previews..."
+                      className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-body text-xs focus:outline-none focus:ring-2 focus:ring-[#016ba5]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-headline font-bold text-slate-700 mb-1">
+                      Full Description
+                    </label>
+                    <textarea
+                      rows={3}
+                      value={prodFullDesc}
+                      onChange={(e) => setProdFullDesc(e.target.value)}
+                      placeholder="Detailed educational journey and hands-on assembly experience..."
+                      className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-body text-xs focus:outline-none focus:ring-2 focus:ring-[#016ba5]"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="pt-4 border-t border-slate-200 flex items-center justify-end gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowProductModal(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  variant="cta"
+                  size="sm"
+                  disabled={prodSubmitting}
+                  icon={prodSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+                  iconPosition="left"
+                >
+                  {prodSubmitting ? 'Saving to Supabase...' : editingProduct ? 'Update Product' : 'Create Product'}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================
+          MODAL 2: DELETE PRODUCT CONFIRMATION
+         ======================================================== */}
+      {deletingProduct && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
+          <div className="relative w-full max-w-md bg-white rounded-3xl p-6 sm:p-8 shadow-2xl border border-slate-100">
+            <button
+              onClick={() => setDeletingProduct(null)}
+              className="absolute top-5 right-5 p-2 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="w-12 h-12 rounded-2xl bg-red-100 text-red-600 flex items-center justify-center mb-4">
+              <Trash2 className="w-6 h-6" />
+            </div>
+
+            <h3 className="font-headline text-xl font-black text-slate-900 mb-2">
+              Delete Product?
+            </h3>
+            <p className="font-body text-xs text-slate-500 mb-6 leading-relaxed">
+              Are you sure you want to permanently delete <strong>{deletingProduct.title}</strong>? This will remove the item from the Supabase products table and all customer marketplace catalogs.
+            </p>
+
+            <div className="flex items-center justify-end gap-3">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setDeletingProduct(null)}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                disabled={deletingProductSubmitting}
+                onClick={handleConfirmDeleteProduct}
+                className="bg-red-600 hover:bg-red-700 text-white"
+                icon={deletingProductSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                iconPosition="left"
+              >
+                {deletingProductSubmitting ? 'Deleting...' : 'Confirm Delete'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================
+          MODAL 3: ADD / EDIT CATEGORY
+         ======================================================== */}
+      {showCategoryModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
+          <div className="relative w-full max-w-lg bg-white rounded-3xl p-6 sm:p-8 shadow-2xl border border-slate-100">
+            <button
+              type="button"
+              onClick={() => setShowCategoryModal(false)}
+              className="absolute top-5 right-5 p-2 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-2 mb-1">
+              <span className="px-2.5 py-0.5 rounded-full bg-purple-100 text-purple-800 font-headline font-black text-[10px] uppercase tracking-wider flex items-center gap-1">
+                <Tag className="w-3 h-3" /> Category Management
+              </span>
+            </div>
+
+            <h3 className="font-headline text-2xl font-black text-slate-900 mb-1">
+              {editingCategory ? `Edit Category: ${editingCategory.name}` : 'Create New Category'}
+            </h3>
+            <p className="font-body text-xs text-slate-500 mb-5">
+              Categories drive the marketplace taxonomy navigation pills and themed universe planets.
+            </p>
+
+            {catModalError && (
+              <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 flex items-start gap-2.5 text-xs font-body text-red-600 mb-5">
+                <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+                <span>{catModalError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSaveCategory} className="space-y-4">
+              <div>
+                <label className="block text-xs font-headline font-bold text-slate-700 mb-1">
+                  Category Name *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={catName}
+                  onChange={(e) => {
+                    setCatName(e.target.value);
+                    if (!editingCategory) {
+                      setCatSlug(e.target.value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''));
+                    }
+                  }}
+                  placeholder="e.g. Robotics & Automation"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-body text-xs focus:outline-none focus:ring-2 focus:ring-[#016ba5]"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-headline font-bold text-slate-700 mb-1">
+                    Slug (URL & Pill Key)
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={catSlug}
+                    onChange={(e) => setCatSlug(e.target.value)}
+                    placeholder="e.g. robotics"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-body text-xs focus:outline-none focus:ring-2 focus:ring-[#016ba5]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-headline font-bold text-slate-700 mb-1">
+                    Planet Name
+                  </label>
+                  <input
+                    type="text"
+                    value={catPlanetName}
+                    onChange={(e) => setCatPlanetName(e.target.value)}
+                    placeholder="e.g. Solvers' Planet"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-body text-xs focus:outline-none focus:ring-2 focus:ring-[#016ba5]"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-headline font-bold text-slate-700 mb-1">
+                    Accent Color
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={catAccentColor}
+                      onChange={(e) => setCatAccentColor(e.target.value)}
+                      className="w-9 h-9 rounded-xl border border-slate-200 p-0.5 cursor-pointer"
+                    />
+                    <input
+                      type="text"
+                      value={catAccentColor}
+                      onChange={(e) => setCatAccentColor(e.target.value)}
+                      className="flex-1 px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 font-mono text-xs text-slate-800 focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-headline font-bold text-slate-700 mb-1">
+                    Icon Theme
+                  </label>
+                  <select
+                    value={catIcon}
+                    onChange={(e) => setCatIcon(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-body text-xs focus:outline-none focus:ring-2 focus:ring-[#016ba5]"
+                  >
+                    <option value="Brain">Brain (Thinkers)</option>
+                    <option value="Compass">Compass (Brave)</option>
+                    <option value="Wrench">Wrench (Solvers)</option>
+                    <option value="Heart">Heart (Heart)</option>
+                    <option value="BookOpen">BookOpen (Stories)</option>
+                    <option value="Gamepad2">Gamepad2 (Games)</option>
+                    <option value="Sparkles">Sparkles (Cosmic)</option>
+                    <option value="Shield">Shield (Armor)</option>
+                    <option value="Tag">Tag (Standard)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-headline font-bold text-slate-700 mb-1">
+                  Description
+                </label>
+                <textarea
+                  rows={2}
+                  value={catDescription}
+                  onChange={(e) => setCatDescription(e.target.value)}
+                  placeholder="Short educational summary for this category..."
+                  className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-body text-xs focus:outline-none focus:ring-2 focus:ring-[#016ba5]"
+                />
+              </div>
+
+              <div className="pt-3 border-t border-slate-200 flex items-center justify-end gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowCategoryModal(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  variant="cta"
+                  size="sm"
+                  disabled={catSubmitting}
+                  icon={catSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+                  iconPosition="left"
+                >
+                  {catSubmitting ? 'Saving...' : editingCategory ? 'Update Category' : 'Create Category'}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================
+          MODAL 4: DELETE CATEGORY CONFIRMATION
+         ======================================================== */}
+      {deletingCategory && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
+          <div className="relative w-full max-w-md bg-white rounded-3xl p-6 sm:p-8 shadow-2xl border border-slate-100">
+            <button
+              onClick={() => setDeletingCategory(null)}
+              className="absolute top-5 right-5 p-2 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="w-12 h-12 rounded-2xl bg-red-100 text-red-600 flex items-center justify-center mb-4">
+              <Trash2 className="w-6 h-6" />
+            </div>
+
+            <h3 className="font-headline text-xl font-black text-slate-900 mb-2">
+              Delete Category?
+            </h3>
+            <p className="font-body text-xs text-slate-500 mb-4 leading-relaxed">
+              Are you sure you want to delete <strong>{deletingCategory.name}</strong>?
+            </p>
+
+            {deletingCategoryError && (
+              <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 flex items-start gap-2.5 text-xs font-body text-red-600 mb-5">
+                <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+                <span>{deletingCategoryError}</span>
+              </div>
+            )}
+
+            <div className="flex items-center justify-end gap-3">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setDeletingCategory(null)}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                disabled={deletingCategorySubmitting}
+                onClick={handleConfirmDeleteCategory}
+                className="bg-red-600 hover:bg-red-700 text-white"
+                icon={deletingCategorySubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                iconPosition="left"
+              >
+                {deletingCategorySubmitting ? 'Deleting...' : 'Confirm Delete'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Super Admin: Provision New Administrator Modal */}
       {showAddAdminModal && (

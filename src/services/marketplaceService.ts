@@ -19,14 +19,82 @@ export interface ProductVariant {
   options: string[];
 }
 
+export interface ProductCategory {
+  id: string;
+  name: string;
+  slug: string;
+  description?: string;
+  icon?: string;
+  planetName?: string;
+  accentColor?: string;
+  createdAt?: string;
+}
+
+export const DEFAULT_CATEGORIES: ProductCategory[] = [
+  {
+    id: 'thinkers',
+    name: "Thinkers' Planet",
+    slug: 'thinkers',
+    description: 'STEM building kits, clockwork gears, logic puzzles, and astronomy lore.',
+    icon: 'Brain',
+    planetName: "Thinkers' Planet",
+    accentColor: '#016ba5',
+  },
+  {
+    id: 'brave',
+    name: 'Brave Planet',
+    slug: 'brave',
+    description: 'Outdoor quest gear, trail navigation, emotional resilience, and courage anchors.',
+    icon: 'Compass',
+    planetName: 'Brave Planet',
+    accentColor: '#fa8221',
+  },
+  {
+    id: 'solvers',
+    name: "Solvers' Planet",
+    slug: 'solvers',
+    description: 'Hydraulic robotics, water mechanics, algorithms, and iterative engineering.',
+    icon: 'Wrench',
+    planetName: "Solvers' Planet",
+    accentColor: '#0284c7',
+  },
+  {
+    id: 'heart',
+    name: 'Heart Planet',
+    slug: 'heart',
+    description: '100% cooperative board games, empathy cards, and family gratitude rituals.',
+    icon: 'Heart',
+    planetName: 'Heart Planet',
+    accentColor: '#7C3AED',
+  },
+  {
+    id: 'books',
+    name: 'Storybooks & Chronicles',
+    slug: 'books',
+    description: 'Illustrated moral tales, adventure novellas, and cultural chronicles.',
+    icon: 'BookOpen',
+    planetName: "Thinkers' Planet",
+    accentColor: '#059669',
+  },
+  {
+    id: 'games',
+    name: 'Family Games & Puzzles',
+    slug: 'games',
+    description: 'Screen-free cooperative tabletop games for all ages.',
+    icon: 'Gamepad2',
+    planetName: 'Heart Planet',
+    accentColor: '#DC2626',
+  },
+];
+
 export interface Product {
   id: string;
   sku?: string;
   title: string;
-  category: 'thinkers' | 'brave' | 'solvers' | 'heart';
+  category: 'thinkers' | 'brave' | 'solvers' | 'heart' | string;
   planetName: string;
-  productType: 'Physical Kit' | 'Storybook' | 'Quest Gear' | 'Family Game' | 'Learning Tool';
-  ageGroup: '6-8' | '9-11' | '12+';
+  productType: 'Physical Kit' | 'Storybook' | 'Quest Gear' | 'Family Game' | 'Learning Tool' | string;
+  ageGroup: '6-8' | '9-11' | '12+' | string;
   ageLabel: string;
   price: number;
   originalPrice?: number;
@@ -517,10 +585,10 @@ interface SupabaseProductRow {
   id: string;
   sku?: string;
   title: string;
-  category: 'thinkers' | 'brave' | 'solvers' | 'heart';
+  category: string;
   planet_name: string;
-  product_type: Product['productType'];
-  age_group: '6-8' | '9-11' | '12+';
+  product_type: string;
+  age_group: string;
   age_label: string;
   price: number | string;
   original_price?: number | string;
@@ -529,6 +597,7 @@ interface SupabaseProductRow {
   stock_count?: number;
   is_best_seller?: boolean;
   is_new?: boolean;
+  images?: string[];
   variants?: ProductVariant[];
   xp_bonus: number;
   rating?: number;
@@ -546,7 +615,7 @@ interface SupabaseProductRow {
 const mapRowToProduct = (row: SupabaseProductRow): Product => {
   return {
     id: row.id,
-    sku: row.sku || `AQ-${row.category.substring(0, 3).toUpperCase()}-${row.id.replace(/\D/g, '') || '01'}`,
+    sku: row.sku || `AQ-${(row.category || 'GEN').substring(0, 3).toUpperCase()}-${row.id.replace(/\D/g, '') || '01'}`,
     title: row.title,
     category: row.category,
     planetName: row.planet_name,
@@ -560,6 +629,7 @@ const mapRowToProduct = (row: SupabaseProductRow): Product => {
     stockCount: row.stock_count !== undefined ? row.stock_count : 15,
     isBestSeller: row.is_best_seller,
     isNew: row.is_new,
+    images: Array.isArray(row.images) ? row.images : [],
     variants: row.variants,
     xpBonus: Number(row.xp_bonus || 0),
     rating: Number(row.rating || 5.0),
@@ -629,8 +699,25 @@ export const checkSupabaseHealth = async (): Promise<SupabaseHealth> => {
  * With automatic fallback to curated catalog if database table is not yet seeded.
  */
 export const fetchMarketplaceProducts = async (): Promise<{ products: Product[]; isFromSupabase: boolean }> => {
+  const getLocalProducts = (): Product[] => {
+    if (typeof window !== 'undefined') {
+      const raw = localStorage.getItem('abtalquest_products_override');
+      if (raw) {
+        try {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            return parsed;
+          }
+        } catch {
+          // ignore
+        }
+      }
+    }
+    return DEFAULT_PRODUCTS;
+  };
+
   if (!isSupabaseConfigured()) {
-    return { products: DEFAULT_PRODUCTS, isFromSupabase: false };
+    return { products: getLocalProducts(), isFromSupabase: false };
   }
 
   try {
@@ -641,21 +728,421 @@ export const fetchMarketplaceProducts = async (): Promise<{ products: Product[];
 
     if (error) {
       console.info('[AbtalQuest Supabase] Products query returned notice:', error.message);
-      return { products: DEFAULT_PRODUCTS, isFromSupabase: false };
+      return { products: getLocalProducts(), isFromSupabase: false };
     }
 
     if (data && data.length > 0) {
+      const products = data.map((row) => mapRowToProduct(row as unknown as SupabaseProductRow));
       return {
-        products: data.map((row) => mapRowToProduct(row as unknown as SupabaseProductRow)),
+        products,
         isFromSupabase: true,
       };
     }
 
-    // If table exists but is empty, fallback to defaults
-    return { products: DEFAULT_PRODUCTS, isFromSupabase: false };
+    // If table exists but is empty, fallback to local/defaults
+    return { products: getLocalProducts(), isFromSupabase: false };
   } catch (err) {
     console.warn('[AbtalQuest Supabase] Error fetching products:', err);
-    return { products: DEFAULT_PRODUCTS, isFromSupabase: false };
+    return { products: getLocalProducts(), isFromSupabase: false };
+  }
+};
+
+// ==============================================================================
+// CATEGORY CRUD OPERATIONS
+// ==============================================================================
+const CATEGORIES_STORAGE_KEY = 'abtalquest_categories_list';
+
+export const fetchCategories = async (): Promise<ProductCategory[]> => {
+  let localCategories: ProductCategory[] = DEFAULT_CATEGORIES;
+  if (typeof window !== 'undefined') {
+    const raw = localStorage.getItem(CATEGORIES_STORAGE_KEY);
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          localCategories = parsed;
+        }
+      } catch {
+        // ignore
+      }
+    }
+  }
+
+  if (!isSupabaseConfigured()) {
+    return localCategories;
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('categories')
+      .select('*')
+      .order('name', { ascending: true });
+
+    if (error || !data || data.length === 0) {
+      return localCategories;
+    }
+
+    const categories: ProductCategory[] = data.map((row: any) => ({
+      id: row.id,
+      name: row.name,
+      slug: row.slug || row.id,
+      description: row.description || '',
+      icon: row.icon || 'Sparkles',
+      planetName: row.planet_name || row.name,
+      accentColor: row.accent_color || '#016ba5',
+      createdAt: row.created_at,
+    }));
+
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(CATEGORIES_STORAGE_KEY, JSON.stringify(categories));
+    }
+
+    return categories;
+  } catch (err) {
+    console.warn('[AbtalQuest Supabase] Error fetching categories:', err);
+    return localCategories;
+  }
+};
+
+export const createCategory = async (
+  cat: Omit<ProductCategory, 'id' | 'createdAt'> & { id?: string }
+): Promise<ProductCategory> => {
+  const slug = (cat.slug || cat.name).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+  const newCategory: ProductCategory = {
+    id: cat.id || slug,
+    name: cat.name,
+    slug,
+    description: cat.description || '',
+    icon: cat.icon || 'Sparkles',
+    planetName: cat.planetName || cat.name,
+    accentColor: cat.accentColor || '#016ba5',
+    createdAt: new Date().toISOString(),
+  };
+
+  // Update local storage
+  if (typeof window !== 'undefined') {
+    const raw = localStorage.getItem(CATEGORIES_STORAGE_KEY);
+    const existing = raw ? JSON.parse(raw) : [...DEFAULT_CATEGORIES];
+    const filtered = existing.filter((c: ProductCategory) => c.id !== newCategory.id);
+    filtered.push(newCategory);
+    localStorage.setItem(CATEGORIES_STORAGE_KEY, JSON.stringify(filtered));
+    try {
+      window.dispatchEvent(new CustomEvent('abtalquest_category_updated', { detail: newCategory }));
+    } catch {
+      // ignore
+    }
+  }
+
+  if (isSupabaseConfigured()) {
+    try {
+      const { error } = await supabase.from('categories').upsert({
+        id: newCategory.id,
+        name: newCategory.name,
+        slug: newCategory.slug,
+        description: newCategory.description,
+        icon: newCategory.icon,
+        planet_name: newCategory.planetName,
+        accent_color: newCategory.accentColor,
+      });
+      if (error) {
+        console.warn('[AbtalQuest Supabase] Create category notice:', error.message);
+      }
+    } catch (err) {
+      console.warn('[AbtalQuest Supabase] Create category error:', err);
+    }
+  }
+
+  return newCategory;
+};
+
+export const updateCategory = async (
+  id: string,
+  updates: Partial<ProductCategory>
+): Promise<ProductCategory> => {
+  let updatedCategory: ProductCategory = {
+    id,
+    name: updates.name || id,
+    slug: updates.slug || id,
+    description: updates.description,
+    icon: updates.icon,
+    planetName: updates.planetName,
+    accentColor: updates.accentColor,
+  };
+
+  if (typeof window !== 'undefined') {
+    const raw = localStorage.getItem(CATEGORIES_STORAGE_KEY);
+    const existing: ProductCategory[] = raw ? JSON.parse(raw) : [...DEFAULT_CATEGORIES];
+    const idx = existing.findIndex((c) => c.id === id);
+    if (idx >= 0) {
+      updatedCategory = { ...existing[idx], ...updates };
+      existing[idx] = updatedCategory;
+    } else {
+      existing.push(updatedCategory);
+    }
+    localStorage.setItem(CATEGORIES_STORAGE_KEY, JSON.stringify(existing));
+    try {
+      window.dispatchEvent(new CustomEvent('abtalquest_category_updated', { detail: updatedCategory }));
+    } catch {
+      // ignore
+    }
+  }
+
+  if (isSupabaseConfigured()) {
+    try {
+      const payload: any = {};
+      if (updates.name !== undefined) payload.name = updates.name;
+      if (updates.slug !== undefined) payload.slug = updates.slug;
+      if (updates.description !== undefined) payload.description = updates.description;
+      if (updates.icon !== undefined) payload.icon = updates.icon;
+      if (updates.planetName !== undefined) payload.planet_name = updates.planetName;
+      if (updates.accentColor !== undefined) payload.accent_color = updates.accentColor;
+
+      await supabase.from('categories').update(payload).eq('id', id);
+    } catch (err) {
+      console.warn('[AbtalQuest Supabase] Update category error:', err);
+    }
+  }
+
+  return updatedCategory;
+};
+
+export const deleteCategory = async (id: string): Promise<boolean> => {
+  if (typeof window !== 'undefined') {
+    const raw = localStorage.getItem(CATEGORIES_STORAGE_KEY);
+    const existing: ProductCategory[] = raw ? JSON.parse(raw) : [...DEFAULT_CATEGORIES];
+    const filtered = existing.filter((c) => c.id !== id);
+    localStorage.setItem(CATEGORIES_STORAGE_KEY, JSON.stringify(filtered));
+    try {
+      window.dispatchEvent(new CustomEvent('abtalquest_category_updated', { detail: { id, deleted: true } }));
+    } catch {
+      // ignore
+    }
+  }
+
+  if (isSupabaseConfigured()) {
+    try {
+      const { error } = await supabase.from('categories').delete().eq('id', id);
+      return !error;
+    } catch {
+      return false;
+    }
+  }
+
+  return true;
+};
+
+// ==============================================================================
+// PRODUCT CRUD OPERATIONS & STORAGE
+// ==============================================================================
+export const createProduct = async (prod: Omit<Product, 'id'> & { id?: string }): Promise<Product> => {
+  const productId = prod.id || `prod-${Date.now().toString().slice(-6)}-${Math.floor(100 + Math.random() * 900)}`;
+  const newProduct: Product = {
+    ...prod,
+    id: productId,
+    sku: prod.sku || `AQ-${(prod.category || 'GEN').substring(0, 3).toUpperCase()}-${Math.floor(100 + Math.random() * 900)}`,
+    inStock: prod.inStock !== undefined ? prod.inStock : true,
+    stockCount: prod.stockCount !== undefined ? prod.stockCount : 15,
+    images: prod.images || [],
+    tags: prod.tags || [],
+    safetyGuidelines: prod.safetyGuidelines || [],
+    skillsLearned: prod.skillsLearned || [],
+    reviews: prod.reviews || [],
+  };
+
+  // Local storage mirror
+  if (typeof window !== 'undefined') {
+    const raw = localStorage.getItem('abtalquest_products_override');
+    const existing: Product[] = raw ? JSON.parse(raw) : [...DEFAULT_PRODUCTS];
+    const filtered = existing.filter((p) => p.id !== productId);
+    filtered.unshift(newProduct);
+    localStorage.setItem('abtalquest_products_override', JSON.stringify(filtered));
+    try {
+      window.dispatchEvent(new CustomEvent('abtalquest_product_updated', { detail: newProduct }));
+    } catch {
+      // ignore
+    }
+  }
+
+  if (isSupabaseConfigured()) {
+    try {
+      const { error } = await supabase.from('products').insert({
+        id: newProduct.id,
+        sku: newProduct.sku,
+        title: newProduct.title,
+        category: newProduct.category,
+        planet_name: newProduct.planetName,
+        product_type: newProduct.productType,
+        age_group: newProduct.ageGroup,
+        age_label: newProduct.ageLabel,
+        price: newProduct.price,
+        original_price: newProduct.originalPrice || null,
+        discount_percent: newProduct.discountPercent || 0,
+        in_stock: newProduct.inStock,
+        stock_count: newProduct.stockCount,
+        is_best_seller: newProduct.isBestSeller || false,
+        is_new: newProduct.isNew || false,
+        images: newProduct.images || [],
+        variants: newProduct.variants || [],
+        xp_bonus: newProduct.xpBonus || 0,
+        rating: newProduct.rating || 5.0,
+        reviews_count: newProduct.reviewsCount || 0,
+        short_description: newProduct.shortDescription,
+        full_description: newProduct.fullDescription,
+        icon_bg: newProduct.iconBg || 'bg-slate-100 text-slate-700',
+        accent_color: newProduct.accentColor || '#016ba5',
+        tags: newProduct.tags || [],
+        safety_guidelines: newProduct.safetyGuidelines || [],
+        skills_learned: newProduct.skillsLearned || [],
+        reviews: newProduct.reviews || [],
+      });
+
+      if (error) {
+        console.warn('[AbtalQuest Supabase] Create product notice:', error.message);
+      }
+    } catch (err) {
+      console.warn('[AbtalQuest Supabase] Create product exception:', err);
+    }
+  }
+
+  return newProduct;
+};
+
+export const updateProduct = async (id: string, updates: Partial<Product>): Promise<Product> => {
+  let updatedProduct: Product;
+
+  // Local storage mirror
+  if (typeof window !== 'undefined') {
+    const raw = localStorage.getItem('abtalquest_products_override');
+    const existing: Product[] = raw ? JSON.parse(raw) : [...DEFAULT_PRODUCTS];
+    const idx = existing.findIndex((p) => p.id === id);
+    if (idx >= 0) {
+      updatedProduct = { ...existing[idx], ...updates };
+      existing[idx] = updatedProduct;
+    } else {
+      const defaultMatch = DEFAULT_PRODUCTS.find((p) => p.id === id);
+      updatedProduct = { ...(defaultMatch || DEFAULT_PRODUCTS[0]), ...updates, id };
+      existing.unshift(updatedProduct);
+    }
+    localStorage.setItem('abtalquest_products_override', JSON.stringify(existing));
+    try {
+      window.dispatchEvent(new CustomEvent('abtalquest_product_updated', { detail: updatedProduct }));
+    } catch {
+      // ignore
+    }
+  } else {
+    updatedProduct = { ...(DEFAULT_PRODUCTS[0]), ...updates, id };
+  }
+
+  if (isSupabaseConfigured()) {
+    try {
+      const payload: any = {};
+      if (updates.sku !== undefined) payload.sku = updates.sku;
+      if (updates.title !== undefined) payload.title = updates.title;
+      if (updates.category !== undefined) payload.category = updates.category;
+      if (updates.planetName !== undefined) payload.planet_name = updates.planetName;
+      if (updates.productType !== undefined) payload.product_type = updates.productType;
+      if (updates.ageGroup !== undefined) payload.age_group = updates.ageGroup;
+      if (updates.ageLabel !== undefined) payload.age_label = updates.ageLabel;
+      if (updates.price !== undefined) payload.price = updates.price;
+      if (updates.originalPrice !== undefined) payload.original_price = updates.originalPrice;
+      if (updates.discountPercent !== undefined) payload.discount_percent = updates.discountPercent;
+      if (updates.inStock !== undefined) payload.in_stock = updates.inStock;
+      if (updates.stockCount !== undefined) payload.stock_count = updates.stockCount;
+      if (updates.isBestSeller !== undefined) payload.is_best_seller = updates.isBestSeller;
+      if (updates.isNew !== undefined) payload.is_new = updates.isNew;
+      if (updates.images !== undefined) payload.images = updates.images;
+      if (updates.variants !== undefined) payload.variants = updates.variants;
+      if (updates.xpBonus !== undefined) payload.xp_bonus = updates.xpBonus;
+      if (updates.rating !== undefined) payload.rating = updates.rating;
+      if (updates.reviewsCount !== undefined) payload.reviews_count = updates.reviewsCount;
+      if (updates.shortDescription !== undefined) payload.short_description = updates.shortDescription;
+      if (updates.fullDescription !== undefined) payload.full_description = updates.fullDescription;
+      if (updates.iconBg !== undefined) payload.icon_bg = updates.iconBg;
+      if (updates.accentColor !== undefined) payload.accent_color = updates.accentColor;
+      if (updates.tags !== undefined) payload.tags = updates.tags;
+      if (updates.safetyGuidelines !== undefined) payload.safety_guidelines = updates.safetyGuidelines;
+      if (updates.skillsLearned !== undefined) payload.skills_learned = updates.skillsLearned;
+      if (updates.reviews !== undefined) payload.reviews = updates.reviews;
+
+      await supabase.from('products').update(payload).eq('id', id);
+    } catch (err) {
+      console.warn('[AbtalQuest Supabase] Update product error:', err);
+    }
+  }
+
+  return updatedProduct;
+};
+
+export const deleteProduct = async (id: string): Promise<boolean> => {
+  if (typeof window !== 'undefined') {
+    const raw = localStorage.getItem('abtalquest_products_override');
+    const existing: Product[] = raw ? JSON.parse(raw) : [...DEFAULT_PRODUCTS];
+    const filtered = existing.filter((p) => p.id !== id);
+    localStorage.setItem('abtalquest_products_override', JSON.stringify(filtered));
+    try {
+      window.dispatchEvent(new CustomEvent('abtalquest_product_updated', { detail: { id, deleted: true } }));
+    } catch {
+      // ignore
+    }
+  }
+
+  if (isSupabaseConfigured()) {
+    try {
+      const { error } = await supabase.from('products').delete().eq('id', id);
+      return !error;
+    } catch {
+      return false;
+    }
+  }
+
+  return true;
+};
+
+export const uploadProductImage = async (file: File): Promise<string> => {
+  if (!isSupabaseConfigured()) {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        resolve(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  try {
+    const ext = file.name.split('.').pop() || 'jpg';
+    const fileName = `product_${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${ext}`;
+    const filePath = `products/${fileName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('product-images')
+      .upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: false,
+      });
+
+    if (uploadError) {
+      console.warn('[AbtalQuest Supabase Storage] Image upload fallback:', uploadError.message);
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          resolve(reader.result as string);
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    const { data } = supabase.storage.from('product-images').getPublicUrl(filePath);
+    return data.publicUrl;
+  } catch (err) {
+    console.warn('[AbtalQuest Supabase Storage] Fallback to base64:', err);
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        resolve(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    });
   }
 };
 
@@ -1093,10 +1580,121 @@ export const checkOrdersDatabaseHealth = async (): Promise<DatabaseHealth> => {
  * Copy-paste ready SQL migration to provision the orders table in Supabase SQL Editor
  */
 export const ORDERS_SCHEMA_SQL = `-- ==============================================================================
--- AbtalQuest: Orders & Order Items Migration for Supabase
+-- AbtalQuest: Full Schema Migration for Supabase (Categories, Products, Orders, Storage)
 -- Run this in Supabase SQL Editor (https://supabase.com/dashboard/project/sdatbzgyqwxburnsjbax/sql/new)
 -- ==============================================================================
 
+-- 1. CATEGORIES TABLE
+CREATE TABLE IF NOT EXISTS public.categories (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  slug TEXT UNIQUE NOT NULL,
+  description TEXT,
+  icon TEXT,
+  planet_name TEXT,
+  accent_color TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE public.categories ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow public read on categories" ON public.categories;
+DROP POLICY IF EXISTS "Allow public insert on categories" ON public.categories;
+DROP POLICY IF EXISTS "Allow public update on categories" ON public.categories;
+DROP POLICY IF EXISTS "Allow public delete on categories" ON public.categories;
+CREATE POLICY "Allow public read on categories" ON public.categories FOR SELECT TO anon, authenticated USING (true);
+CREATE POLICY "Allow public insert on categories" ON public.categories FOR INSERT TO anon, authenticated WITH CHECK (true);
+CREATE POLICY "Allow public update on categories" ON public.categories FOR UPDATE TO anon, authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Allow public delete on categories" ON public.categories FOR DELETE TO anon, authenticated USING (true);
+
+-- Seed Categories
+INSERT INTO public.categories (id, name, slug, description, icon, planet_name, accent_color)
+VALUES
+  ('thinkers', 'Thinkers'' Planet', 'thinkers', 'STEM, logic, astronomy, and clockwork kits', 'Brain', 'Thinkers'' Planet', '#016ba5'),
+  ('brave', 'Brave Planet', 'brave', 'Exploration, grit, navigation, and resilience', 'Compass', 'Brave Planet', '#fa8221'),
+  ('solvers', 'Solvers'' Planet', 'solvers', 'Robotics, fluid mechanics, and engineering puzzles', 'Wrench', 'Solvers'' Planet', '#0284c7'),
+  ('heart', 'Heart Planet', 'heart', 'Kindness, empathy, cooperative games, and family bonds', 'Heart', 'Heart Planet', '#7C3AED'),
+  ('books', 'Storybooks & Chronicles', 'books', 'Illustrated moral tales and cultural chronicles', 'BookOpen', 'Thinkers'' Planet', '#059669'),
+  ('games', 'Family Games & Puzzles', 'games', 'Unplugged screen-free cooperative table games', 'Gamepad2', 'Heart Planet', '#DC2626')
+ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, description = EXCLUDED.description, icon = EXCLUDED.icon, planet_name = EXCLUDED.planet_name, accent_color = EXCLUDED.accent_color;
+
+-- 2. PRODUCTS TABLE
+CREATE TABLE IF NOT EXISTS public.products (
+  id TEXT PRIMARY KEY,
+  sku TEXT,
+  title TEXT NOT NULL,
+  category TEXT NOT NULL,
+  planet_name TEXT NOT NULL,
+  product_type TEXT NOT NULL,
+  age_group TEXT NOT NULL,
+  age_label TEXT NOT NULL,
+  price NUMERIC(10, 2) NOT NULL,
+  original_price NUMERIC(10, 2),
+  discount_percent INTEGER DEFAULT 0,
+  in_stock BOOLEAN NOT NULL DEFAULT true,
+  stock_count INTEGER NOT NULL DEFAULT 15,
+  is_best_seller BOOLEAN DEFAULT false,
+  is_new BOOLEAN DEFAULT false,
+  images TEXT[] DEFAULT '{}',
+  variants JSONB DEFAULT '[]'::jsonb,
+  xp_bonus INTEGER NOT NULL DEFAULT 0,
+  rating NUMERIC(3, 2) NOT NULL DEFAULT 5.0,
+  reviews_count INTEGER NOT NULL DEFAULT 0,
+  short_description TEXT NOT NULL,
+  full_description TEXT NOT NULL,
+  icon_bg TEXT,
+  accent_color TEXT,
+  tags TEXT[] DEFAULT '{}',
+  safety_guidelines TEXT[] DEFAULT '{}',
+  skills_learned JSONB DEFAULT '[]'::jsonb,
+  reviews JSONB DEFAULT '[]'::jsonb,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.constraint_column_usage WHERE table_name = 'products' AND constraint_name = 'products_category_check') THEN
+    ALTER TABLE public.products DROP CONSTRAINT products_category_check;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'products' AND column_name = 'sku') THEN
+    ALTER TABLE public.products ADD COLUMN sku TEXT;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'products' AND column_name = 'original_price') THEN
+    ALTER TABLE public.products ADD COLUMN original_price NUMERIC(10, 2);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'products' AND column_name = 'discount_percent') THEN
+    ALTER TABLE public.products ADD COLUMN discount_percent INTEGER DEFAULT 0;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'products' AND column_name = 'in_stock') THEN
+    ALTER TABLE public.products ADD COLUMN in_stock BOOLEAN NOT NULL DEFAULT true;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'products' AND column_name = 'stock_count') THEN
+    ALTER TABLE public.products ADD COLUMN stock_count INTEGER NOT NULL DEFAULT 15;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'products' AND column_name = 'is_best_seller') THEN
+    ALTER TABLE public.products ADD COLUMN is_best_seller BOOLEAN DEFAULT false;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'products' AND column_name = 'is_new') THEN
+    ALTER TABLE public.products ADD COLUMN is_new BOOLEAN DEFAULT false;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'products' AND column_name = 'images') THEN
+    ALTER TABLE public.products ADD COLUMN images TEXT[] DEFAULT '{}';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'products' AND column_name = 'variants') THEN
+    ALTER TABLE public.products ADD COLUMN variants JSONB DEFAULT '[]'::jsonb;
+  END IF;
+END $$;
+
+ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow public read on products" ON public.products;
+DROP POLICY IF EXISTS "Allow admin insert on products" ON public.products;
+DROP POLICY IF EXISTS "Allow admin update on products" ON public.products;
+DROP POLICY IF EXISTS "Allow admin delete on products" ON public.products;
+CREATE POLICY "Allow public read on products" ON public.products FOR SELECT TO anon, authenticated USING (true);
+CREATE POLICY "Allow admin insert on products" ON public.products FOR INSERT TO anon, authenticated WITH CHECK (true);
+CREATE POLICY "Allow admin update on products" ON public.products FOR UPDATE TO anon, authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Allow admin delete on products" ON public.products FOR DELETE TO anon, authenticated USING (true);
+
+-- 3. ORDERS TABLE
 CREATE TABLE IF NOT EXISTS public.orders (
   id TEXT PRIMARY KEY,
   user_id TEXT,
@@ -1118,7 +1716,6 @@ CREATE TABLE IF NOT EXISTS public.orders (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Add columns if table already existed without them
 DO $$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'orders' AND column_name = 'items') THEN
@@ -1141,17 +1738,16 @@ CREATE INDEX IF NOT EXISTS idx_orders_customer_email ON public.orders(customer_e
 CREATE INDEX IF NOT EXISTS idx_orders_status ON public.orders(status);
 
 ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
-
 DROP POLICY IF EXISTS "Allow public insert on orders" ON public.orders;
 DROP POLICY IF EXISTS "Allow public read on orders" ON public.orders;
 DROP POLICY IF EXISTS "Allow admin update on orders" ON public.orders;
 DROP POLICY IF EXISTS "Allow admin delete on orders" ON public.orders;
-
 CREATE POLICY "Allow public insert on orders" ON public.orders FOR INSERT TO anon, authenticated WITH CHECK (true);
 CREATE POLICY "Allow public read on orders" ON public.orders FOR SELECT TO anon, authenticated USING (true);
 CREATE POLICY "Allow admin update on orders" ON public.orders FOR UPDATE TO anon, authenticated USING (true) WITH CHECK (true);
 CREATE POLICY "Allow admin delete on orders" ON public.orders FOR DELETE TO anon, authenticated USING (true);
 
+-- 4. ORDER ITEMS TABLE
 CREATE TABLE IF NOT EXISTS public.order_items (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   order_id TEXT NOT NULL REFERENCES public.orders(id) ON DELETE CASCADE,
@@ -1165,16 +1761,21 @@ CREATE TABLE IF NOT EXISTS public.order_items (
 
 CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON public.order_items(order_id);
 ALTER TABLE public.order_items ENABLE ROW LEVEL SECURITY;
-
 DROP POLICY IF EXISTS "Allow public insert on order_items" ON public.order_items;
 DROP POLICY IF EXISTS "Allow public read on order_items" ON public.order_items;
 DROP POLICY IF EXISTS "Allow admin update on order_items" ON public.order_items;
 DROP POLICY IF EXISTS "Allow admin delete on order_items" ON public.order_items;
-
 CREATE POLICY "Allow public insert on order_items" ON public.order_items FOR INSERT TO anon, authenticated WITH CHECK (true);
 CREATE POLICY "Allow public read on order_items" ON public.order_items FOR SELECT TO anon, authenticated USING (true);
 CREATE POLICY "Allow admin update on order_items" ON public.order_items FOR UPDATE TO anon, authenticated USING (true) WITH CHECK (true);
 CREATE POLICY "Allow admin delete on order_items" ON public.order_items FOR DELETE TO anon, authenticated USING (true);
+
+-- 5. STORAGE BUCKET FOR PRODUCT IMAGES
+INSERT INTO storage.buckets (id, name, public) VALUES ('product-images', 'product-images', true) ON CONFLICT (id) DO UPDATE SET public = true;
+DROP POLICY IF EXISTS "Allow public read on product images" ON storage.objects;
+DROP POLICY IF EXISTS "Allow upload on product images" ON storage.objects;
+CREATE POLICY "Allow public read on product images" ON storage.objects FOR SELECT TO anon, authenticated USING (bucket_id = 'product-images');
+CREATE POLICY "Allow upload on product images" ON storage.objects FOR INSERT TO anon, authenticated WITH CHECK (bucket_id = 'product-images');
 `;
 
 /**

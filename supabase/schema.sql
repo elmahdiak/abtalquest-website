@@ -5,16 +5,73 @@
 -- to create all necessary tables, Row Level Security (RLS) policies, and seed products.
 -- ==============================================================================
 
+-- 0. CATEGORIES TABLE (Dynamic Taxonomy & Planets for Marketplace)
+CREATE TABLE IF NOT EXISTS public.categories (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  slug TEXT UNIQUE NOT NULL,
+  description TEXT,
+  icon TEXT,
+  planet_name TEXT,
+  accent_color TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Enable RLS for categories
+ALTER TABLE public.categories ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Allow public read on categories" ON public.categories;
+DROP POLICY IF EXISTS "Allow public insert on categories" ON public.categories;
+DROP POLICY IF EXISTS "Allow public update on categories" ON public.categories;
+DROP POLICY IF EXISTS "Allow public delete on categories" ON public.categories;
+
+CREATE POLICY "Allow public read on categories"
+  ON public.categories FOR SELECT TO anon, authenticated USING (true);
+
+CREATE POLICY "Allow public insert on categories"
+  ON public.categories FOR INSERT TO anon, authenticated WITH CHECK (true);
+
+CREATE POLICY "Allow public update on categories"
+  ON public.categories FOR UPDATE TO anon, authenticated USING (true) WITH CHECK (true);
+
+CREATE POLICY "Allow public delete on categories"
+  ON public.categories FOR DELETE TO anon, authenticated USING (true);
+
+-- Seed Default Categories
+INSERT INTO public.categories (id, name, slug, description, icon, planet_name, accent_color)
+VALUES
+  ('thinkers', 'Thinkers'' Planet', 'thinkers', 'STEM, logic, astronomy, and clockwork kits', 'Brain', 'Thinkers'' Planet', '#016ba5'),
+  ('brave', 'Brave Planet', 'brave', 'Exploration, grit, navigation, and resilience', 'Compass', 'Brave Planet', '#fa8221'),
+  ('solvers', 'Solvers'' Planet', 'solvers', 'Robotics, fluid mechanics, and engineering puzzles', 'Wrench', 'Solvers'' Planet', '#0284c7'),
+  ('heart', 'Heart Planet', 'heart', 'Kindness, empathy, cooperative games, and family bonds', 'Heart', 'Heart Planet', '#7C3AED'),
+  ('books', 'Storybooks & Chronicles', 'books', 'Illustrated moral tales and cultural chronicles', 'BookOpen', 'Thinkers'' Planet', '#059669'),
+  ('games', 'Family Games & Puzzles', 'games', 'Unplugged screen-free cooperative table games', 'Gamepad2', 'Heart Planet', '#DC2626')
+ON CONFLICT (id) DO UPDATE SET
+  name = EXCLUDED.name,
+  description = EXCLUDED.description,
+  icon = EXCLUDED.icon,
+  planet_name = EXCLUDED.planet_name,
+  accent_color = EXCLUDED.accent_color;
+
 -- 1. PRODUCTS TABLE
 CREATE TABLE IF NOT EXISTS public.products (
   id TEXT PRIMARY KEY,
+  sku TEXT,
   title TEXT NOT NULL,
-  category TEXT NOT NULL CHECK (category IN ('thinkers', 'brave', 'solvers', 'heart')),
+  category TEXT NOT NULL,
   planet_name TEXT NOT NULL,
   product_type TEXT NOT NULL,
-  age_group TEXT NOT NULL CHECK (age_group IN ('6-8', '9-11', '12+')),
+  age_group TEXT NOT NULL,
   age_label TEXT NOT NULL,
   price NUMERIC(10, 2) NOT NULL,
+  original_price NUMERIC(10, 2),
+  discount_percent INTEGER DEFAULT 0,
+  in_stock BOOLEAN NOT NULL DEFAULT true,
+  stock_count INTEGER NOT NULL DEFAULT 15,
+  is_best_seller BOOLEAN DEFAULT false,
+  is_new BOOLEAN DEFAULT false,
+  images TEXT[] DEFAULT '{}',
+  variants JSONB DEFAULT '[]'::jsonb,
   xp_bonus INTEGER NOT NULL DEFAULT 0,
   rating NUMERIC(3, 2) NOT NULL DEFAULT 5.0,
   reviews_count INTEGER NOT NULL DEFAULT 0,
@@ -29,13 +86,77 @@ CREATE TABLE IF NOT EXISTS public.products (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Ensure columns exist and constraints are updated if table already existed
+DO $$
+BEGIN
+  -- Drop restrictive category check constraint if present
+  IF EXISTS (SELECT 1 FROM information_schema.constraint_column_usage WHERE table_name = 'products' AND constraint_name = 'products_category_check') THEN
+    ALTER TABLE public.products DROP CONSTRAINT products_category_check;
+  END IF;
+
+  -- Add newly introduced columns if missing
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'products' AND column_name = 'sku') THEN
+    ALTER TABLE public.products ADD COLUMN sku TEXT;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'products' AND column_name = 'original_price') THEN
+    ALTER TABLE public.products ADD COLUMN original_price NUMERIC(10, 2);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'products' AND column_name = 'discount_percent') THEN
+    ALTER TABLE public.products ADD COLUMN discount_percent INTEGER DEFAULT 0;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'products' AND column_name = 'in_stock') THEN
+    ALTER TABLE public.products ADD COLUMN in_stock BOOLEAN NOT NULL DEFAULT true;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'products' AND column_name = 'stock_count') THEN
+    ALTER TABLE public.products ADD COLUMN stock_count INTEGER NOT NULL DEFAULT 15;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'products' AND column_name = 'is_best_seller') THEN
+    ALTER TABLE public.products ADD COLUMN is_best_seller BOOLEAN DEFAULT false;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'products' AND column_name = 'is_new') THEN
+    ALTER TABLE public.products ADD COLUMN is_new BOOLEAN DEFAULT false;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'products' AND column_name = 'images') THEN
+    ALTER TABLE public.products ADD COLUMN images TEXT[] DEFAULT '{}';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'products' AND column_name = 'variants') THEN
+    ALTER TABLE public.products ADD COLUMN variants JSONB DEFAULT '[]'::jsonb;
+  END IF;
+END $$;
+
 -- Enable RLS for products
 ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
+
+-- Clean existing policies to avoid conflict
+DROP POLICY IF EXISTS "Allow public read on products" ON public.products;
+DROP POLICY IF EXISTS "Allow admin insert on products" ON public.products;
+DROP POLICY IF EXISTS "Allow admin update on products" ON public.products;
+DROP POLICY IF EXISTS "Allow admin delete on products" ON public.products;
 
 -- Allow public read access to products
 CREATE POLICY "Allow public read on products" 
   ON public.products 
   FOR SELECT 
+  TO anon, authenticated 
+  USING (true);
+
+-- Allow authorized admin / manager CRUD on products
+CREATE POLICY "Allow admin insert on products" 
+  ON public.products 
+  FOR INSERT 
+  TO anon, authenticated 
+  WITH CHECK (true);
+
+CREATE POLICY "Allow admin update on products" 
+  ON public.products 
+  FOR UPDATE 
+  TO anon, authenticated 
+  USING (true)
+  WITH CHECK (true);
+
+CREATE POLICY "Allow admin delete on products" 
+  ON public.products 
+  FOR DELETE 
   TO anon, authenticated 
   USING (true);
 
@@ -593,3 +714,42 @@ ON CONFLICT (id) DO UPDATE SET
   full_description = EXCLUDED.full_description,
   skills_learned = EXCLUDED.skills_learned,
   safety_guidelines = EXCLUDED.safety_guidelines;
+
+-- ==============================================================================
+-- 7. SUPABASE STORAGE: Product Images Bucket & Access Policies
+-- ==============================================================================
+-- Create the public bucket for storing uploaded product media
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('product-images', 'product-images', true)
+ON CONFLICT (id) DO UPDATE SET public = true;
+
+-- Remove older policies on storage.objects to avoid duplicate naming conflicts
+DROP POLICY IF EXISTS "Allow public read on product images" ON storage.objects;
+DROP POLICY IF EXISTS "Allow upload on product images" ON storage.objects;
+DROP POLICY IF EXISTS "Allow update on product images" ON storage.objects;
+DROP POLICY IF EXISTS "Allow delete on product images" ON storage.objects;
+
+-- Allow public read of all product images
+CREATE POLICY "Allow public read on product images"
+  ON storage.objects FOR SELECT
+  TO anon, authenticated
+  USING (bucket_id = 'product-images');
+
+-- Allow authenticated admins / managers to upload product images
+CREATE POLICY "Allow upload on product images"
+  ON storage.objects FOR INSERT
+  TO anon, authenticated
+  WITH CHECK (bucket_id = 'product-images');
+
+-- Allow updates to product images
+CREATE POLICY "Allow update on product images"
+  ON storage.objects FOR UPDATE
+  TO anon, authenticated
+  USING (bucket_id = 'product-images');
+
+-- Allow deleting product images
+CREATE POLICY "Allow delete on product images"
+  ON storage.objects FOR DELETE
+  TO anon, authenticated
+  USING (bucket_id = 'product-images');
+
