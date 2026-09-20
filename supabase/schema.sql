@@ -948,37 +948,6 @@ CREATE POLICY "Allow delete on blog images"
   TO anon, authenticated
   USING (bucket_id = 'blog-images');
 
--- ==============================================================================
--- 10. SUPABASE STORAGE: Product Images Bucket & Access Policies
--- ==============================================================================
-INSERT INTO storage.buckets (id, name, public)
-VALUES ('product-images', 'product-images', true)
-ON CONFLICT (id) DO UPDATE SET public = true;
-
-DROP POLICY IF EXISTS "Allow public read on product images" ON storage.objects;
-DROP POLICY IF EXISTS "Allow upload on product images" ON storage.objects;
-DROP POLICY IF EXISTS "Allow update on product images" ON storage.objects;
-DROP POLICY IF EXISTS "Allow delete on product images" ON storage.objects;
-
-CREATE POLICY "Allow public read on product images"
-  ON storage.objects FOR SELECT
-  TO anon, authenticated
-  USING (bucket_id = 'product-images');
-
-CREATE POLICY "Allow upload on product images"
-  ON storage.objects FOR INSERT
-  TO anon, authenticated
-  WITH CHECK (bucket_id = 'product-images');
-
-CREATE POLICY "Allow update on product images"
-  ON storage.objects FOR UPDATE
-  TO anon, authenticated
-  USING (bucket_id = 'product-images');
-
-CREATE POLICY "Allow delete on product images"
-  ON storage.objects FOR DELETE
-  TO anon, authenticated
-  USING (bucket_id = 'product-images');
 
 -- ==============================================================================
 -- 11. GRANT PERMISSIONS & RELOAD SCHEMA CACHE

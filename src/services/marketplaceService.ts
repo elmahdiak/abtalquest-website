@@ -838,27 +838,21 @@ export const checkSupabaseHealth = async (): Promise<SupabaseHealth> => {
   }
 };
 
+// Purge any obsolete heavy product overrides from browser localStorage to permanently prevent QuotaExceededError
+if (typeof window !== 'undefined') {
+  try {
+    localStorage.removeItem('abtalquest_products_override');
+  } catch {
+    // ignore
+  }
+}
+
 /**
  * Fetch marketplace products dynamically from Supabase
  * With automatic fallback to curated catalog if database table is not yet seeded.
  */
 export const fetchMarketplaceProducts = async (): Promise<{ products: Product[]; isFromSupabase: boolean }> => {
-  const getLocalProducts = (): Product[] => {
-    if (typeof window !== 'undefined') {
-      const raw = localStorage.getItem('abtalquest_products_override');
-      if (raw) {
-        try {
-          const parsed = JSON.parse(raw);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            return parsed;
-          }
-        } catch {
-          // ignore
-        }
-      }
-    }
-    return DEFAULT_PRODUCTS;
-  };
+  const getLocalProducts = (): Product[] => DEFAULT_PRODUCTS;
 
   if (!isSupabaseConfigured()) {
     return { products: getLocalProducts(), isFromSupabase: false };
@@ -1083,13 +1077,22 @@ export const createProduct = async (prod: Omit<Product, 'id'> & { id?: string })
 
   const rawImages: string[] = [];
   if (Array.isArray(prod.images)) {
-    rawImages.push(...prod.images.filter((img): img is string => typeof img === 'string' && img.trim().length > 0));
+    rawImages.push(...prod.images.filter((img): img is string => typeof img === 'string' && img.trim().length > 0 && !img.trim().startsWith('data:')));
   }
-  if (prod.imageUrl && typeof prod.imageUrl === 'string' && prod.imageUrl.trim().length > 0 && !rawImages.includes(prod.imageUrl.trim())) {
+  if (prod.imageUrl && typeof prod.imageUrl === 'string' && prod.imageUrl.trim().length > 0 && !prod.imageUrl.trim().startsWith('data:') && !rawImages.includes(prod.imageUrl.trim())) {
     rawImages.unshift(prod.imageUrl.trim());
   }
-  if (prod.image && typeof prod.image === 'string' && prod.image.trim().length > 0 && !rawImages.includes(prod.image.trim())) {
+  if (prod.image && typeof prod.image === 'string' && prod.image.trim().length > 0 && !prod.image.trim().startsWith('data:') && !rawImages.includes(prod.image.trim())) {
     rawImages.unshift(prod.image.trim());
+  }
+
+  // Validate that heavy base64 strings are rejected
+  if (
+    (prod.imageUrl && prod.imageUrl.startsWith('data:')) ||
+    (prod.image && prod.image.startsWith('data:')) ||
+    ((prod as any).image_url && (prod as any).image_url.startsWith('data:'))
+  ) {
+    throw new Error('Base64 image blobs cannot be persisted. Please upload the image file to Supabase Storage or provide a public HTTPS image URL.');
   }
 
   const primaryImage = rawImages[0] || undefined;
@@ -1161,6 +1164,15 @@ export const updateProduct = async (id: string, updates: Partial<Product>): Prom
     throw new Error('Supabase client is not configured with live credentials. Cannot update products in remote database.');
   }
 
+  // Reject base64 strings
+  if (
+    (updates.imageUrl && updates.imageUrl.startsWith('data:')) ||
+    (updates.image && updates.image.startsWith('data:')) ||
+    ((updates as any).image_url && (updates as any).image_url.startsWith('data:'))
+  ) {
+    throw new Error('Base64 image blobs cannot be persisted. Please upload the image file to Supabase Storage or provide a public HTTPS image URL.');
+  }
+
   const payload: any = {};
   if (updates.sku !== undefined) payload.sku = updates.sku;
   if (updates.title !== undefined) payload.title = updates.title;
@@ -1177,8 +1189,9 @@ export const updateProduct = async (id: string, updates: Partial<Product>): Prom
   if (updates.isBestSeller !== undefined) payload.is_best_seller = updates.isBestSeller;
   if (updates.isNew !== undefined) payload.is_new = updates.isNew;
   if (updates.images !== undefined) {
-    payload.images = updates.images;
-    payload.image_url = (updates.images && updates.images.length > 0) ? updates.images[0] : null;
+    const cleanImages = updates.images.filter((img) => typeof img === 'string' && !img.startsWith('data:'));
+    payload.images = cleanImages;
+    payload.image_url = (cleanImages.length > 0) ? cleanImages[0] : null;
   }
   if (updates.imageUrl !== undefined) {
     payload.image_url = updates.imageUrl || null;
@@ -1262,66 +1275,37 @@ export const deleteProduct = async (id: string): Promise<boolean> => {
 
 export const uploadProductImage = async (file: File): Promise<string> => {
   if (!isSupabaseConfigured()) {
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        resolve(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    });
+    throw new Error('Supabase Storage is not configured. Please paste a public image URL instead of uploading local files.');
   }
 
-  try {
-    const ext = file.name.split('.').pop() || 'jpg';
-    const fileName = `product_${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${ext}`;
-    const filePath = `products/${fileName}`;
+  const ext = file.name.split('.').pop() || 'jpg';
+  const fileName = `product_${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${ext}`;
+  const filePath = `products/${fileName}`;
 
-    let { error: uploadError } = await supabase.storage
-      .from('product-images')
-      .upload(filePath, file, {
-        cacheControl: '3600',
-        upsert: false,
-      });
-
-    // If bucket not found, attempt to create public bucket and retry upload
-    if (uploadError && (uploadError.message?.toLowerCase().includes('bucket not found') || (uploadError as any)?.statusCode === '404')) {
-      try {
-        await supabase.storage.createBucket('product-images', { public: true });
-        const retry = await supabase.storage
-          .from('product-images')
-          .upload(filePath, file, {
-            cacheControl: '3600',
-            upsert: false,
-          });
-        uploadError = retry.error;
-      } catch {
-        // bucket creation may be restricted by RLS, fallback will handle
-      }
-    }
-
-    if (uploadError) {
-      console.warn('[AbtalQuest Supabase Storage] Image upload fallback:', uploadError.message);
-      return new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          resolve(reader.result as string);
-        };
-        reader.readAsDataURL(file);
-      });
-    }
-
-    const { data } = supabase.storage.from('product-images').getPublicUrl(filePath);
-    return data.publicUrl;
-  } catch (err) {
-    console.warn('[AbtalQuest Supabase Storage] Fallback to base64:', err);
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        resolve(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+  const { error: uploadError } = await supabase.storage
+    .from('product-images')
+    .upload(filePath, file, {
+      cacheControl: '3600',
+      upsert: false,
     });
+
+  if (uploadError) {
+    console.error('[AbtalQuest Supabase Storage] Image upload error:', uploadError);
+    if (uploadError.message?.toLowerCase().includes('bucket not found') || (uploadError as any)?.statusCode === '404') {
+      throw new Error('Storage Bucket Missing: The "product-images" bucket does not exist in Supabase. Please execute the schema.sql script in your Supabase SQL editor to create the public bucket.');
+    }
+    if ((uploadError as any)?.statusCode === '403' || uploadError.message?.toLowerCase().includes('row-level security') || uploadError.message?.toLowerCase().includes('policy')) {
+      throw new Error('Storage Permission Denied: Row Level Security (RLS) on "product-images" bucket blocked image upload. Please check bucket policies in Supabase.');
+    }
+    throw new Error(`Failed to upload product image: ${uploadError.message}`);
   }
+
+  const { data } = supabase.storage.from('product-images').getPublicUrl(filePath);
+  if (!data?.publicUrl) {
+    throw new Error('Failed to resolve public URL for uploaded product image.');
+  }
+
+  return data.publicUrl;
 };
 
 /**

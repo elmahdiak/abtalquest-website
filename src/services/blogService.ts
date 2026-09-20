@@ -217,7 +217,12 @@ const getLocalBlogs = (): BlogPost[] => {
 
 const saveLocalBlogs = (blogs: BlogPost[]): void => {
   try {
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(blogs));
+    // Strip heavy base64 strings if any exist to protect localStorage quota
+    const sanitized = blogs.map((b) => ({
+      ...b,
+      imageUrl: b.imageUrl?.startsWith('data:') ? undefined : b.imageUrl,
+    }));
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(sanitized));
   } catch (err) {
     console.warn('[AbtalQuest BlogService] Error saving to localStorage:', err);
   }
@@ -501,64 +506,48 @@ export const deleteBlog = async (id: string): Promise<boolean> => {
  */
 export const uploadBlogImage = async (file: File): Promise<string> => {
   if (!isSupabaseConfigured()) {
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        resolve(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    });
+    throw new Error('Supabase Storage is not configured. Please paste a public image URL instead of uploading local files.');
   }
 
-  try {
-    const ext = file.name.split('.').pop() || 'jpg';
-    const fileName = `blog_${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${ext}`;
-    const filePath = `covers/${fileName}`;
+  const ext = file.name.split('.').pop() || 'jpg';
+  const fileName = `blog_${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${ext}`;
+  const filePath = `covers/${fileName}`;
 
-    // Try uploading to 'blog-images' bucket
-    const { error: uploadError } = await supabase.storage
-      .from('blog-images')
-      .upload(filePath, file, {
+  // Try uploading to 'blog-images' bucket
+  const { error: uploadError } = await supabase.storage
+    .from('blog-images')
+    .upload(filePath, file, {
+      cacheControl: '3600',
+      upsert: false,
+    });
+
+  if (uploadError) {
+    // Fallback: try 'product-images' bucket if blog-images is not provisioned yet
+    const { error: fallbackError } = await supabase.storage
+      .from('product-images')
+      .upload(`blogs/${fileName}`, file, {
         cacheControl: '3600',
         upsert: false,
       });
 
-    if (uploadError) {
-      // Fallback: try 'product-images' bucket if blog-images is not provisioned yet
-      const { error: fallbackError } = await supabase.storage
-        .from('product-images')
-        .upload(`blogs/${fileName}`, file, {
-          cacheControl: '3600',
-          upsert: false,
-        });
-
-      if (!fallbackError) {
-        const { data } = supabase.storage.from('product-images').getPublicUrl(`blogs/${fileName}`);
-        return data.publicUrl;
-      }
-
-      console.warn('[AbtalQuest Storage] Blog upload fallback to base64:', uploadError.message);
-      return new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          resolve(reader.result as string);
-        };
-        reader.readAsDataURL(file);
-      });
+    if (!fallbackError) {
+      const { data } = supabase.storage.from('product-images').getPublicUrl(`blogs/${fileName}`);
+      if (data?.publicUrl) return data.publicUrl;
     }
 
-    const { data } = supabase.storage.from('blog-images').getPublicUrl(filePath);
-    return data.publicUrl;
-  } catch (err) {
-    console.warn('[AbtalQuest Storage] Blog cover fallback:', err);
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        resolve(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    });
+    console.error('[AbtalQuest Storage] Blog upload failed:', uploadError);
+    if (uploadError.message?.toLowerCase().includes('bucket not found') || (uploadError as any)?.statusCode === '404') {
+      throw new Error('Storage Bucket Missing: The "blog-images" bucket does not exist in Supabase. Please run the schema.sql script in your Supabase SQL editor to create it.');
+    }
+    throw new Error(`Failed to upload blog image: ${uploadError.message}`);
   }
+
+  const { data } = supabase.storage.from('blog-images').getPublicUrl(filePath);
+  if (!data?.publicUrl) {
+    throw new Error('Failed to resolve public URL for uploaded blog image.');
+  }
+
+  return data.publicUrl;
 };
 
 /**

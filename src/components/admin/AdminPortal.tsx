@@ -399,12 +399,20 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    if (file.size > 10 * 1024 * 1024) {
+      setProdModalError('Image file is too large. Please select an image under 10MB.');
+      return;
+    }
+
     setUploadingProdImage(true);
+    setProdModalError(null);
     try {
       const url = await uploadProductImage(file);
       setProdImageUrl(url);
     } catch (err: any) {
-      setProdModalError('Failed to upload image: ' + (err?.message || 'Unknown error'));
+      console.error('[AdminPortal] Product image upload error:', err);
+      setProdModalError(err?.message || 'Failed to upload product image to Supabase Storage.');
     } finally {
       setUploadingProdImage(false);
     }
@@ -419,6 +427,11 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
     const numPrice = parseFloat(prodPrice);
     if (isNaN(numPrice) || numPrice < 0) {
       setProdModalError('A valid non-negative price is required');
+      return;
+    }
+
+    if (prodImageUrl.trim().startsWith('data:')) {
+      setProdModalError('Base64 image strings cannot be saved. Please upload the image file to Supabase Storage or enter an external public image URL.');
       return;
     }
 
@@ -648,13 +661,20 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
   const handleBlogImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    if (file.size > 10 * 1024 * 1024) {
+      setBlogModalError('Image file is too large. Please select an image under 10MB.');
+      return;
+    }
+
     setBlogImageUploading(true);
     setBlogModalError(null);
     try {
       const url = await uploadBlogImage(file);
       setBlogImageUrl(url);
     } catch (err: any) {
-      setBlogModalError(err?.message || 'Failed to upload blog image');
+      console.error('[AdminPortal] Blog image upload error:', err);
+      setBlogModalError(err?.message || 'Failed to upload blog image to Supabase Storage.');
     } finally {
       setBlogImageUploading(false);
     }
@@ -664,6 +684,11 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
     e.preventDefault();
     if (!blogTitle.trim() || !blogExcerpt.trim() || !blogContent.trim()) {
       setBlogModalError('Please fill in Title, Excerpt, and Full Content.');
+      return;
+    }
+
+    if (blogImageUrl.trim().startsWith('data:')) {
+      setBlogModalError('Base64 image strings cannot be saved. Please upload the image file to Supabase Storage or enter an external public image URL.');
       return;
     }
 
