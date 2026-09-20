@@ -1161,18 +1161,16 @@ export const updateProduct = async (id: string, updates: Partial<Product>): Prom
       if (updates.isNew !== undefined) payload.is_new = updates.isNew;
       if (updates.images !== undefined) {
         payload.images = updates.images;
-        if (updates.images && updates.images.length > 0) {
-          payload.image_url = updates.images[0];
-        }
+        payload.image_url = (updates.images && updates.images.length > 0) ? updates.images[0] : null;
       }
       if (updates.imageUrl !== undefined) {
-        payload.image_url = updates.imageUrl;
+        payload.image_url = updates.imageUrl || null;
         if (!payload.images || payload.images.length === 0) {
           payload.images = updates.imageUrl ? [updates.imageUrl] : [];
         }
       }
       if (updates.image !== undefined) {
-        payload.image_url = updates.image;
+        payload.image_url = updates.image || null;
         if (!payload.images || payload.images.length === 0) {
           payload.images = updates.image ? [updates.image] : [];
         }
@@ -1240,12 +1238,28 @@ export const uploadProductImage = async (file: File): Promise<string> => {
     const fileName = `product_${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${ext}`;
     const filePath = `products/${fileName}`;
 
-    const { error: uploadError } = await supabase.storage
+    let { error: uploadError } = await supabase.storage
       .from('product-images')
       .upload(filePath, file, {
         cacheControl: '3600',
         upsert: false,
       });
+
+    // If bucket not found, attempt to create public bucket and retry upload
+    if (uploadError && (uploadError.message?.toLowerCase().includes('bucket not found') || (uploadError as any)?.statusCode === '404')) {
+      try {
+        await supabase.storage.createBucket('product-images', { public: true });
+        const retry = await supabase.storage
+          .from('product-images')
+          .upload(filePath, file, {
+            cacheControl: '3600',
+            upsert: false,
+          });
+        uploadError = retry.error;
+      } catch {
+        // bucket creation may be restricted by RLS, fallback will handle
+      }
+    }
 
     if (uploadError) {
       console.warn('[AbtalQuest Supabase Storage] Image upload fallback:', uploadError.message);

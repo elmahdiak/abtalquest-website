@@ -100,6 +100,7 @@ import {
   type BlogPost
 } from '../../services/blogService';
 import type { User } from '@supabase/supabase-js';
+import { supabase, isSupabaseConfigured } from '../../supabaseClient';
 
 export interface AdminPortalProps {
   onClose?: () => void;
@@ -768,6 +769,25 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
     window.addEventListener('abtalquest_blog_updated', handleOrderEvent);
     window.addEventListener('storage', handleStorageEvent);
 
+    // Cross-device Supabase Realtime synchronization for products
+    let adminProductChannel: any = null;
+    if (isSupabaseConfigured()) {
+      try {
+        adminProductChannel = supabase
+          .channel('admin_products_live_sync')
+          .on(
+            'postgres_changes',
+            { event: '*', schema: 'public', table: 'products' },
+            () => {
+              void loadDashboardData(false);
+            }
+          )
+          .subscribe();
+      } catch (err) {
+        console.warn('Realtime admin product channel error:', err);
+      }
+    }
+
     return () => {
       window.removeEventListener('abtalquest_order_created', handleOrderEvent);
       window.removeEventListener('abtalquest_order_status_updated', handleOrderEvent);
@@ -775,6 +795,9 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
       window.removeEventListener('abtalquest_category_updated', handleOrderEvent);
       window.removeEventListener('abtalquest_blog_updated', handleOrderEvent);
       window.removeEventListener('storage', handleStorageEvent);
+      if (adminProductChannel) {
+        supabase.removeChannel(adminProductChannel);
+      }
     };
   }, [isAdmin]);
 

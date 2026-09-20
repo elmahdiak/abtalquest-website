@@ -17,6 +17,7 @@ import {
   saveWishlistToStorage,
   toggleWishlistItem
 } from '../../services/marketplaceService';
+import { supabase, isSupabaseConfigured } from '../../supabaseClient';
 import { MarketplaceHeader } from './MarketplaceHeader';
 import { MarketplaceBannerCarousel } from './MarketplaceBannerCarousel';
 import { MarketplaceCategoryPills } from './MarketplaceCategoryPills';
@@ -212,10 +213,37 @@ export const Marketplace: React.FC<MarketplaceProps> = ({
     window.addEventListener('abtalquest_product_updated', handleProductChange);
     window.addEventListener('abtalquest_category_updated', handleCategoryChange);
 
+    // Real-time Supabase subscription across devices worldwide
+    let productChannel: any = null;
+    if (isSupabaseConfigured()) {
+      try {
+        productChannel = supabase
+          .channel('public_products_live_sync')
+          .on(
+            'postgres_changes',
+            { event: '*', schema: 'public', table: 'products' },
+            () => {
+              fetchMarketplaceProducts().then((res) => {
+                if (isMounted) {
+                  setProducts(res.products);
+                  setIsFromSupabase(res.isFromSupabase);
+                }
+              });
+            }
+          )
+          .subscribe();
+      } catch (err) {
+        console.warn('Realtime subscription error for products:', err);
+      }
+    }
+
     return () => {
       isMounted = false;
       window.removeEventListener('abtalquest_product_updated', handleProductChange);
       window.removeEventListener('abtalquest_category_updated', handleCategoryChange);
+      if (productChannel) {
+        supabase.removeChannel(productChannel);
+      }
     };
   }, []);
 

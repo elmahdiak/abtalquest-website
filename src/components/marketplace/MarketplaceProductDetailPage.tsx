@@ -613,12 +613,28 @@ export const MarketplaceProductDetailPage: React.FC<MarketplaceProductDetailPage
                 onClick={() => onSelectProduct(rel)}
                 className="p-4 rounded-3xl border border-slate-200 dark:border-slate-800 hover:border-[#016ba5] dark:hover:border-[#0284c7] transition-all duration-200 cursor-pointer bg-white dark:bg-slate-900/80 shadow-sm hover:shadow-md flex items-center gap-4 group"
               >
-                <div className={cn(
-                  "w-16 h-16 rounded-2xl flex items-center justify-center shrink-0 font-bold text-lg shadow-sm transition-transform duration-300 group-hover:scale-105",
-                  rel.iconBg || 'bg-blue-100 text-blue-700'
-                )}>
-                  {rel.title.charAt(0)}
-                </div>
+                {(() => {
+                  const relImg = (rel.images && rel.images.length > 0 && rel.images[0]) || rel.imageUrl || rel.image;
+                  return (
+                    <div className={cn(
+                      "w-16 h-16 rounded-2xl overflow-hidden flex items-center justify-center shrink-0 font-bold text-lg shadow-sm border border-slate-200/80 dark:border-slate-800 transition-transform duration-300 group-hover:scale-105",
+                      !relImg && (rel.iconBg || 'bg-blue-100 text-blue-700')
+                    )}>
+                      {relImg ? (
+                        <img
+                          src={relImg}
+                          alt={rel.title}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            (e.target as HTMLElement).style.display = 'none';
+                          }}
+                        />
+                      ) : (
+                        rel.title.charAt(0)
+                      )}
+                    </div>
+                  );
+                })()}
                 
                 <div className="min-w-0 flex-1">
                   <span className="text-[10px] font-black uppercase tracking-wider text-[#016ba5] dark:text-[#38bdf8] block truncate">
