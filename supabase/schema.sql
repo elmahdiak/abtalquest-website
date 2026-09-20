@@ -71,6 +71,7 @@ CREATE TABLE IF NOT EXISTS public.products (
   is_best_seller BOOLEAN DEFAULT false,
   is_new BOOLEAN DEFAULT false,
   images TEXT[] DEFAULT '{}',
+  image_url TEXT,
   variants JSONB DEFAULT '[]'::jsonb,
   xp_bonus INTEGER NOT NULL DEFAULT 0,
   rating NUMERIC(3, 2) NOT NULL DEFAULT 5.0,
@@ -118,6 +119,9 @@ BEGIN
   END IF;
   IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'products' AND column_name = 'images') THEN
     ALTER TABLE public.products ADD COLUMN images TEXT[] DEFAULT '{}';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'products' AND column_name = 'image_url') THEN
+    ALTER TABLE public.products ADD COLUMN image_url TEXT;
   END IF;
   IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'products' AND column_name = 'variants') THEN
     ALTER TABLE public.products ADD COLUMN variants JSONB DEFAULT '[]'::jsonb;
@@ -943,5 +947,38 @@ CREATE POLICY "Allow delete on blog images"
   ON storage.objects FOR DELETE
   TO anon, authenticated
   USING (bucket_id = 'blog-images');
+
+-- ==============================================================================
+-- 10. SUPABASE STORAGE: Product Images Bucket & Access Policies
+-- ==============================================================================
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('product-images', 'product-images', true)
+ON CONFLICT (id) DO UPDATE SET public = true;
+
+DROP POLICY IF EXISTS "Allow public read on product images" ON storage.objects;
+DROP POLICY IF EXISTS "Allow upload on product images" ON storage.objects;
+DROP POLICY IF EXISTS "Allow update on product images" ON storage.objects;
+DROP POLICY IF EXISTS "Allow delete on product images" ON storage.objects;
+
+CREATE POLICY "Allow public read on product images"
+  ON storage.objects FOR SELECT
+  TO anon, authenticated
+  USING (bucket_id = 'product-images');
+
+CREATE POLICY "Allow upload on product images"
+  ON storage.objects FOR INSERT
+  TO anon, authenticated
+  WITH CHECK (bucket_id = 'product-images');
+
+CREATE POLICY "Allow update on product images"
+  ON storage.objects FOR UPDATE
+  TO anon, authenticated
+  USING (bucket_id = 'product-images');
+
+CREATE POLICY "Allow delete on product images"
+  ON storage.objects FOR DELETE
+  TO anon, authenticated
+  USING (bucket_id = 'product-images');
+
 
 

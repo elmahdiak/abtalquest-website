@@ -104,6 +104,8 @@ export interface Product {
   isBestSeller?: boolean;
   isNew?: boolean;
   images?: string[];
+  imageUrl?: string;
+  image?: string;
   variants?: ProductVariant[];
   xpBonus: number;
   rating: number;
@@ -179,6 +181,12 @@ export const DEFAULT_PRODUCTS: Product[] = [
     stockCount: 14,
     isBestSeller: true,
     isNew: false,
+    images: [
+      'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1537462715879-360eeb61a0ad?auto=format&fit=crop&w=800&q=80'
+    ],
+    imageUrl: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80',
+    image: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80',
     variants: [
       { id: 'edition', name: 'Pack Edition', options: ['Standard Kit', 'Deluxe Co-Quest Box', 'Academy Class Pack (5x)'] },
       { id: 'language', name: 'Quest Language', options: ['Bilingual (Arabic / English)', 'Bilingual (Arabic / French)', 'English Edition'] }
@@ -235,6 +243,12 @@ export const DEFAULT_PRODUCTS: Product[] = [
     stockCount: 28,
     isBestSeller: false,
     isNew: false,
+    images: [
+      'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=800&q=80'
+    ],
+    imageUrl: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=800&q=80',
+    image: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=800&q=80',
     variants: [
       { id: 'cover', name: 'Format', options: ['Hardcover Collector Edition', 'Softcover Explorer Edition'] },
       { id: 'language', name: 'Story Language', options: ['Bilingual (Arabic / English)', 'Bilingual (Arabic / French)', 'Pure Arabic Calligraphy'] }
@@ -284,6 +298,12 @@ export const DEFAULT_PRODUCTS: Product[] = [
     stockCount: 6,
     isBestSeller: true,
     isNew: false,
+    images: [
+      'https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1508873696983-2df5703bc225?auto=format&fit=crop&w=800&q=80'
+    ],
+    imageUrl: 'https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?auto=format&fit=crop&w=800&q=80',
+    image: 'https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?auto=format&fit=crop&w=800&q=80',
     variants: [
       { id: 'strap', name: 'Lanyard Style', options: ['Desert Ochre Braided', 'Oasis Teal Braided', 'Night Obsidian'] },
       { id: 'language', name: 'Journal Guide', options: ['Bilingual (Arabic / English)', 'Bilingual (Arabic / French)'] }
@@ -333,6 +353,12 @@ export const DEFAULT_PRODUCTS: Product[] = [
     stockCount: 19,
     isBestSeller: false,
     isNew: true,
+    images: [
+      'https://images.unsplash.com/photo-1518241353330-0f7941c2d9b5?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1509198397868-475647b2a1e5?auto=format&fit=crop&w=800&q=80'
+    ],
+    imageUrl: 'https://images.unsplash.com/photo-1518241353330-0f7941c2d9b5?auto=format&fit=crop&w=800&q=80',
+    image: 'https://images.unsplash.com/photo-1518241353330-0f7941c2d9b5?auto=format&fit=crop&w=800&q=80',
     variants: [
       { id: 'sandColor', name: 'Mineral Sand Hue', options: ['Sunrise Amber', 'Deep Azure Sky', 'Sage Oasis'] },
       { id: 'duration', name: 'Timer Duration', options: ['3-Minute Calm Breath', '5-Minute Deep Reflection'] }
@@ -382,6 +408,12 @@ export const DEFAULT_PRODUCTS: Product[] = [
     stockCount: 8,
     isBestSeller: false,
     isNew: true,
+    images: [
+      'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1563770660941-20978e870e26?auto=format&fit=crop&w=800&q=80'
+    ],
+    imageUrl: 'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?auto=format&fit=crop&w=800&q=80',
+    image: 'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?auto=format&fit=crop&w=800&q=80',
     variants: [
       { id: 'edition', name: 'Kit Variant', options: ['Standard Sluice Arm', 'Hydraulic Master Workshop (+ Reservoir Grid)'] },
       { id: 'language', name: 'Engineering Manual', options: ['Bilingual (Arabic / English)', 'Bilingual (Arabic / French)'] }
@@ -431,6 +463,12 @@ export const DEFAULT_PRODUCTS: Product[] = [
     stockCount: 31,
     isBestSeller: false,
     isNew: false,
+    images: [
+      'https://images.unsplash.com/photo-1606167668584-78701c57f13d?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1610890716171-6b1bb98ffd09?auto=format&fit=crop&w=800&q=80'
+    ],
+    imageUrl: 'https://images.unsplash.com/photo-1606167668584-78701c57f13d?auto=format&fit=crop&w=800&q=80',
+    image: 'https://images.unsplash.com/photo-1606167668584-78701c57f13d?auto=format&fit=crop&w=800&q=80',
     variants: [
       { id: 'edition', name: 'Deck Edition', options: ['Explorer Core (120 Cards)', 'Expanded Clan Edition (220 Cards + Wooden Tokens)'] },
       { id: 'language', name: 'Card Language', options: ['Bilingual (Arabic / English)', 'Bilingual (Arabic / French)'] }
@@ -480,6 +518,12 @@ export const DEFAULT_PRODUCTS: Product[] = [
     stockCount: 12,
     isBestSeller: true,
     isNew: false,
+    images: [
+      'https://images.unsplash.com/photo-1632516643720-e7f5d7d6ecc9?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1610890716171-6b1bb98ffd09?auto=format&fit=crop&w=800&q=80'
+    ],
+    imageUrl: 'https://images.unsplash.com/photo-1632516643720-e7f5d7d6ecc9?auto=format&fit=crop&w=800&q=80',
+    image: 'https://images.unsplash.com/photo-1632516643720-e7f5d7d6ecc9?auto=format&fit=crop&w=800&q=80',
     variants: [
       { id: 'edition', name: 'Board Size', options: ['Family Tabletop Edition', 'Grand Deluxe Velvet Box'] },
       { id: 'language', name: 'Game Language', options: ['Bilingual (Arabic / English)', 'Bilingual (Arabic / French)', 'French Edition'] }
@@ -529,6 +573,12 @@ export const DEFAULT_PRODUCTS: Product[] = [
     stockCount: 15,
     isBestSeller: false,
     isNew: true,
+    images: [
+      'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1579783902614-a3fb3927b675?auto=format&fit=crop&w=800&q=80'
+    ],
+    imageUrl: 'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&w=800&q=80',
+    image: 'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&w=800&q=80',
     variants: [
       { id: 'candle', name: 'LED Candle Light', options: ['Warm Starlight Glow', 'Soft Amber Flicker'] },
       { id: 'language', name: 'Scroll Prompts', options: ['Bilingual (Arabic / English)', 'Bilingual (Arabic / French)'] }
@@ -598,6 +648,8 @@ interface SupabaseProductRow {
   is_best_seller?: boolean;
   is_new?: boolean;
   images?: string[];
+  image_url?: string;
+  image?: string;
   variants?: ProductVariant[];
   xp_bonus: number;
   rating?: number;
@@ -613,6 +665,29 @@ interface SupabaseProductRow {
 }
 
 const mapRowToProduct = (row: SupabaseProductRow): Product => {
+  const normalizedImages: string[] = [];
+  if (Array.isArray(row.images)) {
+    normalizedImages.push(...row.images.filter((img): img is string => typeof img === 'string' && img.trim().length > 0));
+  } else if (typeof row.images === 'string' && (row.images as string).trim().length > 0) {
+    normalizedImages.push((row.images as string).trim());
+  }
+
+  if (row.image_url && typeof row.image_url === 'string' && row.image_url.trim().length > 0) {
+    const trimmed = row.image_url.trim();
+    if (!normalizedImages.includes(trimmed)) {
+      normalizedImages.unshift(trimmed);
+    }
+  }
+
+  if (row.image && typeof row.image === 'string' && row.image.trim().length > 0) {
+    const trimmed = row.image.trim();
+    if (!normalizedImages.includes(trimmed)) {
+      normalizedImages.unshift(trimmed);
+    }
+  }
+
+  const primaryImage = normalizedImages[0] || undefined;
+
   return {
     id: row.id,
     sku: row.sku || `AQ-${(row.category || 'GEN').substring(0, 3).toUpperCase()}-${row.id.replace(/\D/g, '') || '01'}`,
@@ -629,7 +704,9 @@ const mapRowToProduct = (row: SupabaseProductRow): Product => {
     stockCount: row.stock_count !== undefined ? row.stock_count : 15,
     isBestSeller: row.is_best_seller,
     isNew: row.is_new,
-    images: Array.isArray(row.images) ? row.images : [],
+    images: normalizedImages,
+    imageUrl: primaryImage,
+    image: primaryImage,
     variants: row.variants,
     xpBonus: Number(row.xp_bonus || 0),
     rating: Number(row.rating || 5.0),
@@ -936,13 +1013,29 @@ export const deleteCategory = async (id: string): Promise<boolean> => {
 // ==============================================================================
 export const createProduct = async (prod: Omit<Product, 'id'> & { id?: string }): Promise<Product> => {
   const productId = prod.id || `prod-${Date.now().toString().slice(-6)}-${Math.floor(100 + Math.random() * 900)}`;
+
+  const rawImages: string[] = [];
+  if (Array.isArray(prod.images)) {
+    rawImages.push(...prod.images.filter((img): img is string => typeof img === 'string' && img.trim().length > 0));
+  }
+  if (prod.imageUrl && typeof prod.imageUrl === 'string' && prod.imageUrl.trim().length > 0 && !rawImages.includes(prod.imageUrl.trim())) {
+    rawImages.unshift(prod.imageUrl.trim());
+  }
+  if (prod.image && typeof prod.image === 'string' && prod.image.trim().length > 0 && !rawImages.includes(prod.image.trim())) {
+    rawImages.unshift(prod.image.trim());
+  }
+
+  const primaryImage = rawImages[0] || undefined;
+
   const newProduct: Product = {
     ...prod,
     id: productId,
     sku: prod.sku || `AQ-${(prod.category || 'GEN').substring(0, 3).toUpperCase()}-${Math.floor(100 + Math.random() * 900)}`,
     inStock: prod.inStock !== undefined ? prod.inStock : true,
     stockCount: prod.stockCount !== undefined ? prod.stockCount : 15,
-    images: prod.images || [],
+    images: rawImages,
+    imageUrl: primaryImage,
+    image: primaryImage,
     tags: prod.tags || [],
     safetyGuidelines: prod.safetyGuidelines || [],
     skillsLearned: prod.skillsLearned || [],
@@ -982,6 +1075,7 @@ export const createProduct = async (prod: Omit<Product, 'id'> & { id?: string })
         is_best_seller: newProduct.isBestSeller || false,
         is_new: newProduct.isNew || false,
         images: newProduct.images || [],
+        image_url: newProduct.imageUrl || (newProduct.images && newProduct.images[0]) || null,
         variants: newProduct.variants || [],
         xp_bonus: newProduct.xpBonus || 0,
         rating: newProduct.rating || 5.0,
@@ -1016,7 +1110,22 @@ export const updateProduct = async (id: string, updates: Partial<Product>): Prom
     const existing: Product[] = raw ? JSON.parse(raw) : [...DEFAULT_PRODUCTS];
     const idx = existing.findIndex((p) => p.id === id);
     if (idx >= 0) {
-      updatedProduct = { ...existing[idx], ...updates };
+      const mergedImages: string[] = updates.images || existing[idx].images || [];
+      if (updates.imageUrl && !mergedImages.includes(updates.imageUrl)) {
+        mergedImages.unshift(updates.imageUrl);
+      }
+      if (updates.image && !mergedImages.includes(updates.image)) {
+        mergedImages.unshift(updates.image);
+      }
+      const prime = mergedImages[0] || undefined;
+
+      updatedProduct = {
+        ...existing[idx],
+        ...updates,
+        images: mergedImages,
+        imageUrl: prime,
+        image: prime,
+      };
       existing[idx] = updatedProduct;
     } else {
       const defaultMatch = DEFAULT_PRODUCTS.find((p) => p.id === id);
@@ -1050,7 +1159,24 @@ export const updateProduct = async (id: string, updates: Partial<Product>): Prom
       if (updates.stockCount !== undefined) payload.stock_count = updates.stockCount;
       if (updates.isBestSeller !== undefined) payload.is_best_seller = updates.isBestSeller;
       if (updates.isNew !== undefined) payload.is_new = updates.isNew;
-      if (updates.images !== undefined) payload.images = updates.images;
+      if (updates.images !== undefined) {
+        payload.images = updates.images;
+        if (updates.images && updates.images.length > 0) {
+          payload.image_url = updates.images[0];
+        }
+      }
+      if (updates.imageUrl !== undefined) {
+        payload.image_url = updates.imageUrl;
+        if (!payload.images || payload.images.length === 0) {
+          payload.images = updates.imageUrl ? [updates.imageUrl] : [];
+        }
+      }
+      if (updates.image !== undefined) {
+        payload.image_url = updates.image;
+        if (!payload.images || payload.images.length === 0) {
+          payload.images = updates.image ? [updates.image] : [];
+        }
+      }
       if (updates.variants !== undefined) payload.variants = updates.variants;
       if (updates.xpBonus !== undefined) payload.xp_bonus = updates.xpBonus;
       if (updates.rating !== undefined) payload.rating = updates.rating;

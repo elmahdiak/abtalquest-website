@@ -378,7 +378,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
     setProdXpBonus(String(prod.xpBonus || 0));
     setProdShortDesc(prod.shortDescription || '');
     setProdFullDesc(prod.fullDescription || '');
-    setProdImageUrl(prod.images && prod.images.length > 0 ? prod.images[0] : '');
+    setProdImageUrl(prod.images && prod.images.length > 0 ? prod.images[0] : (prod.imageUrl || prod.image || ''));
     setProdTags(Array.isArray(prod.tags) ? prod.tags.join(', ') : '');
     setProdSafetyGuidelines(Array.isArray(prod.safetyGuidelines) ? prod.safetyGuidelines.join('\n') : '');
     setProdModalError(null);
@@ -451,6 +451,8 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
         tags: tagsArray,
         safetyGuidelines: safetyArray,
         images: prodImageUrl.trim() ? [prodImageUrl.trim()] : [],
+        imageUrl: prodImageUrl.trim() || undefined,
+        image: prodImageUrl.trim() || undefined,
       };
 
       if (editingProduct) {
@@ -2102,18 +2104,21 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
                                   <td className="py-3.5 px-4">
                                     <div className="flex items-center gap-3">
                                       <div className="w-11 h-11 rounded-xl bg-slate-100 border border-slate-200 shrink-0 overflow-hidden flex items-center justify-center">
-                                        {prod.images && prod.images.length > 0 ? (
-                                          <img
-                                            src={prod.images[0]}
-                                            alt={prod.title}
-                                            className="w-full h-full object-cover"
-                                            onError={(e) => {
-                                              (e.target as HTMLElement).style.display = 'none';
-                                            }}
-                                          />
-                                        ) : (
-                                          <Package className="w-5 h-5 text-slate-400" />
-                                        )}
+                                        {(() => {
+                                          const tableProductImg = (prod.images && prod.images.length > 0 ? prod.images[0] : (prod.imageUrl || prod.image));
+                                          return tableProductImg ? (
+                                            <img
+                                              src={tableProductImg}
+                                              alt={prod.title}
+                                              className="w-full h-full object-cover"
+                                              onError={(e) => {
+                                                (e.target as HTMLElement).style.display = 'none';
+                                              }}
+                                            />
+                                          ) : (
+                                            <Package className="w-5 h-5 text-slate-400" />
+                                          );
+                                        })()}
                                       </div>
                                       <div>
                                         <div className="font-headline font-bold text-slate-900 flex items-center gap-1.5">

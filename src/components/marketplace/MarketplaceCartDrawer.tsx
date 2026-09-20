@@ -131,18 +131,34 @@ export const MarketplaceCartDrawer: React.FC<MarketplaceCartDrawerProps> = ({
                   className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/60 flex items-start gap-3.5 shadow-sm group"
                 >
                   {/* Thumbnail */}
-                  <div
-                    onClick={() => {
-                      onSelectProduct(product);
-                      onClose();
-                    }}
-                    className={cn(
-                      "w-16 h-16 rounded-2xl flex items-center justify-center font-bold text-base shrink-0 shadow-inner cursor-pointer transition-transform group-hover:scale-105",
-                      product.iconBg || 'bg-blue-100 text-blue-700'
-                    )}
-                  >
-                    {product.title.charAt(0)}
-                  </div>
+                  {(() => {
+                    const itemImage = (product.images && product.images.length > 0 && product.images[0]) || product.imageUrl || product.image;
+                    return (
+                      <div
+                        onClick={() => {
+                          onSelectProduct(product);
+                          onClose();
+                        }}
+                        className={cn(
+                          "w-16 h-16 rounded-2xl overflow-hidden flex items-center justify-center font-bold text-base shrink-0 shadow-inner border border-slate-200/80 dark:border-slate-700/80 cursor-pointer transition-transform group-hover:scale-105",
+                          !itemImage && (product.iconBg || 'bg-blue-100 text-blue-700')
+                        )}
+                      >
+                        {itemImage ? (
+                          <img
+                            src={itemImage}
+                            alt={product.title}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              (e.target as HTMLElement).style.display = 'none';
+                            }}
+                          />
+                        ) : (
+                          product.title.charAt(0)
+                        )}
+                      </div>
+                    );
+                  })()}
 
                   {/* Details */}
                   <div className="flex-1 min-w-0">

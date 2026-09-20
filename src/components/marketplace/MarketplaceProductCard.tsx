@@ -35,6 +35,10 @@ export const MarketplaceProductCard: React.FC<MarketplaceProductCardProps> = ({
 }) => {
   const { t, language } = useLanguage();
   const [justAdded, setJustAdded] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageError, setImageError] = useState(false);
+
+  const displayImage = (product.images && product.images.length > 0 && product.images[0]) || product.imageUrl || product.image;
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -62,18 +66,43 @@ export const MarketplaceProductCard: React.FC<MarketplaceProductCardProps> = ({
           style={{ backgroundColor: product.accentColor || '#016ba5' }}
         />
 
-        {/* Central Graphic / Icon Symbol */}
-        <div className="absolute inset-0 flex items-center justify-center p-2 sm:p-4 md:p-6 transition-transform duration-300 group-hover:scale-105">
-          <div className={cn(
-            "w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-md sm:shadow-lg transition-transform",
-            product.iconBg || 'bg-blue-600 text-white'
-          )}>
-            {product.category === 'thinkers' && <Brain className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 stroke-[1.75]" />}
-            {product.category === 'brave' && <Compass className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 stroke-[1.75]" />}
-            {product.category === 'solvers' && <Wrench className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 stroke-[1.75]" />}
-            {product.category === 'heart' && <HeartIcon className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 stroke-[1.75]" />}
+        {/* Product Image preview */}
+        {displayImage && !imageError && (
+          <img
+            src={displayImage}
+            alt={product.title}
+            loading="lazy"
+            onLoad={() => setImageLoaded(true)}
+            onError={() => setImageError(true)}
+            className={cn(
+              "absolute inset-0 w-full h-full object-cover transition-all duration-500 group-hover:scale-105",
+              imageLoaded ? "opacity-100" : "opacity-0"
+            )}
+          />
+        )}
+
+        {/* Soft vignette overlay on image for contrast with badges */}
+        {displayImage && !imageError && imageLoaded && (
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-slate-950/30 pointer-events-none" />
+        )}
+
+        {/* Central Graphic / Icon Symbol (Shown as fallback or while loading) */}
+        {(!displayImage || imageError || !imageLoaded) && (
+          <div className="absolute inset-0 flex items-center justify-center p-2 sm:p-4 md:p-6 transition-transform duration-300 group-hover:scale-105">
+            <div className={cn(
+              "w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-md sm:shadow-lg transition-transform",
+              product.iconBg || 'bg-blue-600 text-white'
+            )}>
+              {product.category === 'thinkers' && <Brain className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 stroke-[1.75]" />}
+              {product.category === 'brave' && <Compass className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 stroke-[1.75]" />}
+              {product.category === 'solvers' && <Wrench className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 stroke-[1.75]" />}
+              {product.category === 'heart' && <HeartIcon className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 stroke-[1.75]" />}
+              {!['thinkers', 'brave', 'solvers', 'heart'].includes(product.category) && (
+                <Sparkles className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 stroke-[1.75]" />
+              )}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Top Badges (Bestseller, New, Discount) */}
         <div className="absolute top-2 left-2 sm:top-3 sm:left-3 flex flex-col gap-1 z-10">

@@ -40,6 +40,10 @@ export const MarketplaceImageGallery: React.FC<MarketplaceImageGalleryProps> = (
   const { t, direction } = useLanguage();
   const [activeIndex, setActiveIndex] = useState<number>(0);
   const [isLightboxOpen, setIsLightboxOpen] = useState<boolean>(false);
+  const [mainImageError, setMainImageError] = useState<boolean>(false);
+  const [lightboxImageError, setLightboxImageError] = useState<boolean>(false);
+
+  const displayImage = (product.images && product.images.length > 0 && product.images[0]) || product.imageUrl || product.image;
 
   const slides: GallerySlide[] = [
     {
@@ -84,6 +88,8 @@ export const MarketplaceImageGallery: React.FC<MarketplaceImageGalleryProps> = (
   if (product.id !== prevProductId) {
     setPrevProductId(product.id);
     setActiveIndex(0);
+    setMainImageError(false);
+    setLightboxImageError(false);
   }
 
   const handlePrev = useCallback(() => {
@@ -238,13 +244,24 @@ export const MarketplaceImageGallery: React.FC<MarketplaceImageGalleryProps> = (
           
           {/* VIEW 1: OVERVIEW HERO */}
           {currentSlide.type === 'overview' && (
-            <div className="flex flex-col items-center justify-center gap-4 text-center animate-in fade-in zoom-in-95 duration-300">
-              <div className={cn(
-                "w-36 h-36 sm:w-44 sm:h-44 rounded-3xl flex items-center justify-center shadow-2xl transition-transform duration-500 group-hover:scale-105",
-                product.iconBg || 'bg-blue-600 text-white'
-              )}>
-                {renderProductIcon("w-20 h-20 sm:w-24 sm:h-24")}
-              </div>
+            <div className="w-full h-full flex flex-col items-center justify-center gap-3 sm:gap-4 text-center animate-in fade-in zoom-in-95 duration-300 relative">
+              {displayImage && !mainImageError ? (
+                <div className="relative w-full h-full max-h-[80%] sm:max-h-[82%] flex items-center justify-center p-2">
+                  <img
+                    src={displayImage}
+                    alt={product.title}
+                    onError={() => setMainImageError(true)}
+                    className="max-h-full max-w-full object-contain rounded-2xl shadow-xl transition-transform duration-500 group-hover:scale-105"
+                  />
+                </div>
+              ) : (
+                <div className={cn(
+                  "w-36 h-36 sm:w-44 sm:h-44 rounded-3xl flex items-center justify-center shadow-2xl transition-transform duration-500 group-hover:scale-105",
+                  product.iconBg || 'bg-blue-600 text-white'
+                )}>
+                  {renderProductIcon("w-20 h-20 sm:w-24 sm:h-24")}
+                </div>
+              )}
 
               <div className="max-w-xs">
                 <span className="inline-block px-3 py-1 rounded-full text-xs font-bold bg-white/90 dark:bg-slate-900/90 text-slate-800 dark:text-slate-200 shadow-sm backdrop-blur-md">
@@ -459,16 +476,22 @@ export const MarketplaceImageGallery: React.FC<MarketplaceImageGalleryProps> = (
             >
               {/* Miniature Icon preview */}
               <div className={cn(
-                "w-7 h-7 sm:w-8 sm:h-8 rounded-xl flex items-center justify-center text-xs transition-transform group-hover:scale-110",
+                "w-7 h-7 sm:w-8 sm:h-8 rounded-xl overflow-hidden flex items-center justify-center text-xs transition-transform group-hover:scale-110",
                 isSelected
                   ? "bg-[#016ba5] text-white"
                   : "bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300"
               )}>
-                {slide.type === 'overview' && <Eye className="w-4 h-4" />}
-                {slide.type === 'schematic' && <Cpu className="w-4 h-4" />}
-                {slide.type === 'components' && <Layers className="w-4 h-4" />}
-                {slide.type === 'quest_pass' && <Award className="w-4 h-4" />}
-                {slide.type === 'inaction' && <ShieldCheck className="w-4 h-4" />}
+                {slide.type === 'overview' && displayImage && !mainImageError ? (
+                  <img src={displayImage} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  <>
+                    {slide.type === 'overview' && <Eye className="w-4 h-4" />}
+                    {slide.type === 'schematic' && <Cpu className="w-4 h-4" />}
+                    {slide.type === 'components' && <Layers className="w-4 h-4" />}
+                    {slide.type === 'quest_pass' && <Award className="w-4 h-4" />}
+                    {slide.type === 'inaction' && <ShieldCheck className="w-4 h-4" />}
+                  </>
+                )}
               </div>
 
               <span className={cn(
@@ -549,12 +572,21 @@ export const MarketplaceImageGallery: React.FC<MarketplaceImageGalleryProps> = (
               />
 
               <div className="relative z-10 flex flex-col items-center justify-center text-center gap-4">
-                <div className={cn(
-                  "w-36 h-36 rounded-3xl flex items-center justify-center shadow-2xl",
-                  product.iconBg || 'bg-blue-600 text-white'
-                )}>
-                  {renderProductIcon("w-20 h-20")}
-                </div>
+                {displayImage && !lightboxImageError ? (
+                  <img
+                    src={displayImage}
+                    alt={product.title}
+                    onError={() => setLightboxImageError(true)}
+                    className="max-h-60 sm:max-h-72 object-contain rounded-2xl shadow-2xl"
+                  />
+                ) : (
+                  <div className={cn(
+                    "w-36 h-36 rounded-3xl flex items-center justify-center shadow-2xl",
+                    product.iconBg || 'bg-blue-600 text-white'
+                  )}>
+                    {renderProductIcon("w-20 h-20")}
+                  </div>
+                )}
                 <p className="text-sm font-bold text-slate-200 max-w-md">
                   {product.title} • {currentSlide.subtitle}
                 </p>
