@@ -12,7 +12,7 @@ import {
   Wrench,
   Heart as HeartIcon
 } from 'lucide-react';
-import { formatPrice, type Product } from '../../services/marketplaceService';
+import { formatPrice, getProductDisplayImage, type Product } from '../../services/marketplaceService';
 import { useLanguage } from '../../context/LanguageContext';
 import { cn } from '../../lib/utils';
 
@@ -35,10 +35,14 @@ export const MarketplaceProductCard: React.FC<MarketplaceProductCardProps> = ({
 }) => {
   const { t, language } = useLanguage();
   const [justAdded, setJustAdded] = useState(false);
-  const [imageLoaded, setImageLoaded] = useState(false);
-  const [imageError, setImageError] = useState(false);
+  const [loadedUrl, setLoadedUrl] = useState<string | null>(null);
+  const [errorUrl, setErrorUrl] = useState<string | null>(null);
 
-  const displayImage = (product.images && product.images.length > 0 && product.images[0]) || product.imageUrl || product.image;
+  // Prioritizes: product.image_url -> product.image -> product.images[0] -> product.imageUrl
+  // and resolves any Supabase Storage relative paths to full public CDN URLs
+  const displayImage = getProductDisplayImage(product);
+  const isLoaded = Boolean(displayImage && loadedUrl === displayImage);
+  const isError = Boolean(displayImage && errorUrl === displayImage);
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -66,28 +70,35 @@ export const MarketplaceProductCard: React.FC<MarketplaceProductCardProps> = ({
           style={{ backgroundColor: product.accentColor || '#016ba5' }}
         />
 
-        {/* Product Image preview */}
-        {displayImage && !imageError && (
+        {/* Product Image preview (covers the card's header area) */}
+        {displayImage && !isError && (
           <img
+            key={displayImage}
             src={displayImage}
             alt={product.title}
             loading="lazy"
-            onLoad={() => setImageLoaded(true)}
-            onError={() => setImageError(true)}
+            decoding="async"
+            onLoad={() => setLoadedUrl(displayImage)}
+            onError={() => setErrorUrl(displayImage)}
             className={cn(
               "absolute inset-0 w-full h-full object-cover transition-all duration-500 group-hover:scale-105",
-              imageLoaded ? "opacity-100" : "opacity-0"
+              isLoaded ? "opacity-100" : "opacity-0"
             )}
           />
         )}
 
+        {/* Loading skeleton placeholder while displayImage is loading */}
+        {displayImage && !isError && !isLoaded && (
+          <div className="absolute inset-0 bg-slate-200/60 dark:bg-slate-700/60 animate-pulse pointer-events-none" />
+        )}
+
         {/* Soft vignette overlay on image for contrast with badges */}
-        {displayImage && !imageError && imageLoaded && (
+        {displayImage && !isError && isLoaded && (
           <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-slate-950/30 pointer-events-none" />
         )}
 
-        {/* Central Graphic / Icon Symbol (Shown as fallback or while loading) */}
-        {(!displayImage || imageError || !imageLoaded) && (
+        {/* Central Graphic / Icon Symbol (Shown ONLY as fallback if no image or image error) */}
+        {(!displayImage || isError) && (
           <div className="absolute inset-0 flex items-center justify-center p-2 sm:p-4 md:p-6 transition-transform duration-300 group-hover:scale-105">
             <div className={cn(
               "w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-md sm:shadow-lg transition-transform",

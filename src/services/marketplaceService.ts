@@ -106,6 +106,7 @@ export interface Product {
   images?: string[];
   imageUrl?: string;
   image?: string;
+  image_url?: string;
   variants?: ProductVariant[];
   xpBonus: number;
   rating: number;
@@ -141,12 +142,13 @@ export interface CreateOrderInput {
   shippingCost: number;
   totalAmount: number;
   totalXp: number;
+  notes?: string;
 }
 
 export interface OrderConfirmation {
   orderId: string;
-  status: 'confirmed' | 'processing' | 'saved_locally';
-  createdAt: string;
+  status: 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
+  createdAt?: string;
   totalAmount: number;
   totalXp: number;
   isSupabaseSaved: boolean;
@@ -159,6 +161,63 @@ export interface SupabaseHealth {
   message: string;
   productCount: number;
 }
+
+/**
+ * Resolves any raw product image reference (full URL, relative path, or bucket key)
+ * into a fully-qualified accessible public URL.
+ */
+export const resolveProductImageUrl = (raw?: string | null): string | null => {
+  if (!raw || typeof raw !== 'string') return null;
+  const trimmed = raw.trim();
+  if (!trimmed || trimmed === 'null' || trimmed === 'undefined') return null;
+
+  // Already a full HTTP/HTTPS URL or Data URI / Blob
+  if (
+    trimmed.startsWith('http://') ||
+    trimmed.startsWith('https://') ||
+    trimmed.startsWith('data:') ||
+    trimmed.startsWith('blob:') ||
+    trimmed.startsWith('//')
+  ) {
+    return trimmed;
+  }
+
+  // If Supabase is configured and it's a relative storage path (e.g. 'products/abc.jpg' or 'product-images/products/abc.jpg')
+  if (isSupabaseConfigured()) {
+    try {
+      const cleanPath = trimmed.replace(/^(product-images\/|\/product-images\/)/, '').replace(/^\/+/, '');
+      const { data } = supabase.storage.from('product-images').getPublicUrl(cleanPath);
+      if (data?.publicUrl) {
+        return data.publicUrl;
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  return trimmed;
+};
+
+/**
+ * Extracts and prioritizes the primary product image URL from all possible properties:
+ * Prioritizes: product.image_url, product.image, product.images[0], product.imageUrl
+ */
+export const getProductDisplayImage = (product?: Partial<Product> | null): string | null => {
+  if (!product) return null;
+
+  // 1. Check product.image_url (direct Supabase field)
+  // 2. Check product.image
+  // 3. Check product.images[0]
+  // 4. Check product.imageUrl
+  const candidate =
+    (product as any).image_url ||
+    product.image ||
+    (Array.isArray(product.images) && product.images.length > 0 ? product.images[0] : null) ||
+    product.imageUrl ||
+    null;
+
+  return resolveProductImageUrl(candidate);
+};
 
 /**
  * Curated default catalog of 8 official AbtalQuest products.
@@ -187,6 +246,7 @@ export const DEFAULT_PRODUCTS: Product[] = [
     ],
     imageUrl: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80',
     image: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80',
+    image_url: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80',
     variants: [
       { id: 'edition', name: 'Pack Edition', options: ['Standard Kit', 'Deluxe Co-Quest Box', 'Academy Class Pack (5x)'] },
       { id: 'language', name: 'Quest Language', options: ['Bilingual (Arabic / English)', 'Bilingual (Arabic / French)', 'English Edition'] }
@@ -249,6 +309,7 @@ export const DEFAULT_PRODUCTS: Product[] = [
     ],
     imageUrl: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=800&q=80',
     image: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=800&q=80',
+    image_url: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=800&q=80',
     variants: [
       { id: 'cover', name: 'Format', options: ['Hardcover Collector Edition', 'Softcover Explorer Edition'] },
       { id: 'language', name: 'Story Language', options: ['Bilingual (Arabic / English)', 'Bilingual (Arabic / French)', 'Pure Arabic Calligraphy'] }
@@ -304,6 +365,7 @@ export const DEFAULT_PRODUCTS: Product[] = [
     ],
     imageUrl: 'https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?auto=format&fit=crop&w=800&q=80',
     image: 'https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?auto=format&fit=crop&w=800&q=80',
+    image_url: 'https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?auto=format&fit=crop&w=800&q=80',
     variants: [
       { id: 'strap', name: 'Lanyard Style', options: ['Desert Ochre Braided', 'Oasis Teal Braided', 'Night Obsidian'] },
       { id: 'language', name: 'Journal Guide', options: ['Bilingual (Arabic / English)', 'Bilingual (Arabic / French)'] }
@@ -359,6 +421,7 @@ export const DEFAULT_PRODUCTS: Product[] = [
     ],
     imageUrl: 'https://images.unsplash.com/photo-1518241353330-0f7941c2d9b5?auto=format&fit=crop&w=800&q=80',
     image: 'https://images.unsplash.com/photo-1518241353330-0f7941c2d9b5?auto=format&fit=crop&w=800&q=80',
+    image_url: 'https://images.unsplash.com/photo-1518241353330-0f7941c2d9b5?auto=format&fit=crop&w=800&q=80',
     variants: [
       { id: 'sandColor', name: 'Mineral Sand Hue', options: ['Sunrise Amber', 'Deep Azure Sky', 'Sage Oasis'] },
       { id: 'duration', name: 'Timer Duration', options: ['3-Minute Calm Breath', '5-Minute Deep Reflection'] }
@@ -414,6 +477,7 @@ export const DEFAULT_PRODUCTS: Product[] = [
     ],
     imageUrl: 'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?auto=format&fit=crop&w=800&q=80',
     image: 'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?auto=format&fit=crop&w=800&q=80',
+    image_url: 'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?auto=format&fit=crop&w=800&q=80',
     variants: [
       { id: 'edition', name: 'Kit Variant', options: ['Standard Sluice Arm', 'Hydraulic Master Workshop (+ Reservoir Grid)'] },
       { id: 'language', name: 'Engineering Manual', options: ['Bilingual (Arabic / English)', 'Bilingual (Arabic / French)'] }
@@ -469,6 +533,7 @@ export const DEFAULT_PRODUCTS: Product[] = [
     ],
     imageUrl: 'https://images.unsplash.com/photo-1606167668584-78701c57f13d?auto=format&fit=crop&w=800&q=80',
     image: 'https://images.unsplash.com/photo-1606167668584-78701c57f13d?auto=format&fit=crop&w=800&q=80',
+    image_url: 'https://images.unsplash.com/photo-1606167668584-78701c57f13d?auto=format&fit=crop&w=800&q=80',
     variants: [
       { id: 'edition', name: 'Deck Edition', options: ['Explorer Core (120 Cards)', 'Expanded Clan Edition (220 Cards + Wooden Tokens)'] },
       { id: 'language', name: 'Card Language', options: ['Bilingual (Arabic / English)', 'Bilingual (Arabic / French)'] }
@@ -524,6 +589,7 @@ export const DEFAULT_PRODUCTS: Product[] = [
     ],
     imageUrl: 'https://images.unsplash.com/photo-1632516643720-e7f5d7d6ecc9?auto=format&fit=crop&w=800&q=80',
     image: 'https://images.unsplash.com/photo-1632516643720-e7f5d7d6ecc9?auto=format&fit=crop&w=800&q=80',
+    image_url: 'https://images.unsplash.com/photo-1632516643720-e7f5d7d6ecc9?auto=format&fit=crop&w=800&q=80',
     variants: [
       { id: 'edition', name: 'Board Size', options: ['Family Tabletop Edition', 'Grand Deluxe Velvet Box'] },
       { id: 'language', name: 'Game Language', options: ['Bilingual (Arabic / English)', 'Bilingual (Arabic / French)', 'French Edition'] }
@@ -579,6 +645,7 @@ export const DEFAULT_PRODUCTS: Product[] = [
     ],
     imageUrl: 'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&w=800&q=80',
     image: 'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&w=800&q=80',
+    image_url: 'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&w=800&q=80',
     variants: [
       { id: 'candle', name: 'LED Candle Light', options: ['Warm Starlight Glow', 'Soft Amber Flicker'] },
       { id: 'language', name: 'Scroll Prompts', options: ['Bilingual (Arabic / English)', 'Bilingual (Arabic / French)'] }

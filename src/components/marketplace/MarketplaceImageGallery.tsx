@@ -16,7 +16,7 @@ import {
   Award,
   Eye
 } from 'lucide-react';
-import type { Product } from '../../services/marketplaceService';
+import { getProductDisplayImage, type Product } from '../../services/marketplaceService';
 import { useLanguage } from '../../context/LanguageContext';
 import { cn } from '../../lib/utils';
 
@@ -43,7 +43,9 @@ export const MarketplaceImageGallery: React.FC<MarketplaceImageGalleryProps> = (
   const [mainImageError, setMainImageError] = useState<boolean>(false);
   const [lightboxImageError, setLightboxImageError] = useState<boolean>(false);
 
-  const displayImage = (product.images && product.images.length > 0 && product.images[0]) || product.imageUrl || product.image;
+  // Prioritizes: product.image_url -> product.image -> product.images[0] -> product.imageUrl
+  // and resolves any Supabase Storage relative paths to full public CDN URLs
+  const displayImage = getProductDisplayImage(product);
 
   const slides: GallerySlide[] = [
     {

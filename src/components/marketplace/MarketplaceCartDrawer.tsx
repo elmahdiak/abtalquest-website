@@ -9,7 +9,7 @@ import {
   ArrowRight, 
   Truck 
 } from 'lucide-react';
-import { formatPrice, type Product } from '../../services/marketplaceService';
+import { formatPrice, getProductDisplayImage, type Product } from '../../services/marketplaceService';
 import { useLanguage } from '../../context/LanguageContext';
 import { cn } from '../../lib/utils';
 
@@ -132,7 +132,7 @@ export const MarketplaceCartDrawer: React.FC<MarketplaceCartDrawerProps> = ({
                 >
                   {/* Thumbnail */}
                   {(() => {
-                    const itemImage = (product.images && product.images.length > 0 && product.images[0]) || product.imageUrl || product.image;
+                    const itemImage = getProductDisplayImage(product);
                     return (
                       <div
                         onClick={() => {
