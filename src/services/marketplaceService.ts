@@ -1103,29 +1103,16 @@ export const createProduct = async (prod: Omit<Product, 'id'> & { id?: string })
     images: rawImages,
     imageUrl: primaryImage,
     image: primaryImage,
+    image_url: primaryImage,
     tags: prod.tags || [],
     safetyGuidelines: prod.safetyGuidelines || [],
     skillsLearned: prod.skillsLearned || [],
     reviews: prod.reviews || [],
   };
 
-  // Local storage mirror
-  if (typeof window !== 'undefined') {
-    const raw = localStorage.getItem('abtalquest_products_override');
-    const existing: Product[] = raw ? JSON.parse(raw) : [...DEFAULT_PRODUCTS];
-    const filtered = existing.filter((p) => p.id !== productId);
-    filtered.unshift(newProduct);
-    localStorage.setItem('abtalquest_products_override', JSON.stringify(filtered));
-    try {
-      window.dispatchEvent(new CustomEvent('abtalquest_product_updated', { detail: newProduct }));
-    } catch {
-      // ignore
-    }
-  }
-
   if (isSupabaseConfigured()) {
     try {
-      const { error } = await supabase.from('products').insert({
+      const insertPayload = {
         id: newProduct.id,
         sku: newProduct.sku,
         title: newProduct.title,
@@ -1155,13 +1142,31 @@ export const createProduct = async (prod: Omit<Product, 'id'> & { id?: string })
         safety_guidelines: newProduct.safetyGuidelines || [],
         skills_learned: newProduct.skillsLearned || [],
         reviews: newProduct.reviews || [],
-      });
+      };
+
+      const { error } = await supabase.from('products').insert(insertPayload);
 
       if (error) {
-        console.warn('[AbtalQuest Supabase] Create product notice:', error.message);
+        console.error('[AbtalQuest Supabase] Create product failed:', error);
+        throw new Error(`Failed to save product to Supabase: ${error.message || 'Database error'} (${error.code || 'UNKNOWN'})`);
       }
-    } catch (err) {
-      console.warn('[AbtalQuest Supabase] Create product exception:', err);
+    } catch (err: any) {
+      console.error('[AbtalQuest Supabase] Create product exception:', err);
+      throw err;
+    }
+  }
+
+  // Local storage mirror updated on successful insert (or offline mode)
+  if (typeof window !== 'undefined') {
+    const raw = localStorage.getItem('abtalquest_products_override');
+    const existing: Product[] = raw ? JSON.parse(raw) : [...DEFAULT_PRODUCTS];
+    const filtered = existing.filter((p) => p.id !== productId);
+    filtered.unshift(newProduct);
+    localStorage.setItem('abtalquest_products_override', JSON.stringify(filtered));
+    try {
+      window.dispatchEvent(new CustomEvent('abtalquest_product_updated', { detail: newProduct }));
+    } catch {
+      // ignore
     }
   }
 
@@ -1170,44 +1175,6 @@ export const createProduct = async (prod: Omit<Product, 'id'> & { id?: string })
 
 export const updateProduct = async (id: string, updates: Partial<Product>): Promise<Product> => {
   let updatedProduct: Product;
-
-  // Local storage mirror
-  if (typeof window !== 'undefined') {
-    const raw = localStorage.getItem('abtalquest_products_override');
-    const existing: Product[] = raw ? JSON.parse(raw) : [...DEFAULT_PRODUCTS];
-    const idx = existing.findIndex((p) => p.id === id);
-    if (idx >= 0) {
-      const mergedImages: string[] = updates.images || existing[idx].images || [];
-      if (updates.imageUrl && !mergedImages.includes(updates.imageUrl)) {
-        mergedImages.unshift(updates.imageUrl);
-      }
-      if (updates.image && !mergedImages.includes(updates.image)) {
-        mergedImages.unshift(updates.image);
-      }
-      const prime = mergedImages[0] || undefined;
-
-      updatedProduct = {
-        ...existing[idx],
-        ...updates,
-        images: mergedImages,
-        imageUrl: prime,
-        image: prime,
-      };
-      existing[idx] = updatedProduct;
-    } else {
-      const defaultMatch = DEFAULT_PRODUCTS.find((p) => p.id === id);
-      updatedProduct = { ...(defaultMatch || DEFAULT_PRODUCTS[0]), ...updates, id };
-      existing.unshift(updatedProduct);
-    }
-    localStorage.setItem('abtalquest_products_override', JSON.stringify(existing));
-    try {
-      window.dispatchEvent(new CustomEvent('abtalquest_product_updated', { detail: updatedProduct }));
-    } catch {
-      // ignore
-    }
-  } else {
-    updatedProduct = { ...(DEFAULT_PRODUCTS[0]), ...updates, id };
-  }
 
   if (isSupabaseConfigured()) {
     try {
@@ -1220,7 +1187,7 @@ export const updateProduct = async (id: string, updates: Partial<Product>): Prom
       if (updates.ageGroup !== undefined) payload.age_group = updates.ageGroup;
       if (updates.ageLabel !== undefined) payload.age_label = updates.ageLabel;
       if (updates.price !== undefined) payload.price = updates.price;
-      if (updates.originalPrice !== undefined) payload.original_price = updates.originalPrice;
+      if (updates.originalPrice !== undefined) payload.original_price = updates.originalPrice || null;
       if (updates.discountPercent !== undefined) payload.discount_percent = updates.discountPercent;
       if (updates.inStock !== undefined) payload.in_stock = updates.inStock;
       if (updates.stockCount !== undefined) payload.stock_count = updates.stockCount;
@@ -1242,6 +1209,9 @@ export const updateProduct = async (id: string, updates: Partial<Product>): Prom
           payload.images = updates.image ? [updates.image] : [];
         }
       }
+      if ((updates as any).image_url !== undefined) {
+        payload.image_url = (updates as any).image_url || null;
+      }
       if (updates.variants !== undefined) payload.variants = updates.variants;
       if (updates.xpBonus !== undefined) payload.xp_bonus = updates.xpBonus;
       if (updates.rating !== undefined) payload.rating = updates.rating;
@@ -1255,16 +1225,76 @@ export const updateProduct = async (id: string, updates: Partial<Product>): Prom
       if (updates.skillsLearned !== undefined) payload.skills_learned = updates.skillsLearned;
       if (updates.reviews !== undefined) payload.reviews = updates.reviews;
 
-      await supabase.from('products').update(payload).eq('id', id);
-    } catch (err) {
-      console.warn('[AbtalQuest Supabase] Update product error:', err);
+      const { error } = await supabase.from('products').update(payload).eq('id', id);
+      if (error) {
+        console.error('[AbtalQuest Supabase] Update product failed:', error);
+        throw new Error(`Failed to update product in Supabase: ${error.message || 'Database error'} (${error.code || 'UNKNOWN'})`);
+      }
+    } catch (err: any) {
+      console.error('[AbtalQuest Supabase] Update product exception:', err);
+      throw err;
     }
+  }
+
+  // Local storage mirror updated on successful update (or offline mode)
+  if (typeof window !== 'undefined') {
+    const raw = localStorage.getItem('abtalquest_products_override');
+    const existing: Product[] = raw ? JSON.parse(raw) : [...DEFAULT_PRODUCTS];
+    const idx = existing.findIndex((p) => p.id === id);
+    if (idx >= 0) {
+      const mergedImages: string[] = updates.images || existing[idx].images || [];
+      if (updates.imageUrl && !mergedImages.includes(updates.imageUrl)) {
+        mergedImages.unshift(updates.imageUrl);
+      }
+      if (updates.image && !mergedImages.includes(updates.image)) {
+        mergedImages.unshift(updates.image);
+      }
+      if ((updates as any).image_url && !mergedImages.includes((updates as any).image_url)) {
+        mergedImages.unshift((updates as any).image_url);
+      }
+      const prime = mergedImages[0] || undefined;
+
+      updatedProduct = {
+        ...existing[idx],
+        ...updates,
+        images: mergedImages,
+        imageUrl: prime,
+        image: prime,
+        image_url: prime,
+      };
+      existing[idx] = updatedProduct;
+    } else {
+      const defaultMatch = DEFAULT_PRODUCTS.find((p) => p.id === id);
+      updatedProduct = { ...(defaultMatch || DEFAULT_PRODUCTS[0]), ...updates, id };
+      existing.unshift(updatedProduct);
+    }
+    localStorage.setItem('abtalquest_products_override', JSON.stringify(existing));
+    try {
+      window.dispatchEvent(new CustomEvent('abtalquest_product_updated', { detail: updatedProduct }));
+    } catch {
+      // ignore
+    }
+  } else {
+    updatedProduct = { ...(DEFAULT_PRODUCTS[0]), ...updates, id };
   }
 
   return updatedProduct;
 };
 
 export const deleteProduct = async (id: string): Promise<boolean> => {
+  if (isSupabaseConfigured()) {
+    try {
+      const { error } = await supabase.from('products').delete().eq('id', id);
+      if (error) {
+        console.error('[AbtalQuest Supabase] Delete product failed:', error);
+        throw new Error(`Failed to delete product in Supabase: ${error.message || 'Database error'} (${error.code || 'UNKNOWN'})`);
+      }
+    } catch (err: any) {
+      console.error('[AbtalQuest Supabase] Delete product exception:', err);
+      throw err;
+    }
+  }
+
   if (typeof window !== 'undefined') {
     const raw = localStorage.getItem('abtalquest_products_override');
     const existing: Product[] = raw ? JSON.parse(raw) : [...DEFAULT_PRODUCTS];
@@ -1274,15 +1304,6 @@ export const deleteProduct = async (id: string): Promise<boolean> => {
       window.dispatchEvent(new CustomEvent('abtalquest_product_updated', { detail: { id, deleted: true } }));
     } catch {
       // ignore
-    }
-  }
-
-  if (isSupabaseConfigured()) {
-    try {
-      const { error } = await supabase.from('products').delete().eq('id', id);
-      return !error;
-    } catch {
-      return false;
     }
   }
 

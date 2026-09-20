@@ -144,6 +144,8 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [deletingProduct, setDeletingProduct] = useState<Product | null>(null);
   const [deletingProductSubmitting, setDeletingProductSubmitting] = useState<boolean>(false);
+  const [deletingProductError, setDeletingProductError] = useState<string | null>(null);
+  const [productActionSuccess, setProductActionSuccess] = useState<string | null>(null);
 
   // Product Form state
   const [prodTitle, setProdTitle] = useState<string>('');
@@ -431,11 +433,13 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
       const numStock = prodStockCount ? parseInt(prodStockCount, 10) : 15;
       const numXp = prodXpBonus ? parseInt(prodXpBonus, 10) : 300;
 
+      const matchedCategory = categoriesList.find((c) => c.id === prodCategory || c.slug === prodCategory);
+
       const productData: Partial<Product> = {
         title: prodTitle.trim(),
         sku: prodSku.trim() || undefined,
         category: prodCategory,
-        planetName: prodPlanetName.trim() || 'AbtalQuest Universe',
+        planetName: prodPlanetName.trim() || matchedCategory?.planetName || 'AbtalQuest Universe',
         productType: prodProductType,
         ageGroup: prodAgeGroup,
         ageLabel: prodAgeLabel.trim() || `Ages ${prodAgeGroup}`,
@@ -454,20 +458,27 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
         images: prodImageUrl.trim() ? [prodImageUrl.trim()] : [],
         imageUrl: prodImageUrl.trim() || undefined,
         image: prodImageUrl.trim() || undefined,
+        image_url: prodImageUrl.trim() || undefined,
+        accentColor: matchedCategory?.accentColor || '#016ba5',
+        iconBg: matchedCategory?.accentColor ? `bg-[${matchedCategory.accentColor}]/10 text-[${matchedCategory.accentColor}]` : undefined,
       };
 
       if (editingProduct) {
         await updateProduct(editingProduct.id, productData);
+        setProductActionSuccess(`Product "${prodTitle.trim()}" updated successfully in Supabase!`);
       } else {
         await createProduct(productData as any);
+        setProductActionSuccess(`Product "${prodTitle.trim()}" created successfully in Supabase!`);
       }
 
       const refreshed = await fetchMarketplaceProducts();
       setProductsList(refreshed.products);
       setShowProductModal(false);
       setEditingProduct(null);
+      setTimeout(() => setProductActionSuccess(null), 6000);
     } catch (err: any) {
-      setProdModalError(err?.message || 'Failed to save product');
+      console.error('[AdminPortal] Error saving product to Supabase:', err);
+      setProdModalError(err?.message || 'Failed to save product to Supabase. Please verify database connection and schema.');
     } finally {
       setProdSubmitting(false);
     }
@@ -476,13 +487,18 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
   const handleConfirmDeleteProduct = async () => {
     if (!deletingProduct) return;
     setDeletingProductSubmitting(true);
+    setDeletingProductError(null);
     try {
+      const deletedTitle = deletingProduct.title;
       await deleteProduct(deletingProduct.id);
       const refreshed = await fetchMarketplaceProducts();
       setProductsList(refreshed.products);
       setDeletingProduct(null);
+      setProductActionSuccess(`Product "${deletedTitle}" deleted successfully from Supabase.`);
+      setTimeout(() => setProductActionSuccess(null), 6000);
     } catch (err: any) {
-      console.warn('Failed to delete product:', err);
+      console.error('[AdminPortal] Failed to delete product:', err);
+      setDeletingProductError(err?.message || 'Failed to delete product from Supabase. Check database permissions.');
     } finally {
       setDeletingProductSubmitting(false);
     }
@@ -2002,6 +2018,23 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
                     </Button>
                   </div>
                 </div>
+
+                {/* Success Notification Banner */}
+                {productActionSuccess && (
+                  <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200/90 flex items-center justify-between text-xs font-headline font-bold text-emerald-800 shadow-sm animate-fadeIn">
+                    <div className="flex items-center gap-2.5">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <span>{productActionSuccess}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setProductActionSuccess(null)}
+                      className="p-1 text-emerald-500 hover:text-emerald-800 rounded-lg hover:bg-emerald-100 transition-colors cursor-pointer"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
 
                 {/* Metric Summary Cards */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
@@ -3745,15 +3778,25 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
             <h3 className="font-headline text-xl font-black text-slate-900 mb-2">
               Delete Product?
             </h3>
-            <p className="font-body text-xs text-slate-500 mb-6 leading-relaxed">
+            <p className="font-body text-xs text-slate-500 mb-5 leading-relaxed">
               Are you sure you want to permanently delete <strong>{deletingProduct.title}</strong>? This will remove the item from the Supabase products table and all customer marketplace catalogs.
             </p>
+
+            {deletingProductError && (
+              <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 flex items-start gap-2.5 text-xs font-body text-red-600 mb-5">
+                <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+                <span>{deletingProductError}</span>
+              </div>
+            )}
 
             <div className="flex items-center justify-end gap-3">
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setDeletingProduct(null)}
+                onClick={() => {
+                  setDeletingProduct(null);
+                  setDeletingProductError(null);
+                }}
               >
                 Cancel
               </Button>
