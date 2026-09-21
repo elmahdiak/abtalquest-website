@@ -7,7 +7,46 @@ import {
   verifyEmailCode,
 } from './emailService';
 
-export type AdminRole = 'super_admin' | 'admin' | 'manager' | 'support_admin';
+export type AdminRole = 
+  | 'super_admin' 
+  | 'admin' 
+  | 'manager' 
+  | 'content_manager' 
+  | 'marketplace_manager' 
+  | 'support_admin' 
+  | 'support';
+
+export type AdminTabPermission = 
+  | 'orders' 
+  | 'products' 
+  | 'categories' 
+  | 'coupons' 
+  | 'blogs' 
+  | 'subscribers' 
+  | 'messages' 
+  | 'analytics' 
+  | 'settings' 
+  | 'team';
+
+export const ROLE_DEFAULT_PERMISSIONS: Record<AdminRole, AdminTabPermission[]> = {
+  super_admin: ['orders', 'products', 'categories', 'coupons', 'blogs', 'subscribers', 'messages', 'analytics', 'settings', 'team'],
+  admin: ['orders', 'products', 'categories', 'coupons', 'blogs', 'subscribers', 'messages', 'analytics', 'settings'],
+  marketplace_manager: ['orders', 'products', 'categories', 'coupons', 'analytics'],
+  content_manager: ['blogs', 'subscribers', 'messages', 'analytics'],
+  support_admin: ['orders', 'messages', 'subscribers'],
+  support: ['orders', 'messages', 'subscribers'],
+  manager: ['orders', 'products', 'categories', 'coupons', 'blogs', 'subscribers', 'messages', 'analytics'],
+};
+
+export const ROLE_DISPLAY_NAMES: Record<AdminRole, string> = {
+  super_admin: 'Super Admin',
+  admin: 'Full Administrator',
+  marketplace_manager: 'Marketplace Manager',
+  content_manager: 'Content Manager',
+  support_admin: 'Support Specialist',
+  support: 'Support Specialist',
+  manager: 'General Manager',
+};
 
 export interface AuthUserProfile {
   id: string;
@@ -25,6 +64,8 @@ export interface AdminUserRecord {
   isSuperAdmin: boolean;
   createdBy: string;
   createdAt: string;
+  updatedAt?: string;
+  permissions?: AdminTabPermission[];
 }
 
 // Master Super Administrator Credentials & Metadata
@@ -388,7 +429,7 @@ export const verifyIsAdmin = async (user: User | null): Promise<boolean> => {
 
   // 2. Check user metadata for manager or admin role
   const role = user.user_metadata?.role;
-  if (role === 'admin' || role === 'manager' || role === 'support_admin') {
+  if (role && ['admin', 'manager', 'content_manager', 'marketplace_manager', 'support_admin', 'support', 'super_admin'].includes(role)) {
     return true;
   }
 
@@ -401,7 +442,7 @@ export const verifyIsAdmin = async (user: User | null): Promise<boolean> => {
         .eq('email', email)
         .maybeSingle();
 
-      if (!error && data?.role && ['admin', 'manager', 'support_admin', 'super_admin'].includes(data.role)) {
+      if (!error && data?.role && ['admin', 'manager', 'content_manager', 'marketplace_manager', 'support_admin', 'support', 'super_admin'].includes(data.role)) {
         return true;
       }
     } catch {
@@ -443,6 +484,7 @@ export const getAdminUsersList = async (): Promise<AdminUserRecord[]> => {
     isSuperAdmin: true,
     createdBy: 'System Master Initializer',
     createdAt: '2026-09-18T16:42:42Z',
+    permissions: ROLE_DEFAULT_PERMISSIONS.super_admin,
   };
 
   let list: AdminUserRecord[] = [masterSuperAdmin];
@@ -456,15 +498,24 @@ export const getAdminUsersList = async (): Promise<AdminUserRecord[]> => {
         .order('created_at', { ascending: true });
 
       if (!error && data && data.length > 0) {
-        const remoteAdmins: AdminUserRecord[] = data.map((row) => ({
-          id: row.id,
-          email: row.email,
-          fullName: row.full_name || row.email.split('@')[0],
-          role: (row.role || 'admin') as AdminRole,
-          isSuperAdmin: row.email.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase(),
-          createdBy: row.created_by || 'ElMahdi Ak',
-          createdAt: row.created_at || new Date().toISOString(),
-        }));
+        const remoteAdmins: AdminUserRecord[] = data.map((row) => {
+          const role = (row.role || 'admin') as AdminRole;
+          const perms = Array.isArray(row.permissions) && row.permissions.length > 0
+            ? (row.permissions as AdminTabPermission[])
+            : ROLE_DEFAULT_PERMISSIONS[role] || ROLE_DEFAULT_PERMISSIONS.admin;
+
+          return {
+            id: row.id,
+            email: row.email,
+            fullName: row.full_name || row.email.split('@')[0],
+            role,
+            isSuperAdmin: row.email.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase(),
+            createdBy: row.created_by || 'ElMahdi Ak',
+            createdAt: row.created_at || new Date().toISOString(),
+            updatedAt: row.updated_at,
+            permissions: perms,
+          };
+        });
 
         const others = remoteAdmins.filter(
           (a) => a.email.toLowerCase() !== SUPER_ADMIN_EMAIL.toLowerCase()
@@ -483,9 +534,15 @@ export const getAdminUsersList = async (): Promise<AdminUserRecord[]> => {
       const localAdmins: AdminUserRecord[] = JSON.parse(raw);
       for (const la of localAdmins) {
         if (!list.some((existing) => existing.email.toLowerCase() === la.email.toLowerCase())) {
+          const role = (la.role || 'admin') as AdminRole;
+          const perms = Array.isArray(la.permissions) && la.permissions.length > 0
+            ? la.permissions
+            : ROLE_DEFAULT_PERMISSIONS[role] || ROLE_DEFAULT_PERMISSIONS.admin;
+
           list.push({
             ...la,
             isSuperAdmin: la.email.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase(),
+            permissions: perms,
           });
         }
       }
@@ -507,7 +564,8 @@ export const createAdminAccountBySuperAdmin = async (
     email: string;
     password: string;
     fullName: string;
-    role: 'manager' | 'admin' | 'support_admin';
+    role: AdminRole;
+    permissions?: AdminTabPermission[];
   },
   currentSuperAdminUser: User | null
 ): Promise<{ success: boolean; error: string | null }> => {
@@ -527,6 +585,11 @@ export const createAdminAccountBySuperAdmin = async (
     };
   }
 
+  const role = params.role;
+  const defaultPerms = ROLE_DEFAULT_PERMISSIONS[role] || ROLE_DEFAULT_PERMISSIONS.admin;
+  const permissions = params.permissions && params.permissions.length > 0 ? params.permissions : defaultPerms;
+  const isSuper = role === 'super_admin';
+
   try {
     // 1. Sign up user in Supabase Auth
     if (isSupabaseConfigured()) {
@@ -537,8 +600,9 @@ export const createAdminAccountBySuperAdmin = async (
           options: {
             data: {
               full_name: params.fullName,
-              role: params.role,
-              is_super_admin: false,
+              role,
+              permissions,
+              is_super_admin: isSuper,
               created_by: currentSuperAdminUser?.email || SUPER_ADMIN_EMAIL,
             },
           },
@@ -549,13 +613,25 @@ export const createAdminAccountBySuperAdmin = async (
 
       // 2. Insert into admin_users directory table
       try {
-        await supabase.from('admin_users').insert({
+        const { error: insertErr } = await supabase.from('admin_users').insert({
           email,
           full_name: params.fullName,
-          role: params.role,
-          is_super_admin: false,
+          role,
+          permissions,
+          is_super_admin: isSuper,
           created_by: currentSuperAdminUser?.email || SUPER_ADMIN_EMAIL,
         });
+
+        if (insertErr) {
+          // Fallback if permissions column is missing in remote DB
+          await supabase.from('admin_users').insert({
+            email,
+            full_name: params.fullName,
+            role,
+            is_super_admin: isSuper,
+            created_by: currentSuperAdminUser?.email || SUPER_ADMIN_EMAIL,
+          });
+        }
       } catch (err) {
         console.warn('Supabase admin_users insert warning:', err);
       }
@@ -566,10 +642,11 @@ export const createAdminAccountBySuperAdmin = async (
       id: `admin-${Date.now()}`,
       email,
       fullName: params.fullName,
-      role: params.role,
-      isSuperAdmin: false,
+      role,
+      isSuperAdmin: isSuper,
       createdBy: currentSuperAdminUser?.email || SUPER_ADMIN_EMAIL,
       createdAt: new Date().toISOString(),
+      permissions,
     };
 
     const raw = localStorage.getItem('abtalquest_admin_directory');
@@ -585,8 +662,9 @@ export const createAdminAccountBySuperAdmin = async (
       const creds = JSON.parse(credsRaw);
       creds[email] = {
         password: params.password,
-        role: params.role,
+        role,
         fullName: params.fullName,
+        permissions,
       };
       localStorage.setItem('abtalquest_admin_credentials', JSON.stringify(creds));
     } catch {
@@ -597,7 +675,7 @@ export const createAdminAccountBySuperAdmin = async (
     await sendAdminInvitationEmail({
       email,
       fullName: params.fullName,
-      role: params.role,
+      role,
       temporaryPass: params.password,
       appointedBy: currentSuperAdminUser?.email || SUPER_ADMIN_EMAIL,
     });
@@ -609,6 +687,178 @@ export const createAdminAccountBySuperAdmin = async (
       error: err instanceof Error ? err.message : 'Failed to provision account.',
     };
   }
+};
+
+/**
+ * Update Administrator Role & Permissions
+ * STRICT SECURITY: ONLY executable if caller is strictly the Super Administrator (ElMahdi Ak: akmahdi085@gmail.com)
+ */
+export const updateAdminUserRoleAndPermissions = async (
+  params: {
+    email: string;
+    fullName?: string;
+    role: AdminRole;
+    permissions: AdminTabPermission[];
+  },
+  currentSuperAdminUser: User | null
+): Promise<{ success: boolean; error: string | null; updatedRecord?: AdminUserRecord }> => {
+  if (!isSuperAdmin(currentSuperAdminUser)) {
+    return {
+      success: false,
+      error: 'Permission Denied: Only the Primary Super Administrator (ElMahdi Ak) can modify administrator access and roles.',
+    };
+  }
+
+  const normalized = params.email.trim().toLowerCase();
+  const isMasterOwner = normalized === SUPER_ADMIN_EMAIL.toLowerCase();
+
+  // Protect master owner from demotion
+  if (isMasterOwner && params.role !== 'super_admin') {
+    return {
+      success: false,
+      error: 'Protected Master Account: The Primary Super Administrator (akmahdi085@gmail.com) role cannot be modified or demoted.',
+    };
+  }
+
+  const role: AdminRole = isMasterOwner ? 'super_admin' : params.role;
+  const permissions: AdminTabPermission[] = isMasterOwner
+    ? ROLE_DEFAULT_PERMISSIONS.super_admin
+    : (params.permissions && params.permissions.length > 0
+        ? params.permissions
+        : (ROLE_DEFAULT_PERMISSIONS[role] || ['orders']));
+
+  const isSuper = role === 'super_admin';
+  const now = new Date().toISOString();
+
+  // 1. Update in Supabase if configured
+  if (isSupabaseConfigured()) {
+    try {
+      const { error: updateErr } = await supabase
+        .from('admin_users')
+        .update({
+          role,
+          full_name: params.fullName,
+          permissions,
+          is_super_admin: isSuper,
+          updated_at: now,
+        })
+        .eq('email', normalized);
+
+      if (updateErr) {
+        console.warn('Supabase full update warning, retrying basic fields:', updateErr.message);
+        await supabase
+          .from('admin_users')
+          .update({
+            role,
+            full_name: params.fullName,
+            is_super_admin: isSuper,
+          })
+          .eq('email', normalized);
+      }
+    } catch (err) {
+      console.warn('Error updating remote admin_users:', err);
+    }
+  }
+
+  // 2. Update local directory cache
+  let updatedRecord: AdminUserRecord | undefined;
+  try {
+    const raw = localStorage.getItem('abtalquest_admin_directory');
+    const list: AdminUserRecord[] = raw ? JSON.parse(raw) : [];
+    const index = list.findIndex((a) => a.email.toLowerCase() === normalized);
+
+    if (index >= 0) {
+      list[index] = {
+        ...list[index],
+        role,
+        fullName: params.fullName || list[index].fullName,
+        isSuperAdmin: isSuper,
+        permissions,
+        updatedAt: now,
+      };
+      updatedRecord = list[index];
+    } else {
+      updatedRecord = {
+        id: `admin-${Date.now()}`,
+        email: normalized,
+        fullName: params.fullName || normalized.split('@')[0],
+        role,
+        isSuperAdmin: isSuper,
+        createdBy: currentSuperAdminUser?.email || SUPER_ADMIN_EMAIL,
+        createdAt: now,
+        updatedAt: now,
+        permissions,
+      };
+      list.push(updatedRecord);
+    }
+    localStorage.setItem('abtalquest_admin_directory', JSON.stringify(list));
+
+    // Update stored credentials role & permissions
+    const credsRaw = localStorage.getItem('abtalquest_admin_credentials') || '{}';
+    const creds = JSON.parse(credsRaw);
+    if (creds[normalized]) {
+      creds[normalized].role = role;
+      creds[normalized].permissions = permissions;
+      if (params.fullName) creds[normalized].fullName = params.fullName;
+      localStorage.setItem('abtalquest_admin_credentials', JSON.stringify(creds));
+    }
+
+    // If currently active admin in session matches edited user, update active session
+    const activeAdminRaw = localStorage.getItem('abtalquest_active_admin');
+    if (activeAdminRaw) {
+      const activeAdmin = JSON.parse(activeAdminRaw);
+      if (activeAdmin.email?.toLowerCase() === normalized) {
+        activeAdmin.user_metadata = {
+          ...activeAdmin.user_metadata,
+          role,
+          permissions,
+          is_super_admin: isSuper,
+          full_name: params.fullName || activeAdmin.user_metadata?.full_name,
+        };
+        localStorage.setItem('abtalquest_active_admin', JSON.stringify(activeAdmin));
+      }
+    }
+  } catch (err) {
+    console.warn('Failed to update local storage admin:', err);
+  }
+
+  return { success: true, error: null, updatedRecord };
+};
+
+/**
+ * Check whether a user has permission to view/interact with a specific admin tab
+ */
+export const hasAdminTabPermission = (
+  user: User | null,
+  tab: AdminTabPermission,
+  customPermissions?: AdminTabPermission[]
+): boolean => {
+  if (!user || !user.email) return false;
+
+  // Primary Super Administrator always has full permission to everything
+  if (isSuperAdmin(user)) return true;
+
+  // Team tab is strictly Super Admin exclusive
+  if (tab === 'team') {
+    const role = (user.user_metadata?.role || '') as AdminRole;
+    return role === 'super_admin';
+  }
+
+  // If explicit customPermissions provided
+  if (customPermissions && customPermissions.length > 0) {
+    return customPermissions.includes(tab);
+  }
+
+  // Check user_metadata.permissions
+  const metaPerms = user.user_metadata?.permissions;
+  if (Array.isArray(metaPerms) && metaPerms.length > 0) {
+    return metaPerms.includes(tab);
+  }
+
+  // Fall back to role default permissions
+  const role = (user.user_metadata?.role || 'admin') as AdminRole;
+  const defaults = ROLE_DEFAULT_PERMISSIONS[role] || ROLE_DEFAULT_PERMISSIONS.admin;
+  return defaults.includes(tab);
 };
 
 /**

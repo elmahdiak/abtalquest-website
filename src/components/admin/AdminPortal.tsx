@@ -73,11 +73,17 @@ import {
   getAdminUsersList,
   createAdminAccountBySuperAdmin,
   removeAdminAccountBySuperAdmin,
+  updateAdminUserRoleAndPermissions,
+  hasAdminTabPermission,
+  ROLE_DEFAULT_PERMISSIONS,
+  ROLE_DISPLAY_NAMES,
   requestPasswordReset,
   verifyPasswordResetCode,
   completePasswordReset,
   SUPER_ADMIN_EMAIL,
-  type AdminUserRecord
+  type AdminUserRecord,
+  type AdminRole,
+  type AdminTabPermission
 } from '../../services/authService';
 import { 
   getAllOrdersForAdmin, 
@@ -343,10 +349,18 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
   const [newAdminFullName, setNewAdminFullName] = useState<string>('');
   const [newAdminEmail, setNewAdminEmail] = useState<string>('');
   const [newAdminPassword, setNewAdminPassword] = useState<string>('');
-  const [newAdminRole, setNewAdminRole] = useState<'manager' | 'admin' | 'support_admin'>('manager');
+  const [newAdminRole, setNewAdminRole] = useState<AdminRole>('manager');
   const [adminActionError, setAdminActionError] = useState<string | null>(null);
   const [adminActionSuccess, setAdminActionSuccess] = useState<string | null>(null);
   const [adminActionSubmitting, setAdminActionSubmitting] = useState<boolean>(false);
+
+  // Super Admin: Edit Manager Access & Role modal state
+  const [editingAdmin, setEditingAdmin] = useState<AdminUserRecord | null>(null);
+  const [editAdminFullName, setEditAdminFullName] = useState<string>('');
+  const [editAdminRole, setEditAdminRole] = useState<AdminRole>('manager');
+  const [editAdminPermissions, setEditAdminPermissions] = useState<AdminTabPermission[]>([]);
+  const [editAdminSubmitting, setEditAdminSubmitting] = useState<boolean>(false);
+  const [editAdminError, setEditAdminError] = useState<string | null>(null);
 
   // Orders filters
   const [orderSearch, setOrderSearch] = useState<string>('');
@@ -380,6 +394,27 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
   const [newSubError, setNewSubError] = useState<string | null>(null);
   const [copiedSubscribersSql, setCopiedSubscribersSql] = useState<boolean>(false);
   const [showSubscribersSqlModal, setShowSubscribersSqlModal] = useState<boolean>(false);
+
+  // Derive active user role and granular tab permissions
+  const currentUserRecord = adminList.find(
+    (a) => a.email.toLowerCase() === currentUser?.email?.toLowerCase()
+  );
+
+  const currentUserRole: AdminRole = isSuperAdmin(currentUser)
+    ? 'super_admin'
+    : (currentUserRecord?.role || (currentUser?.user_metadata?.role as AdminRole) || 'admin');
+
+  const currentUserPermissions: AdminTabPermission[] = isSuperAdmin(currentUser)
+    ? ROLE_DEFAULT_PERMISSIONS.super_admin
+    : (currentUserRecord?.permissions && currentUserRecord.permissions.length > 0
+        ? currentUserRecord.permissions
+        : (Array.isArray(currentUser?.user_metadata?.permissions) && currentUser.user_metadata.permissions.length > 0
+            ? (currentUser.user_metadata.permissions as AdminTabPermission[])
+            : ROLE_DEFAULT_PERMISSIONS[currentUserRole] || ROLE_DEFAULT_PERMISSIONS.admin));
+
+  const canAccess = (tab: AdminTabPermission): boolean => {
+    return hasAdminTabPermission(currentUser, tab, currentUserPermissions);
+  };
 
   // 1. Initial auth check
   useEffect(() => {
@@ -1459,6 +1494,76 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
     await loadAdmins();
   };
 
+  // Handle opening Edit Manager Access modal
+  const handleOpenEditAdminModal = (adm: AdminUserRecord) => {
+    setEditingAdmin(adm);
+    setEditAdminFullName(adm.fullName);
+    setEditAdminRole(adm.role);
+    const currentPerms = adm.permissions && adm.permissions.length > 0
+      ? adm.permissions
+      : (ROLE_DEFAULT_PERMISSIONS[adm.role] || ROLE_DEFAULT_PERMISSIONS.admin);
+    setEditAdminPermissions(currentPerms);
+    setEditAdminError(null);
+  };
+
+  // Handle changing role inside Edit modal (auto-fills default permissions)
+  const handleRoleChangeInEditModal = (newRole: AdminRole) => {
+    setEditAdminRole(newRole);
+    setEditAdminPermissions(ROLE_DEFAULT_PERMISSIONS[newRole] || ROLE_DEFAULT_PERMISSIONS.admin);
+  };
+
+  // Handle toggling individual tab permission inside Edit modal
+  const togglePermissionInEditModal = (perm: AdminTabPermission) => {
+    setEditAdminPermissions((prev) => {
+      if (prev.includes(perm)) {
+        if (prev.length === 1) return prev; // Keep at least one tab
+        return prev.filter((p) => p !== perm);
+      } else {
+        return [...prev, perm];
+      }
+    });
+  };
+
+  // Handle saving manager access and role updates
+  const handleSaveEditAdmin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingAdmin) return;
+    setEditAdminSubmitting(true);
+    setEditAdminError(null);
+
+    const res = await updateAdminUserRoleAndPermissions(
+      {
+        email: editingAdmin.email,
+        fullName: editAdminFullName,
+        role: editAdminRole,
+        permissions: editAdminPermissions,
+      },
+      currentUser
+    );
+
+    if (!res.success) {
+      setEditAdminError(res.error || 'Failed to update manager access.');
+      setEditAdminSubmitting(false);
+      return;
+    }
+
+    // If the currently signed in user was edited, ensure their active tab remains valid
+    if (editingAdmin.email.toLowerCase() === currentUser?.email?.toLowerCase()) {
+      if (!hasAdminTabPermission(currentUser, activeTab, editAdminPermissions)) {
+        const candidateTabs: AdminTabPermission[] = [
+          'orders', 'blogs', 'messages', 'subscribers', 'products', 'categories', 'coupons', 'analytics', 'settings'
+        ];
+        const nextAllowed = candidateTabs.find((t) => hasAdminTabPermission(currentUser, t, editAdminPermissions));
+        if (nextAllowed) setActiveTab(nextAllowed);
+      }
+    }
+
+    setAdminActionSuccess(`Access privileges and role for "${editAdminFullName || editingAdmin.email}" updated successfully to ${ROLE_DISPLAY_NAMES[editAdminRole] || editAdminRole}!`);
+    setEditAdminSubmitting(false);
+    setEditingAdmin(null);
+    await loadAdmins();
+  };
+
   // Safely exit admin mode, remove any secret hashes or query params from URL, and return to public website
   const handleExitAdmin = (e?: React.MouseEvent) => {
     if (e) e.preventDefault();
@@ -2039,122 +2144,133 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
         {/* Scrollable Navigation Links Grouped Vertically */}
         <div className={`flex-1 p-3.5 space-y-5 overflow-y-auto ${isSidebarCollapsed ? 'md:p-2 md:space-y-4' : ''}`}>
           {/* Section 1: Commerce & Inventory */}
-          <div>
-            {!isSidebarCollapsed ? (
-              <div className="px-3 pb-2 text-[10px] font-headline font-black uppercase tracking-wider text-slate-400/80 flex items-center justify-between">
-                <span>Commerce & Inventory</span>
-              </div>
-            ) : (
-              <div className="hidden md:block border-t border-slate-800/80 my-2 mx-1" />
-            )}
+          {(canAccess('orders') || canAccess('products') || canAccess('categories') || canAccess('coupons')) && (
+            <div>
+              {!isSidebarCollapsed ? (
+                <div className="px-3 pb-2 text-[10px] font-headline font-black uppercase tracking-wider text-slate-400/80 flex items-center justify-between">
+                  <span>Commerce & Inventory</span>
+                </div>
+              ) : (
+                <div className="hidden md:block border-t border-slate-800/80 my-2 mx-1" />
+              )}
               <div className="space-y-1">
-                <button
-                  type="button"
-                  title={isSidebarCollapsed ? 'Orders' : undefined}
-                  onClick={() => {
-                    setActiveTab('orders');
-                    setSidebarOpen(false);
-                  }}
-                  className={`w-full px-3 py-2.5 rounded-xl font-headline text-xs font-bold transition-all flex items-center group cursor-pointer relative ${
-                    isSidebarCollapsed ? 'md:justify-center md:px-0' : 'justify-between'
-                  } ${
-                    activeTab === 'orders'
-                      ? 'bg-[#fa8221] text-white shadow-sm'
-                      : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
-                  }`}
-                >
-                  <div className={`flex items-center ${isSidebarCollapsed ? 'md:justify-center' : 'gap-2.5'}`}>
-                    <Package className={`w-4 h-4 shrink-0 ${activeTab === 'orders' ? 'text-white' : 'text-slate-400 group-hover:text-slate-200'}`} />
-                    <span className={isSidebarCollapsed ? 'md:hidden' : 'inline'}>Orders</span>
-                  </div>
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${isSidebarCollapsed ? 'md:hidden' : 'inline-block'} ${
-                    activeTab === 'orders' ? 'bg-white/20 text-white' : 'bg-slate-800 text-slate-300 group-hover:bg-slate-700'
-                  }`}>
-                    {orders.length}
-                  </span>
-                </button>
+                {canAccess('orders') && (
+                  <button
+                    type="button"
+                    title={isSidebarCollapsed ? 'Orders' : undefined}
+                    onClick={() => {
+                      setActiveTab('orders');
+                      setSidebarOpen(false);
+                    }}
+                    className={`w-full px-3 py-2.5 rounded-xl font-headline text-xs font-bold transition-all flex items-center group cursor-pointer relative ${
+                      isSidebarCollapsed ? 'md:justify-center md:px-0' : 'justify-between'
+                    } ${
+                      activeTab === 'orders'
+                        ? 'bg-[#fa8221] text-white shadow-sm'
+                        : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
+                    }`}
+                  >
+                    <div className={`flex items-center ${isSidebarCollapsed ? 'md:justify-center' : 'gap-2.5'}`}>
+                      <Package className={`w-4 h-4 shrink-0 ${activeTab === 'orders' ? 'text-white' : 'text-slate-400 group-hover:text-slate-200'}`} />
+                      <span className={isSidebarCollapsed ? 'md:hidden' : 'inline'}>Orders</span>
+                    </div>
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${isSidebarCollapsed ? 'md:hidden' : 'inline-block'} ${
+                      activeTab === 'orders' ? 'bg-white/20 text-white' : 'bg-slate-800 text-slate-300 group-hover:bg-slate-700'
+                    }`}>
+                      {orders.length}
+                    </span>
+                  </button>
+                )}
 
-                <button
-                  type="button"
-                  title={isSidebarCollapsed ? 'Products Inventory' : undefined}
-                  onClick={() => {
-                    setActiveTab('products');
-                    setSidebarOpen(false);
-                  }}
-                  className={`w-full px-3 py-2.5 rounded-xl font-headline text-xs font-bold transition-all flex items-center group cursor-pointer relative ${
-                    isSidebarCollapsed ? 'md:justify-center md:px-0' : 'justify-between'
-                  } ${
-                    activeTab === 'products'
-                      ? 'bg-[#fa8221] text-white shadow-sm'
-                      : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
-                  }`}
-                >
-                  <div className={`flex items-center ${isSidebarCollapsed ? 'md:justify-center' : 'gap-2.5'}`}>
-                    <Layers className={`w-4 h-4 shrink-0 ${activeTab === 'products' ? 'text-white' : 'text-slate-400 group-hover:text-slate-200'}`} />
-                    <span className={isSidebarCollapsed ? 'md:hidden' : 'inline'}>Products Inventory</span>
-                  </div>
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${isSidebarCollapsed ? 'md:hidden' : 'inline-block'} ${
-                    activeTab === 'products' ? 'bg-white/20 text-white' : 'bg-slate-800 text-slate-300 group-hover:bg-slate-700'
-                  }`}>
-                    {productsList.length}
-                  </span>
-                </button>
+                {canAccess('products') && (
+                  <button
+                    type="button"
+                    title={isSidebarCollapsed ? 'Products Inventory' : undefined}
+                    onClick={() => {
+                      setActiveTab('products');
+                      setSidebarOpen(false);
+                    }}
+                    className={`w-full px-3 py-2.5 rounded-xl font-headline text-xs font-bold transition-all flex items-center group cursor-pointer relative ${
+                      isSidebarCollapsed ? 'md:justify-center md:px-0' : 'justify-between'
+                    } ${
+                      activeTab === 'products'
+                        ? 'bg-[#fa8221] text-white shadow-sm'
+                        : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
+                    }`}
+                  >
+                    <div className={`flex items-center ${isSidebarCollapsed ? 'md:justify-center' : 'gap-2.5'}`}>
+                      <Layers className={`w-4 h-4 shrink-0 ${activeTab === 'products' ? 'text-white' : 'text-slate-400 group-hover:text-slate-200'}`} />
+                      <span className={isSidebarCollapsed ? 'md:hidden' : 'inline'}>Products Inventory</span>
+                    </div>
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${isSidebarCollapsed ? 'md:hidden' : 'inline-block'} ${
+                      activeTab === 'products' ? 'bg-white/20 text-white' : 'bg-slate-800 text-slate-300 group-hover:bg-slate-700'
+                    }`}>
+                      {productsList.length}
+                    </span>
+                  </button>
+                )}
 
-                <button
-                  type="button"
-                  title={isSidebarCollapsed ? 'Categories & Planets' : undefined}
-                  onClick={() => {
-                    setActiveTab('categories');
-                    setSidebarOpen(false);
-                  }}
-                  className={`w-full px-3 py-2.5 rounded-xl font-headline text-xs font-bold transition-all flex items-center group cursor-pointer relative ${
-                    isSidebarCollapsed ? 'md:justify-center md:px-0' : 'justify-between'
-                  } ${
-                    activeTab === 'categories'
-                      ? 'bg-[#fa8221] text-white shadow-sm'
-                      : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
-                  }`}
-                >
-                  <div className={`flex items-center ${isSidebarCollapsed ? 'md:justify-center' : 'gap-2.5'}`}>
-                    <Tag className={`w-4 h-4 shrink-0 ${activeTab === 'categories' ? 'text-white' : 'text-slate-400 group-hover:text-slate-200'}`} />
-                    <span className={isSidebarCollapsed ? 'md:hidden' : 'inline'}>Categories & Planets</span>
-                  </div>
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${isSidebarCollapsed ? 'md:hidden' : 'inline-block'} ${
-                    activeTab === 'categories' ? 'bg-white/20 text-white' : 'bg-slate-800 text-slate-300 group-hover:bg-slate-700'
-                  }`}>
-                    {categoriesList.length}
-                  </span>
-                </button>
+                {canAccess('categories') && (
+                  <button
+                    type="button"
+                    title={isSidebarCollapsed ? 'Categories & Planets' : undefined}
+                    onClick={() => {
+                      setActiveTab('categories');
+                      setSidebarOpen(false);
+                    }}
+                    className={`w-full px-3 py-2.5 rounded-xl font-headline text-xs font-bold transition-all flex items-center group cursor-pointer relative ${
+                      isSidebarCollapsed ? 'md:justify-center md:px-0' : 'justify-between'
+                    } ${
+                      activeTab === 'categories'
+                        ? 'bg-[#fa8221] text-white shadow-sm'
+                        : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
+                    }`}
+                  >
+                    <div className={`flex items-center ${isSidebarCollapsed ? 'md:justify-center' : 'gap-2.5'}`}>
+                      <Tag className={`w-4 h-4 shrink-0 ${activeTab === 'categories' ? 'text-white' : 'text-slate-400 group-hover:text-slate-200'}`} />
+                      <span className={isSidebarCollapsed ? 'md:hidden' : 'inline'}>Categories & Planets</span>
+                    </div>
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${isSidebarCollapsed ? 'md:hidden' : 'inline-block'} ${
+                      activeTab === 'categories' ? 'bg-white/20 text-white' : 'bg-slate-800 text-slate-300 group-hover:bg-slate-700'
+                    }`}>
+                      {categoriesList.length}
+                    </span>
+                  </button>
+                )}
 
-                <button
-                  type="button"
-                  title={isSidebarCollapsed ? 'Coupons & Codes Promo' : undefined}
-                  onClick={() => {
-                    setActiveTab('coupons');
-                    setSidebarOpen(false);
-                  }}
-                  className={`w-full px-3 py-2.5 rounded-xl font-headline text-xs font-bold transition-all flex items-center group cursor-pointer relative ${
-                    isSidebarCollapsed ? 'md:justify-center md:px-0' : 'justify-between'
-                  } ${
-                    activeTab === 'coupons'
-                      ? 'bg-[#fa8221] text-white shadow-sm'
-                      : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
-                  }`}
-                >
-                  <div className={`flex items-center ${isSidebarCollapsed ? 'md:justify-center' : 'gap-2.5'}`}>
-                    <Ticket className={`w-4 h-4 shrink-0 ${activeTab === 'coupons' ? 'text-white' : 'text-slate-400 group-hover:text-slate-200'}`} />
-                    <span className={isSidebarCollapsed ? 'md:hidden' : 'inline'}>Coupons & Codes Promo</span>
-                  </div>
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${isSidebarCollapsed ? 'md:hidden' : 'inline-block'} ${
-                    activeTab === 'coupons' ? 'bg-white/20 text-white' : 'bg-slate-800 text-slate-300 group-hover:bg-slate-700'
-                  }`}>
-                    {couponsList.length}
-                  </span>
-                </button>
+                {canAccess('coupons') && (
+                  <button
+                    type="button"
+                    title={isSidebarCollapsed ? 'Coupons & Codes Promo' : undefined}
+                    onClick={() => {
+                      setActiveTab('coupons');
+                      setSidebarOpen(false);
+                    }}
+                    className={`w-full px-3 py-2.5 rounded-xl font-headline text-xs font-bold transition-all flex items-center group cursor-pointer relative ${
+                      isSidebarCollapsed ? 'md:justify-center md:px-0' : 'justify-between'
+                    } ${
+                      activeTab === 'coupons'
+                        ? 'bg-[#fa8221] text-white shadow-sm'
+                        : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
+                    }`}
+                  >
+                    <div className={`flex items-center ${isSidebarCollapsed ? 'md:justify-center' : 'gap-2.5'}`}>
+                      <Ticket className={`w-4 h-4 shrink-0 ${activeTab === 'coupons' ? 'text-white' : 'text-slate-400 group-hover:text-slate-200'}`} />
+                      <span className={isSidebarCollapsed ? 'md:hidden' : 'inline'}>Coupons & Codes Promo</span>
+                    </div>
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${isSidebarCollapsed ? 'md:hidden' : 'inline-block'} ${
+                      activeTab === 'coupons' ? 'bg-white/20 text-white' : 'bg-slate-800 text-slate-300 group-hover:bg-slate-700'
+                    }`}>
+                      {couponsList.length}
+                    </span>
+                  </button>
+                )}
               </div>
             </div>
+          )}
 
             {/* Section 2: Content & Community */}
+          {(canAccess('blogs') || canAccess('subscribers') || canAccess('messages')) && (
             <div>
               {!isSidebarCollapsed ? (
                 <div className="px-3 pb-2 text-[10px] font-headline font-black uppercase tracking-wider text-slate-400/80 flex items-center justify-between">
@@ -2164,99 +2280,107 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
                 <div className="hidden md:block border-t border-slate-800/80 my-2 mx-1" />
               )}
               <div className="space-y-1">
-                <button
-                  type="button"
-                  title={isSidebarCollapsed ? 'Blogs & Articles' : undefined}
-                  onClick={() => {
-                    setActiveTab('blogs');
-                    setSidebarOpen(false);
-                  }}
-                  className={`w-full px-3 py-2.5 rounded-xl font-headline text-xs font-bold transition-all flex items-center group cursor-pointer relative ${
-                    isSidebarCollapsed ? 'md:justify-center md:px-0' : 'justify-between'
-                  } ${
-                    activeTab === 'blogs'
-                      ? 'bg-[#fa8221] text-white shadow-sm'
-                      : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
-                  }`}
-                >
-                  <div className={`flex items-center ${isSidebarCollapsed ? 'md:justify-center' : 'gap-2.5'}`}>
-                    <BookOpen className={`w-4 h-4 shrink-0 ${activeTab === 'blogs' ? 'text-white' : 'text-slate-400 group-hover:text-slate-200'}`} />
-                    <span className={isSidebarCollapsed ? 'md:hidden' : 'inline'}>Blogs & Articles</span>
-                  </div>
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${isSidebarCollapsed ? 'md:hidden' : 'inline-block'} ${
-                    activeTab === 'blogs' ? 'bg-white/20 text-white' : 'bg-slate-800 text-slate-300 group-hover:bg-slate-700'
-                  }`}>
-                    {blogsList.length}
-                  </span>
-                </button>
-
-                <button
-                  type="button"
-                  title={isSidebarCollapsed ? 'Explorer Club' : undefined}
-                  onClick={() => {
-                    setActiveTab('subscribers');
-                    loadSubscribers();
-                    setSidebarOpen(false);
-                  }}
-                  className={`w-full px-3 py-2.5 rounded-xl font-headline text-xs font-bold transition-all flex items-center group cursor-pointer relative ${
-                    isSidebarCollapsed ? 'md:justify-center md:px-0' : 'justify-between'
-                  } ${
-                    activeTab === 'subscribers'
-                      ? 'bg-[#fa8221] text-white shadow-sm'
-                      : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
-                  }`}
-                >
-                  <div className={`flex items-center ${isSidebarCollapsed ? 'md:justify-center' : 'gap-2.5'}`}>
-                    <Mail className={`w-4 h-4 shrink-0 ${activeTab === 'subscribers' ? 'text-white' : 'text-slate-400 group-hover:text-slate-200'}`} />
-                    <span className={isSidebarCollapsed ? 'md:hidden' : 'inline'}>Explorer Club</span>
-                  </div>
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${isSidebarCollapsed ? 'md:hidden' : 'inline-block'} ${
-                    activeTab === 'subscribers' ? 'bg-white/20 text-white' : 'bg-slate-800 text-slate-300 group-hover:bg-slate-700'
-                  }`}>
-                    {subscribersList.length}
-                  </span>
-                </button>
-
-                <button
-                  type="button"
-                  title={isSidebarCollapsed ? 'Contact Messages' : undefined}
-                  onClick={() => {
-                    setActiveTab('messages');
-                    setSidebarOpen(false);
-                  }}
-                  className={`w-full px-3 py-2.5 rounded-xl font-headline text-xs font-bold transition-all flex items-center group cursor-pointer relative ${
-                    isSidebarCollapsed ? 'md:justify-center md:px-0' : 'justify-between'
-                  } ${
-                    activeTab === 'messages'
-                      ? 'bg-[#fa8221] text-white shadow-sm'
-                      : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
-                  }`}
-                >
-                  <div className={`flex items-center ${isSidebarCollapsed ? 'md:justify-center' : 'gap-2.5'}`}>
-                    <MessageSquare className={`w-4 h-4 shrink-0 ${activeTab === 'messages' ? 'text-white' : 'text-slate-400 group-hover:text-slate-200'}`} />
-                    <span className={isSidebarCollapsed ? 'md:hidden' : 'inline'}>Contact Messages</span>
-                  </div>
-                  {unreadCount > 0 ? (
-                    <>
-                      <span className={`px-2 py-0.5 bg-emerald-500 text-white rounded-full text-[10px] font-black animate-pulse shadow-sm ${isSidebarCollapsed ? 'md:hidden' : 'inline-block'}`}>
-                        {unreadCount}
-                      </span>
-                      {isSidebarCollapsed && (
-                        <span className="hidden md:inline-block w-2 h-2 rounded-full bg-emerald-400 absolute top-1.5 right-1.5 animate-pulse" />
-                      )}
-                    </>
-                  ) : (
+                {canAccess('blogs') && (
+                  <button
+                    type="button"
+                    title={isSidebarCollapsed ? 'Blogs & Articles' : undefined}
+                    onClick={() => {
+                      setActiveTab('blogs');
+                      setSidebarOpen(false);
+                    }}
+                    className={`w-full px-3 py-2.5 rounded-xl font-headline text-xs font-bold transition-all flex items-center group cursor-pointer relative ${
+                      isSidebarCollapsed ? 'md:justify-center md:px-0' : 'justify-between'
+                    } ${
+                      activeTab === 'blogs'
+                        ? 'bg-[#fa8221] text-white shadow-sm'
+                        : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
+                    }`}
+                  >
+                    <div className={`flex items-center ${isSidebarCollapsed ? 'md:justify-center' : 'gap-2.5'}`}>
+                      <BookOpen className={`w-4 h-4 shrink-0 ${activeTab === 'blogs' ? 'text-white' : 'text-slate-400 group-hover:text-slate-200'}`} />
+                      <span className={isSidebarCollapsed ? 'md:hidden' : 'inline'}>Blogs & Articles</span>
+                    </div>
                     <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${isSidebarCollapsed ? 'md:hidden' : 'inline-block'} ${
-                      activeTab === 'messages' ? 'bg-white/20 text-white' : 'bg-slate-800 text-slate-400'
+                      activeTab === 'blogs' ? 'bg-white/20 text-white' : 'bg-slate-800 text-slate-300 group-hover:bg-slate-700'
                     }`}>
-                      {messages.length}
+                      {blogsList.length}
                     </span>
-                  )}
-                </button>
+                  </button>
+                )}
+
+                {canAccess('subscribers') && (
+                  <button
+                    type="button"
+                    title={isSidebarCollapsed ? 'Explorer Club' : undefined}
+                    onClick={() => {
+                      setActiveTab('subscribers');
+                      loadSubscribers();
+                      setSidebarOpen(false);
+                    }}
+                    className={`w-full px-3 py-2.5 rounded-xl font-headline text-xs font-bold transition-all flex items-center group cursor-pointer relative ${
+                      isSidebarCollapsed ? 'md:justify-center md:px-0' : 'justify-between'
+                    } ${
+                      activeTab === 'subscribers'
+                        ? 'bg-[#fa8221] text-white shadow-sm'
+                        : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
+                    }`}
+                  >
+                    <div className={`flex items-center ${isSidebarCollapsed ? 'md:justify-center' : 'gap-2.5'}`}>
+                      <Mail className={`w-4 h-4 shrink-0 ${activeTab === 'subscribers' ? 'text-white' : 'text-slate-400 group-hover:text-slate-200'}`} />
+                      <span className={isSidebarCollapsed ? 'md:hidden' : 'inline'}>Explorer Club</span>
+                    </div>
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${isSidebarCollapsed ? 'md:hidden' : 'inline-block'} ${
+                      activeTab === 'subscribers' ? 'bg-white/20 text-white' : 'bg-slate-800 text-slate-300 group-hover:bg-slate-700'
+                    }`}>
+                      {subscribersList.length}
+                    </span>
+                  </button>
+                )}
+
+                {canAccess('messages') && (
+                  <button
+                    type="button"
+                    title={isSidebarCollapsed ? 'Contact Messages' : undefined}
+                    onClick={() => {
+                      setActiveTab('messages');
+                      setSidebarOpen(false);
+                    }}
+                    className={`w-full px-3 py-2.5 rounded-xl font-headline text-xs font-bold transition-all flex items-center group cursor-pointer relative ${
+                      isSidebarCollapsed ? 'md:justify-center md:px-0' : 'justify-between'
+                    } ${
+                      activeTab === 'messages'
+                        ? 'bg-[#fa8221] text-white shadow-sm'
+                        : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
+                    }`}
+                  >
+                    <div className={`flex items-center ${isSidebarCollapsed ? 'md:justify-center' : 'gap-2.5'}`}>
+                      <MessageSquare className={`w-4 h-4 shrink-0 ${activeTab === 'messages' ? 'text-white' : 'text-slate-400 group-hover:text-slate-200'}`} />
+                      <span className={isSidebarCollapsed ? 'md:hidden' : 'inline'}>Contact Messages</span>
+                    </div>
+                    {unreadCount > 0 ? (
+                      <>
+                        <span className={`px-2 py-0.5 bg-emerald-500 text-white rounded-full text-[10px] font-black animate-pulse shadow-sm ${isSidebarCollapsed ? 'md:hidden' : 'inline-block'}`}>
+                          {unreadCount}
+                        </span>
+                        {isSidebarCollapsed && (
+                          <span className="hidden md:inline-block w-2 h-2 rounded-full bg-emerald-400 absolute top-1.5 right-1.5 animate-pulse" />
+                        )}
+                      </>
+                    ) : (
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${isSidebarCollapsed ? 'md:hidden' : 'inline-block'} ${
+                        activeTab === 'messages' ? 'bg-white/20 text-white' : 'bg-slate-800 text-slate-400'
+                      }`}>
+                        {messages.length}
+                      </span>
+                    )}
+                  </button>
+                )}
               </div>
             </div>
+          )}
 
             {/* Section 3: Intelligence & System */}
+          {(canAccess('analytics') || canAccess('team') || canAccess('settings')) && (
             <div>
               {!isSidebarCollapsed ? (
                 <div className="px-3 pb-2 text-[10px] font-headline font-black uppercase tracking-wider text-slate-400/80 flex items-center justify-between">
@@ -2266,28 +2390,30 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
                 <div className="hidden md:block border-t border-slate-800/80 my-2 mx-1" />
               )}
               <div className="space-y-1">
-                <button
-                  type="button"
-                  title={isSidebarCollapsed ? 'Key Metrics' : undefined}
-                  onClick={() => {
-                    setActiveTab('analytics');
-                    setSidebarOpen(false);
-                  }}
-                  className={`w-full px-3 py-2.5 rounded-xl font-headline text-xs font-bold transition-all flex items-center group cursor-pointer relative ${
-                    isSidebarCollapsed ? 'md:justify-center md:px-0' : 'justify-between'
-                  } ${
-                    activeTab === 'analytics'
-                      ? 'bg-[#fa8221] text-white shadow-sm'
-                      : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
-                  }`}
-                >
-                  <div className={`flex items-center ${isSidebarCollapsed ? 'md:justify-center' : 'gap-2.5'}`}>
-                    <BarChart3 className={`w-4 h-4 shrink-0 ${activeTab === 'analytics' ? 'text-white' : 'text-slate-400 group-hover:text-slate-200'}`} />
-                    <span className={isSidebarCollapsed ? 'md:hidden' : 'inline'}>Key Metrics</span>
-                  </div>
-                </button>
+                {canAccess('analytics') && (
+                  <button
+                    type="button"
+                    title={isSidebarCollapsed ? 'Key Metrics' : undefined}
+                    onClick={() => {
+                      setActiveTab('analytics');
+                      setSidebarOpen(false);
+                    }}
+                    className={`w-full px-3 py-2.5 rounded-xl font-headline text-xs font-bold transition-all flex items-center group cursor-pointer relative ${
+                      isSidebarCollapsed ? 'md:justify-center md:px-0' : 'justify-between'
+                    } ${
+                      activeTab === 'analytics'
+                        ? 'bg-[#fa8221] text-white shadow-sm'
+                        : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
+                    }`}
+                  >
+                    <div className={`flex items-center ${isSidebarCollapsed ? 'md:justify-center' : 'gap-2.5'}`}>
+                      <BarChart3 className={`w-4 h-4 shrink-0 ${activeTab === 'analytics' ? 'text-white' : 'text-slate-400 group-hover:text-slate-200'}`} />
+                      <span className={isSidebarCollapsed ? 'md:hidden' : 'inline'}>Key Metrics</span>
+                    </div>
+                  </button>
+                )}
 
-                {isSuperAdmin(currentUser) && (
+                {canAccess('team') && (
                   <button
                     type="button"
                     title={isSidebarCollapsed ? 'Admin Team (MASTER)' : undefined}
@@ -2314,28 +2440,31 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
                   </button>
                 )}
 
-                <button
-                  type="button"
-                  title={isSidebarCollapsed ? 'Platform Settings' : undefined}
-                  onClick={() => {
-                    setActiveTab('settings');
-                    setSidebarOpen(false);
-                  }}
-                  className={`w-full px-3 py-2.5 rounded-xl font-headline text-xs font-bold transition-all flex items-center group cursor-pointer relative ${
-                    isSidebarCollapsed ? 'md:justify-center md:px-0' : 'justify-between'
-                  } ${
-                    activeTab === 'settings'
-                      ? 'bg-[#fa8221] text-white shadow-sm'
-                      : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
-                  }`}
-                >
-                  <div className={`flex items-center ${isSidebarCollapsed ? 'md:justify-center' : 'gap-2.5'}`}>
-                    <SlidersHorizontal className={`w-4 h-4 shrink-0 ${activeTab === 'settings' ? 'text-white' : 'text-slate-400 group-hover:text-slate-200'}`} />
-                    <span className={isSidebarCollapsed ? 'md:hidden' : 'inline'}>Platform Settings</span>
-                  </div>
-                </button>
+                {canAccess('settings') && (
+                  <button
+                    type="button"
+                    title={isSidebarCollapsed ? 'Platform Settings' : undefined}
+                    onClick={() => {
+                      setActiveTab('settings');
+                      setSidebarOpen(false);
+                    }}
+                    className={`w-full px-3 py-2.5 rounded-xl font-headline text-xs font-bold transition-all flex items-center group cursor-pointer relative ${
+                      isSidebarCollapsed ? 'md:justify-center md:px-0' : 'justify-between'
+                    } ${
+                      activeTab === 'settings'
+                        ? 'bg-[#fa8221] text-white shadow-sm'
+                        : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
+                    }`}
+                  >
+                    <div className={`flex items-center ${isSidebarCollapsed ? 'md:justify-center' : 'gap-2.5'}`}>
+                      <SlidersHorizontal className={`w-4 h-4 shrink-0 ${activeTab === 'settings' ? 'text-white' : 'text-slate-400 group-hover:text-slate-200'}`} />
+                      <span className={isSidebarCollapsed ? 'md:hidden' : 'inline'}>Platform Settings</span>
+                    </div>
+                  </button>
+                )}
               </div>
             </div>
+          )}
           </div>
 
           {/* Sidebar Footer Card: Connectivity & Info */}
@@ -2413,7 +2542,19 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
                     <span className="font-headline text-xs font-black uppercase tracking-wider text-purple-300 bg-purple-500/20 border border-purple-500/30 px-2.5 py-1 rounded-full flex items-center gap-1.5 shadow-sm">
                       <Crown className="w-3.5 h-3.5 text-amber-400" /> Super Admin
                     </span>
-                  ) : currentUser?.user_metadata?.role === 'manager' ? (
+                  ) : currentUserRole === 'content_manager' ? (
+                    <span className="font-headline text-xs font-bold uppercase tracking-wider text-emerald-300 bg-emerald-500/20 border border-emerald-500/30 px-2.5 py-1 rounded-full flex items-center gap-1.5 shadow-sm">
+                      <BookOpen className="w-3.5 h-3.5 text-emerald-400" /> Content Manager
+                    </span>
+                  ) : currentUserRole === 'marketplace_manager' ? (
+                    <span className="font-headline text-xs font-bold uppercase tracking-wider text-indigo-300 bg-indigo-500/20 border border-indigo-500/30 px-2.5 py-1 rounded-full flex items-center gap-1.5 shadow-sm">
+                      <ShoppingBag className="w-3.5 h-3.5 text-indigo-400" /> Marketplace Manager
+                    </span>
+                  ) : currentUserRole === 'support_admin' || currentUserRole === 'support' ? (
+                    <span className="font-headline text-xs font-bold uppercase tracking-wider text-sky-300 bg-sky-500/20 border border-sky-500/30 px-2.5 py-1 rounded-full flex items-center gap-1.5 shadow-sm">
+                      <MessageSquare className="w-3.5 h-3.5 text-sky-400" /> Support Specialist
+                    </span>
+                  ) : currentUserRole === 'manager' ? (
                     <span className="font-headline text-xs font-bold uppercase tracking-wider text-indigo-300 bg-indigo-500/20 border border-indigo-500/30 px-2.5 py-1 rounded-full flex items-center gap-1.5 shadow-sm">
                       <ShieldCheck className="w-3.5 h-3.5 text-indigo-400" /> Manager
                     </span>
@@ -2625,6 +2766,32 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
               <div className="py-24 text-center">
                 <Loader2 className="w-10 h-10 text-[#016ba5] animate-spin mx-auto mb-3" />
                 <h4 className="font-headline font-bold text-slate-700">Loading Dashboard Data...</h4>
+              </div>
+            ) : !canAccess(activeTab) ? (
+              <div className="bg-white rounded-3xl p-10 border border-slate-200 text-center max-w-lg mx-auto my-12 shadow-sm animate-in fade-in">
+                <div className="w-16 h-16 rounded-2xl bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center mx-auto mb-4 shadow-xs">
+                  <Lock className="w-8 h-8" />
+                </div>
+                <span className="px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-headline font-bold uppercase tracking-wider mb-2 inline-block">
+                  Restricted Section
+                </span>
+                <h3 className="font-headline font-black text-2xl text-slate-900 mb-2">Access Denied</h3>
+                <p className="font-body text-xs text-slate-500 mb-6 leading-relaxed">
+                  Your administrative profile (<strong className="text-slate-800">{ROLE_DISPLAY_NAMES[currentUserRole] || currentUserRole}</strong>) does not hold access privileges for the <strong className="text-slate-800">{activeTab.toUpperCase()}</strong> section. Please contact Primary Super Administrator ElMahdi Ak to request access.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const candidateTabs: AdminTabPermission[] = [
+                      'orders', 'blogs', 'messages', 'subscribers', 'products', 'categories', 'coupons', 'analytics', 'settings'
+                    ];
+                    const nextAllowed = candidateTabs.find((t) => canAccess(t));
+                    if (nextAllowed) setActiveTab(nextAllowed);
+                  }}
+                  className="px-5 py-2.5 rounded-xl bg-[#fa8221] hover:bg-[#e0731a] text-white font-headline text-xs font-bold transition-all shadow-sm cursor-pointer"
+                >
+                  Return to Permitted Section
+                </button>
               </div>
             ) : (
               <>
@@ -5396,19 +5563,30 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
                                     <span className="px-2.5 py-0.5 rounded-full bg-purple-100 text-purple-800 font-headline font-extrabold text-[10px] flex items-center gap-1 w-max shadow-xs">
                                       <Crown className="w-3 h-3 text-amber-500" /> Super Admin
                                     </span>
-                                  ) : adm.role === 'manager' ? (
-                                    <span className="px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-800 font-headline font-bold text-[10px] flex items-center gap-1 w-max">
-                                      <ShieldCheck className="w-3 h-3 text-indigo-600" /> Manager
+                                  ) : adm.role === 'content_manager' ? (
+                                    <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-headline font-bold text-[10px] flex items-center gap-1 w-max">
+                                      <BookOpen className="w-3 h-3 text-emerald-600" /> Content Manager
                                     </span>
-                                  ) : adm.role === 'support_admin' ? (
-                                    <span className="px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800 font-headline font-bold text-[10px] w-max">
-                                      Support Admin
+                                  ) : adm.role === 'marketplace_manager' ? (
+                                    <span className="px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-800 font-headline font-bold text-[10px] flex items-center gap-1 w-max">
+                                      <ShoppingBag className="w-3 h-3 text-indigo-600" /> Marketplace Manager
+                                    </span>
+                                  ) : adm.role === 'support_admin' || adm.role === 'support' ? (
+                                    <span className="px-2.5 py-0.5 rounded-full bg-sky-100 text-sky-800 font-headline font-bold text-[10px] flex items-center gap-1 w-max">
+                                      <MessageSquare className="w-3 h-3 text-sky-600" /> Support Specialist
+                                    </span>
+                                  ) : adm.role === 'manager' ? (
+                                    <span className="px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-800 font-headline font-bold text-[10px] flex items-center gap-1 w-max">
+                                      <ShieldCheck className="w-3 h-3 text-slate-600" /> Manager
                                     </span>
                                   ) : (
-                                    <span className="px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 font-headline font-bold text-[10px] w-max">
-                                      Full Administrator
+                                    <span className="px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 font-headline font-bold text-[10px] flex items-center gap-1 w-max">
+                                      <Shield className="w-3 h-3 text-amber-600" /> Full Administrator
                                     </span>
                                   )}
+                                  <span className="text-[10px] font-body text-slate-400 mt-1 block">
+                                    {adm.permissions ? `${adm.permissions.length} active tabs` : 'Standard permissions'}
+                                  </span>
                                 </td>
                               <td className="py-3.5 px-4 text-slate-500 text-[11px]">
                                 {adm.createdBy}
@@ -5417,19 +5595,31 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
                                 {new Date(adm.createdAt).toLocaleDateString()}
                               </td>
                               <td className="py-3.5 px-4 text-right">
-                                {adm.isSuperAdmin ? (
+                                {adm.email.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase() ? (
                                   <span className="text-[10px] font-headline font-bold text-slate-400 italic">
-                                    Permanent
+                                    Permanent Owner
                                   </span>
                                 ) : (
-                                  <button
-                                    onClick={() => handleRevokeAdmin(adm.email)}
-                                    className="p-1.5 rounded-lg text-red-500 hover:text-red-700 hover:bg-red-50 transition-colors inline-flex items-center gap-1 text-[11px] font-headline font-semibold"
-                                    title="Revoke Administrator Access"
-                                  >
-                                    <Trash2 className="w-3.5 h-3.5" />
-                                    <span>Revoke</span>
-                                  </button>
+                                  <div className="flex items-center justify-end gap-1.5">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleOpenEditAdminModal(adm)}
+                                      className="px-2.5 py-1.5 rounded-lg text-purple-700 hover:text-purple-900 bg-purple-50 hover:bg-purple-100 transition-colors inline-flex items-center gap-1 text-[11px] font-headline font-bold shadow-2xs cursor-pointer"
+                                      title="Edit Manager Access & Role"
+                                    >
+                                      <KeyRound className="w-3.5 h-3.5 text-purple-600" />
+                                      <span>Edit Access</span>
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleRevokeAdmin(adm.email)}
+                                      className="p-1.5 rounded-lg text-red-500 hover:text-red-700 hover:bg-red-50 transition-colors inline-flex items-center gap-1 text-[11px] font-headline font-semibold cursor-pointer"
+                                      title="Revoke Administrator Access"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                      <span>Revoke</span>
+                                    </button>
+                                  </div>
                                 )}
                               </td>
                             </tr>
@@ -6771,15 +6961,17 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
                 </label>
                 <select
                   value={newAdminRole}
-                  onChange={(e) => setNewAdminRole(e.target.value as 'manager' | 'admin' | 'support_admin')}
+                  onChange={(e) => setNewAdminRole(e.target.value as AdminRole)}
                   className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-body text-xs focus:outline-none focus:ring-2 focus:ring-purple-600"
                 >
-                  <option value="manager">Manager (Full Operations & Platform Access)</option>
-                  <option value="admin">Administrator (Orders, Inquiries & Analytics)</option>
-                  <option value="support_admin">Support Administrator (Orders & Inquiries Only)</option>
+                  <option value="manager">General Manager (Operations & Catalog)</option>
+                  <option value="content_manager">Content Manager (Blogs, Explorer Club, Messages)</option>
+                  <option value="marketplace_manager">Marketplace Manager (Products, Categories, Coupons, Orders)</option>
+                  <option value="support_admin">Support Specialist (Orders & Customer Support)</option>
+                  <option value="admin">Full Administrator (Full System Operations & Settings)</option>
                 </select>
                 <p className="text-[11px] font-body text-slate-500 mt-1">
-                  Managers hold operational access across orders, inquiries, inventory, and metrics.
+                  Managers hold operational access across their assigned domains with granular tab permissions.
                 </p>
               </div>
 
@@ -6801,6 +6993,286 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
                   iconPosition="left"
                 >
                   {adminActionSubmitting ? 'Provisioning...' : 'Provision Account'}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Super Admin: Edit Manager Access & Role Modal */}
+      {editingAdmin && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
+          <div className="relative w-full max-w-xl bg-white rounded-3xl p-6 sm:p-8 shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto">
+            <button
+              type="button"
+              onClick={() => setEditingAdmin(null)}
+              className="absolute top-5 right-5 p-2 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-2 mb-2">
+              <span className="px-2.5 py-0.5 rounded-full bg-purple-100 text-purple-800 font-headline font-black text-[10px] uppercase tracking-wider flex items-center gap-1">
+                <KeyRound className="w-3 h-3 text-purple-600" /> Access Management
+              </span>
+              <span className="text-[11px] font-body text-slate-400">
+                Super Admin Master Authority
+              </span>
+            </div>
+
+            <h3 className="font-headline text-2xl font-black text-slate-900 mb-1">
+              Edit Manager Access & Role
+            </h3>
+            <p className="font-body text-xs text-slate-500 mb-5">
+              Modify account roles and fine-tune granular tab permissions across the platform.
+            </p>
+
+            {editAdminError && (
+              <div className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/30 flex items-start gap-2.5 text-xs font-body text-red-600 mb-5">
+                <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
+                <span>{editAdminError}</span>
+              </div>
+            )}
+
+            {/* Target Account Summary Card */}
+            <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 mb-5 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center font-headline font-bold text-sm">
+                  {editingAdmin.fullName.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <span className="font-headline font-bold text-xs text-slate-900 block">
+                    {editingAdmin.fullName}
+                  </span>
+                  <span className="font-body text-[11px] text-slate-500 font-mono block">
+                    {editingAdmin.email}
+                  </span>
+                </div>
+              </div>
+              <span className="px-2 py-0.5 rounded-full bg-slate-200 text-slate-700 font-headline font-bold text-[10px]">
+                Current: {ROLE_DISPLAY_NAMES[editingAdmin.role] || editingAdmin.role}
+              </span>
+            </div>
+
+            <form onSubmit={handleSaveEditAdmin} className="space-y-5">
+              <div>
+                <label className="block text-xs font-headline font-bold text-slate-700 mb-1">
+                  Manager Full Name
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editAdminFullName}
+                  onChange={(e) => setEditAdminFullName(e.target.value)}
+                  placeholder="Manager Full Name"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-body text-xs focus:outline-none focus:ring-2 focus:ring-purple-600"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-headline font-bold text-slate-700 mb-1.5">
+                  Administrative Role Preset
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {[
+                    { id: 'content_manager', name: 'Content Manager', icon: BookOpen, desc: 'Blogs, Explorer Club, Messages' },
+                    { id: 'marketplace_manager', name: 'Marketplace Manager', icon: ShoppingBag, desc: 'Products, Categories, Coupons, Orders' },
+                    { id: 'support_admin', name: 'Support Specialist', icon: MessageSquare, desc: 'Orders, Inquiries & Support' },
+                    { id: 'admin', name: 'Full Administrator', icon: Shield, desc: 'Full operations, inventory & settings' },
+                    { id: 'manager', name: 'General Manager', icon: ShieldCheck, desc: 'Broad catalog & operations oversight' },
+                    { id: 'super_admin', name: 'Super Admin', icon: Crown, desc: 'Unrestricted master owner privileges' },
+                  ].map((roleOption) => {
+                    const IconComponent = roleOption.icon;
+                    const isSelected = editAdminRole === roleOption.id;
+                    return (
+                      <button
+                        key={roleOption.id}
+                        type="button"
+                        onClick={() => handleRoleChangeInEditModal(roleOption.id as AdminRole)}
+                        className={`p-3 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                          isSelected
+                            ? 'bg-purple-50/80 border-purple-500 ring-2 ring-purple-500/20 shadow-xs'
+                            : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50/60'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <div className="flex items-center gap-1.5 font-headline font-bold text-xs text-slate-900">
+                            <IconComponent className={`w-3.5 h-3.5 ${isSelected ? 'text-purple-600' : 'text-slate-500'}`} />
+                            <span>{roleOption.name}</span>
+                          </div>
+                          <span className={`w-3 h-3 rounded-full border flex items-center justify-center ${
+                            isSelected ? 'border-purple-600 bg-purple-600' : 'border-slate-300'
+                          }`}>
+                            {isSelected && <span className="w-1 h-1 rounded-full bg-white" />}
+                          </span>
+                        </div>
+                        <span className="font-body text-[10px] text-slate-500 leading-snug">
+                          {roleOption.desc}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Granular Tab Permissions Checklist */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-xs font-headline font-bold text-slate-700">
+                    Granular Tab Permissions ({editAdminPermissions.length} enabled)
+                  </label>
+                  <span className="font-body text-[10px] text-slate-400">
+                    Selectively grant or restrict specific sections
+                  </span>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/90 space-y-3">
+                  {/* Category: Marketplace & Commerce */}
+                  <div>
+                    <span className="text-[10px] font-headline font-black text-slate-400 uppercase tracking-wider block mb-1.5">
+                      Commerce & Marketplace
+                    </span>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      {[
+                        { tab: 'orders', label: 'Orders' },
+                        { tab: 'products', label: 'Products' },
+                        { tab: 'categories', label: 'Categories' },
+                      ].map(({ tab, label }) => {
+                        const checked = editAdminPermissions.includes(tab as AdminTabPermission);
+                        return (
+                          <label
+                            key={tab}
+                            className={`flex items-center gap-2 p-2 rounded-xl border text-xs font-headline font-semibold cursor-pointer transition-colors ${
+                              checked ? 'bg-white border-purple-300 text-slate-900 shadow-2xs' : 'bg-slate-100/60 border-slate-200 text-slate-400'
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={() => togglePermissionInEditModal(tab as AdminTabPermission)}
+                              className="rounded text-purple-600 focus:ring-purple-500"
+                            />
+                            <span>{label}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Category: Promotions & Marketing */}
+                  <div>
+                    <span className="text-[10px] font-headline font-black text-slate-400 uppercase tracking-wider block mb-1.5">
+                      Promotions & Marketing
+                    </span>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {[
+                        { tab: 'coupons', label: 'Coupons & Promo Codes' },
+                        { tab: 'subscribers', label: 'Explorer Club (Subscribers)' },
+                      ].map(({ tab, label }) => {
+                        const checked = editAdminPermissions.includes(tab as AdminTabPermission);
+                        return (
+                          <label
+                            key={tab}
+                            className={`flex items-center gap-2 p-2 rounded-xl border text-xs font-headline font-semibold cursor-pointer transition-colors ${
+                              checked ? 'bg-white border-purple-300 text-slate-900 shadow-2xs' : 'bg-slate-100/60 border-slate-200 text-slate-400'
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={() => togglePermissionInEditModal(tab as AdminTabPermission)}
+                              className="rounded text-purple-600 focus:ring-purple-500"
+                            />
+                            <span>{label}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Category: Editorial & Support */}
+                  <div>
+                    <span className="text-[10px] font-headline font-black text-slate-400 uppercase tracking-wider block mb-1.5">
+                      Content & Support
+                    </span>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {[
+                        { tab: 'blogs', label: 'Blog & Parenting Articles' },
+                        { tab: 'messages', label: 'Customer Contact Messages' },
+                      ].map(({ tab, label }) => {
+                        const checked = editAdminPermissions.includes(tab as AdminTabPermission);
+                        return (
+                          <label
+                            key={tab}
+                            className={`flex items-center gap-2 p-2 rounded-xl border text-xs font-headline font-semibold cursor-pointer transition-colors ${
+                              checked ? 'bg-white border-purple-300 text-slate-900 shadow-2xs' : 'bg-slate-100/60 border-slate-200 text-slate-400'
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={() => togglePermissionInEditModal(tab as AdminTabPermission)}
+                              className="rounded text-purple-600 focus:ring-purple-500"
+                            />
+                            <span>{label}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Category: System & Intelligence */}
+                  <div>
+                    <span className="text-[10px] font-headline font-black text-slate-400 uppercase tracking-wider block mb-1.5">
+                      System & Platform
+                    </span>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {[
+                        { tab: 'analytics', label: 'Key Metrics & Analytics' },
+                        { tab: 'settings', label: 'Platform & Widget Settings' },
+                      ].map(({ tab, label }) => {
+                        const checked = editAdminPermissions.includes(tab as AdminTabPermission);
+                        return (
+                          <label
+                            key={tab}
+                            className={`flex items-center gap-2 p-2 rounded-xl border text-xs font-headline font-semibold cursor-pointer transition-colors ${
+                              checked ? 'bg-white border-purple-300 text-slate-900 shadow-2xs' : 'bg-slate-100/60 border-slate-200 text-slate-400'
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={() => togglePermissionInEditModal(tab as AdminTabPermission)}
+                              className="rounded text-purple-600 focus:ring-purple-500"
+                            />
+                            <span>{label}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-3 flex items-center justify-end gap-3 border-t border-slate-100">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setEditingAdmin(null)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  variant="cta"
+                  size="sm"
+                  disabled={editAdminSubmitting}
+                  icon={editAdminSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
+                  iconPosition="left"
+                >
+                  {editAdminSubmitting ? 'Saving Access...' : 'Save Access & Roles'}
                 </Button>
               </div>
             </form>

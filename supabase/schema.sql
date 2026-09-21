@@ -391,10 +391,12 @@ CREATE TABLE IF NOT EXISTS public.admin_users (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   email TEXT UNIQUE NOT NULL,
   full_name TEXT NOT NULL DEFAULT 'Admin',
-  role TEXT NOT NULL DEFAULT 'admin' CHECK (role IN ('super_admin', 'admin', 'support_admin')),
+  role TEXT NOT NULL DEFAULT 'admin' CHECK (role IN ('super_admin', 'admin', 'manager', 'content_manager', 'marketplace_manager', 'support_admin', 'support')),
+  permissions TEXT[] DEFAULT ARRAY['orders']::TEXT[],
   is_super_admin BOOLEAN NOT NULL DEFAULT FALSE,
   created_by TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW()
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- Enable RLS for admin_users
@@ -410,6 +412,13 @@ CREATE POLICY "Allow insert on admin_users"
   ON public.admin_users
   FOR INSERT
   TO anon, authenticated
+  WITH CHECK (true);
+
+CREATE POLICY "Allow update on admin_users"
+  ON public.admin_users
+  FOR UPDATE
+  TO anon, authenticated
+  USING (true)
   WITH CHECK (true);
 
 CREATE POLICY "Allow delete on admin_users"

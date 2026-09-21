@@ -262,16 +262,22 @@ AbtalQuest Security Team`;
 export const sendAdminInvitationEmail = async (params: {
   email: string;
   fullName: string;
-  role: 'manager' | 'admin' | 'support_admin';
+  role: string;
   temporaryPass: string;
   appointedBy: string;
 }): Promise<{ success: boolean; error: string | null }> => {
   const normalizedEmail = params.email.trim().toLowerCase();
   const roleDisplay = 
-    params.role === 'manager' 
-      ? 'Manager (Full Operations & Catalog Access)' 
-      : params.role === 'support_admin'
-      ? 'Customer Support Administrator'
+    params.role === 'super_admin'
+      ? 'Super Administrator'
+      : params.role === 'content_manager'
+      ? 'Content Manager (Blogs, Articles & Explorer Club)'
+      : params.role === 'marketplace_manager'
+      ? 'Marketplace Manager (Products, Categories & Coupons)'
+      : params.role === 'support_admin' || params.role === 'support'
+      ? 'Customer Support Specialist'
+      : params.role === 'manager' 
+      ? 'Operations Manager (Catalog & Operations)' 
       : 'Administrator';
 
   const subject = `Welcome to AbtalQuest Team: ${roleDisplay} Account Provisioned`;
