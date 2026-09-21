@@ -18,6 +18,7 @@ import {
   toggleWishlistItem
 } from '../../services/marketplaceService';
 import { supabase, isSupabaseConfigured } from '../../supabaseClient';
+import { incrementCouponUsage, type Coupon } from '../../services/couponService';
 import { MarketplaceHeader } from './MarketplaceHeader';
 import { MarketplaceBannerCarousel } from './MarketplaceBannerCarousel';
 import { MarketplaceCategoryPills } from './MarketplaceCategoryPills';
@@ -162,6 +163,8 @@ export const Marketplace: React.FC<MarketplaceProps> = ({
     totalAmount: number;
     totalXp: number;
     cndpConsent: boolean;
+    couponCode?: string;
+    discountAmount?: number;
   } | null>(null);
 
   // Auto-fill user credentials when signed in
@@ -488,7 +491,9 @@ export const Marketplace: React.FC<MarketplaceProps> = ({
   const handleSubmitOrder = async (
     e: React.FormEvent,
     paymentMethod: 'cod' | 'payzone' = 'cod',
-    cndpConsent: boolean = true
+    cndpConsent: boolean = true,
+    appliedCoupon?: Coupon | null,
+    discountAmount: number = 0
   ) => {
     e.preventDefault();
     const errors: Record<string, string> = {};
@@ -518,6 +523,8 @@ export const Marketplace: React.FC<MarketplaceProps> = ({
       };
     });
 
+    const effectiveTotal = Math.max(0, Math.round((cartSubtotal - discountAmount) * 100) / 100);
+
     const baseOrderPayload = {
       userId: user?.id,
       customerName: formData.name,
@@ -529,9 +536,11 @@ export const Marketplace: React.FC<MarketplaceProps> = ({
       items: orderItems,
       subtotal: cartSubtotal,
       shippingCost: 0, // Free shipping standard
-      totalAmount: cartSubtotal,
+      totalAmount: effectiveTotal,
       totalXp: cartTotalXp,
       cndpConsent,
+      couponCode: appliedCoupon?.code,
+      discountAmount: discountAmount > 0 ? discountAmount : undefined,
     };
 
     if (paymentMethod === 'payzone') {
@@ -550,6 +559,13 @@ export const Marketplace: React.FC<MarketplaceProps> = ({
         paymentMethod: 'cod',
         paymentStatus: 'pending_cod',
       });
+
+      // Increment coupon usage if promo applied
+      if (appliedCoupon?.code) {
+        incrementCouponUsage(appliedCoupon.code).catch((err) => {
+          console.warn('Coupon increment error:', err);
+        });
+      }
 
       // Clear cart upon successful confirmation
       persistCart([]);
@@ -581,6 +597,13 @@ export const Marketplace: React.FC<MarketplaceProps> = ({
         paymentToken: result.token,
         paymentRef: result.paymentRef,
       });
+
+      // Increment coupon usage if promo applied
+      if (pendingPayzoneInput.couponCode) {
+        incrementCouponUsage(pendingPayzoneInput.couponCode).catch((err) => {
+          console.warn('Coupon increment error:', err);
+        });
+      }
 
       persistCart([]);
       setIsPayzoneModalOpen(false);

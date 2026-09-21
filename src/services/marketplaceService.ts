@@ -149,6 +149,8 @@ export interface CreateOrderInput {
   paymentToken?: string;
   paymentRef?: string;
   cndpConsent?: boolean;
+  couponCode?: string;
+  discountAmount?: number;
 }
 
 export interface OrderConfirmation {
@@ -1460,6 +1462,8 @@ export const placeOrder = async (input: CreateOrderInput): Promise<OrderConfirma
         payment_token: paymentToken,
         payment_ref: paymentRef,
         cndp_consent: cndpConsent,
+        coupon_code: input.couponCode || null,
+        discount_amount: input.discountAmount || 0,
         items: input.items || [],
       };
 
@@ -1475,6 +1479,8 @@ export const placeOrder = async (input: CreateOrderInput): Promise<OrderConfirma
           payment_token: _pt,
           payment_ref: _pr,
           cndp_consent: _cc,
+          coupon_code: _ccode,
+          discount_amount: _damount,
           ...legacyPayload
         } = orderPayload;
         const retryResult = await supabase.from('orders').insert(legacyPayload);
@@ -1536,6 +1542,8 @@ export const placeOrder = async (input: CreateOrderInput): Promise<OrderConfirma
     paymentToken: paymentToken || undefined,
     paymentRef: paymentRef || undefined,
     cndpConsent,
+    couponCode: input.couponCode,
+    discountAmount: input.discountAmount,
     createdAt,
     items: input.items || [],
     isSupabaseSaved,
@@ -1606,6 +1614,8 @@ export interface AdminOrder {
   paymentToken?: string;
   paymentRef?: string;
   cndpConsent?: boolean;
+  couponCode?: string;
+  discountAmount?: number;
   createdAt: string;
   items: {
     productId: string;

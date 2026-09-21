@@ -240,6 +240,12 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'orders' AND column_name = 'cndp_consent') THEN
     ALTER TABLE public.orders ADD COLUMN cndp_consent BOOLEAN DEFAULT true;
   END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'orders' AND column_name = 'coupon_code') THEN
+    ALTER TABLE public.orders ADD COLUMN coupon_code TEXT;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'orders' AND column_name = 'discount_amount') THEN
+    ALTER TABLE public.orders ADD COLUMN discount_amount NUMERIC(10, 2) DEFAULT 0.00;
+  END IF;
   -- Ensure user_id column allows TEXT
   IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'orders' AND column_name = 'user_id' AND data_type = 'uuid') THEN
     ALTER TABLE public.orders ALTER COLUMN user_id TYPE TEXT USING user_id::text;
@@ -1297,7 +1303,70 @@ EXCEPTION
 END $$;
 
 -- ==============================================================================
--- 13. GRANT PERMISSIONS & RELOAD SCHEMA CACHE
+-- 13. COUPONS & PROMO CODES TABLE (Discount Engine)
+-- ==============================================================================
+CREATE TABLE IF NOT EXISTS public.coupons (
+  id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  code TEXT UNIQUE NOT NULL,
+  discount_type TEXT NOT NULL CHECK (discount_type IN ('percentage', 'fixed')),
+  discount_value NUMERIC(10, 2) NOT NULL,
+  min_order_amount NUMERIC(10, 2) DEFAULT 0.00,
+  usage_limit INTEGER DEFAULT NULL,
+  times_used INTEGER NOT NULL DEFAULT 0,
+  expires_at TIMESTAMPTZ DEFAULT NULL,
+  is_active BOOLEAN NOT NULL DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_coupons_code ON public.coupons(code);
+CREATE INDEX IF NOT EXISTS idx_coupons_is_active ON public.coupons(is_active);
+CREATE INDEX IF NOT EXISTS idx_coupons_created_at ON public.coupons(created_at DESC);
+
+-- Enable RLS
+ALTER TABLE public.coupons ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Allow public read on coupons" ON public.coupons;
+DROP POLICY IF EXISTS "Allow public insert on coupons" ON public.coupons;
+DROP POLICY IF EXISTS "Allow public update on coupons" ON public.coupons;
+DROP POLICY IF EXISTS "Allow public delete on coupons" ON public.coupons;
+
+CREATE POLICY "Allow public read on coupons"
+  ON public.coupons FOR SELECT TO anon, authenticated USING (true);
+
+CREATE POLICY "Allow public insert on coupons"
+  ON public.coupons FOR INSERT TO anon, authenticated WITH CHECK (true);
+
+CREATE POLICY "Allow public update on coupons"
+  ON public.coupons FOR UPDATE TO anon, authenticated USING (true) WITH CHECK (true);
+
+CREATE POLICY "Allow public delete on coupons"
+  ON public.coupons FOR DELETE TO anon, authenticated USING (true);
+
+-- Enable Realtime publication
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables 
+    WHERE pubname = 'supabase_realtime' 
+      AND schemaname = 'public' 
+      AND tablename = 'coupons'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.coupons;
+  END IF;
+EXCEPTION
+  WHEN OTHERS THEN
+    NULL;
+END $$;
+
+-- Seed Default Promo Codes
+INSERT INTO public.coupons (id, code, discount_type, discount_value, min_order_amount, usage_limit, times_used, expires_at, is_active)
+VALUES
+  ('coupon_welcome10', 'WELCOME10', 'percentage', 10.00, 0.00, 500, 0, NULL, true),
+  ('coupon_ramadan2026', 'RAMADAN2026', 'fixed', 50.00, 200.00, 200, 0, '2026-12-31T23:59:59Z', true)
+ON CONFLICT (code) DO NOTHING;
+
+-- ==============================================================================
+-- 14. GRANT PERMISSIONS & RELOAD SCHEMA CACHE
 -- ==============================================================================
 GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated, service_role;
 GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated, service_role;
@@ -1305,4 +1374,5 @@ GRANT ALL ON ALL ROUTINES IN SCHEMA public TO anon, authenticated, service_role;
 
 -- Refresh PostgREST schema cache
 NOTIFY pgrst, 'reload schema';
+
 
