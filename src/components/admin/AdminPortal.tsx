@@ -100,8 +100,12 @@ import {
   updateBlog,
   deleteBlog,
   uploadBlogImage,
+  subscribeToBlogChanges,
+  checkBlogsDatabaseHealth,
+  BLOGS_SCHEMA_SQL,
   DEFAULT_BLOG_CATEGORIES,
-  type BlogPost
+  type BlogPost,
+  type BlogsDatabaseHealth
 } from '../../services/blogService';
 import {
   fetchSubscribers,
@@ -205,6 +209,9 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
 
   // Blogs & Articles state
   const [blogsList, setBlogsList] = useState<BlogPost[]>([]);
+  const [blogsDbHealth, setBlogsDbHealth] = useState<BlogsDatabaseHealth | null>(null);
+  const [copiedBlogSql, setCopiedBlogSql] = useState<boolean>(false);
+  const [showBlogSqlModal, setShowBlogSqlModal] = useState<boolean>(false);
   const [blogSearch, setBlogSearch] = useState<string>('');
   const [blogCategoryFilter, setBlogCategoryFilter] = useState<string>('all');
   const [blogStatusFilter, setBlogStatusFilter] = useState<'all' | 'published' | 'draft'>('all');
@@ -362,7 +369,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
   const loadDashboardData = async (force = false) => {
     if (force) setLoadingData(true);
     try {
-      const [ordersList, messagesList, siteStats, health, productsData, loadedCategories, loadedBlogs, subscribersData] = await Promise.all([
+      const [ordersList, messagesList, siteStats, health, productsData, loadedCategories, loadedBlogs, subscribersData, blogsHealth] = await Promise.all([
         getAllOrdersForAdmin(),
         getContactMessagesForAdmin(),
         getSiteMetrics(),
@@ -371,6 +378,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
         fetchCategories(),
         fetchBlogs(),
         fetchSubscribers(),
+        checkBlogsDatabaseHealth(),
       ]);
 
       setOrders(ordersList);
@@ -380,6 +388,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
       setProductsList(productsData.products);
       setCategoriesList(loadedCategories);
       setBlogsList(loadedBlogs);
+      setBlogsDbHealth(blogsHealth);
       setSubscribersList(subscribersData.subscribers);
       setSubscribersTableMissing(!!subscribersData.isTableMissing);
       if (subscribersData.error && !subscribersData.isTableMissing) {
@@ -389,6 +398,16 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
       console.warn('Dashboard data load error:', err);
     } finally {
       setLoadingData(false);
+    }
+  };
+
+  const handleCopyBlogSql = async () => {
+    try {
+      await navigator.clipboard.writeText(BLOGS_SCHEMA_SQL);
+      setCopiedBlogSql(true);
+      setTimeout(() => setCopiedBlogSql(false), 3000);
+    } catch {
+      setCopiedBlogSql(false);
     }
   };
 
@@ -871,8 +890,9 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
       await updateBlog(blog.id, { isPublished: !blog.isPublished });
       const refreshed = await fetchBlogs();
       setBlogsList(refreshed);
-    } catch (err) {
+    } catch (err: any) {
       console.warn('Failed to toggle published status:', err);
+      alert(`Failed to update publication status: ${err?.message || 'Database error'}`);
     }
   };
 
@@ -884,8 +904,9 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
       const refreshed = await fetchBlogs();
       setBlogsList(refreshed);
       setDeletingBlog(null);
-    } catch (err) {
+    } catch (err: any) {
       console.warn('Failed to delete blog:', err);
+      alert(`Failed to delete blog post: ${err?.message || 'Database error'}`);
     } finally {
       setDeletingBlogSubmitting(false);
     }
@@ -928,6 +949,12 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
     window.addEventListener('abtalquest_blog_updated', handleOrderEvent);
     window.addEventListener('storage', handleStorageEvent);
 
+    // Cross-device Supabase Realtime synchronization for blogs
+    const unsubscribeBlogs = subscribeToBlogChanges(() => {
+      void fetchBlogs().then(setBlogsList);
+      void checkBlogsDatabaseHealth().then(setBlogsDbHealth);
+    });
+
     // Cross-device Supabase Realtime synchronization for products
     let adminProductChannel: any = null;
     if (isSupabaseConfigured()) {
@@ -954,6 +981,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
       window.removeEventListener('abtalquest_category_updated', handleOrderEvent);
       window.removeEventListener('abtalquest_blog_updated', handleOrderEvent);
       window.removeEventListener('storage', handleStorageEvent);
+      unsubscribeBlogs();
       if (adminProductChannel) {
         supabase.removeChannel(adminProductChannel);
       }
@@ -2638,7 +2666,19 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
                     <div className="flex items-center gap-2 mb-1">
-                      <Badge variant="primary" size="sm">Supabase Synced</Badge>
+                      {blogsDbHealth?.tableReady ? (
+                        <Badge variant="success" size="sm" pulse>
+                          Supabase Live ({blogsDbHealth.count})
+                        </Badge>
+                      ) : blogsDbHealth && !blogsDbHealth.tableReady ? (
+                        <Badge variant="warning" size="sm">
+                          Schema Pending Setup
+                        </Badge>
+                      ) : (
+                        <Badge variant="primary" size="sm">
+                          Supabase Synced
+                        </Badge>
+                      )}
                       <span className="font-body text-xs text-slate-400">Public Parenting Resources</span>
                     </div>
                     <h2 className="font-headline text-2xl font-black text-slate-900">
@@ -2661,6 +2701,47 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
                     </Button>
                   </div>
                 </div>
+
+                {/* Missing Table Attention Alert */}
+                {blogsDbHealth && !blogsDbHealth.tableReady && (
+                  <div className="p-5 rounded-2xl bg-amber-50 border border-amber-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-amber-900 animate-fadeIn shadow-sm">
+                    <div className="flex items-start gap-3">
+                      <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                      <div>
+                        <h4 className="font-headline font-black text-sm text-amber-900">
+                          Remote Supabase Table &quot;blogs&quot; Pending Setup
+                        </h4>
+                        <p className="font-body text-xs text-amber-800 mt-0.5">
+                          Articles are currently served from local defaults. Execute the SQL migration in your Supabase SQL Editor to enable live cloud persistence and real-time multi-device synchronization.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        onClick={handleCopyBlogSql}
+                        className="px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-headline text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
+                      >
+                        {copiedBlogSql ? (
+                          <>
+                            <Check className="w-3.5 h-3.5" />
+                            <span>Copied SQL!</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="w-3.5 h-3.5" />
+                            <span>Copy SQL Script</span>
+                          </>
+                        )}
+                      </button>
+                      <button
+                        onClick={() => setShowBlogSqlModal(true)}
+                        className="px-3 py-2 rounded-xl border border-amber-300 hover:bg-amber-100 text-amber-800 font-headline text-xs font-bold transition-all cursor-pointer"
+                      >
+                        View SQL
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 {/* Top Metrics Row */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -5576,6 +5657,67 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
                   variant="outline"
                   size="sm"
                   onClick={() => setShowSubscribersSqlModal(false)}
+                >
+                  Close
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Blog Posts SQL Migration Modal */}
+      {showBlogSqlModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
+          <div className="relative w-full max-w-2xl bg-white rounded-3xl p-6 sm:p-8 shadow-2xl border border-slate-100 max-h-[90vh] flex flex-col">
+            <button
+              type="button"
+              onClick={() => setShowBlogSqlModal(false)}
+              className="absolute top-5 right-5 p-2 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-2 mb-2">
+              <Badge variant="secondary" size="sm">Supabase Database Setup</Badge>
+            </div>
+
+            <h3 className="font-headline text-xl font-black text-slate-900 mb-1">
+              Blogs & Parenting Resources SQL Migration
+            </h3>
+            <p className="font-body text-xs text-slate-500 mb-4">
+              Execute this script in your Supabase SQL Editor to create the <code className="text-[#016ba5] bg-sky-50 px-1 py-0.5 rounded font-mono">public.blogs</code> table, enable real-time replication, and configure public read + authenticated admin write Row-Level Security policies.
+            </p>
+
+            <div className="relative flex-1 bg-slate-900 rounded-2xl p-4 overflow-y-auto font-mono text-xs text-emerald-400 max-h-[50vh] border border-slate-800">
+              <pre className="whitespace-pre-wrap">{BLOGS_SCHEMA_SQL}</pre>
+            </div>
+
+            <div className="flex items-center justify-between pt-4 mt-4 border-t border-slate-200">
+              <a
+                href="https://supabase.com/dashboard/project/sdatbzgyqwxburnsjbax/sql/new"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-xs font-headline font-bold text-[#016ba5] hover:underline"
+              >
+                <span>Open Supabase SQL Editor</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="cta"
+                  size="sm"
+                  onClick={handleCopyBlogSql}
+                  icon={copiedBlogSql ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                  iconPosition="left"
+                >
+                  {copiedBlogSql ? 'Copied SQL!' : 'Copy to Clipboard'}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowBlogSqlModal(false)}
                 >
                   Close
                 </Button>

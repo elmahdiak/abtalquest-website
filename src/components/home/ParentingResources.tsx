@@ -20,6 +20,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import { 
   fetchBlogs, 
   incrementBlogViews, 
+  subscribeToBlogChanges,
   type BlogPost 
 } from '../../services/blogService';
 import { subscribeEmail, isValidEmail } from '../../services/subscriberService';
@@ -101,14 +102,16 @@ export const ParentingResources: React.FC = () => {
 
     void loadData();
 
-    const handleBlogEvent = () => {
-      void loadData();
-    };
+    // Subscribe to both Supabase Realtime (postgres_changes) and local event dispatcher
+    const unsubscribe = subscribeToBlogChanges(() => {
+      if (isMounted) {
+        void loadData();
+      }
+    });
 
-    window.addEventListener('abtalquest_blog_updated', handleBlogEvent);
     return () => {
       isMounted = false;
-      window.removeEventListener('abtalquest_blog_updated', handleBlogEvent);
+      unsubscribe();
     };
   }, []);
 

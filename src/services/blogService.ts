@@ -168,8 +168,6 @@ When parents participate alongside children—embracing mistakes with humor and 
   },
 ];
 
-const LOCAL_STORAGE_KEY = 'abtalquest_blogs_local';
-
 export const slugify = (text: string): string => {
   return text
     .toLowerCase()
@@ -201,33 +199,6 @@ const mapRowToBlogPost = (row: SupabaseBlogRow): BlogPost => {
   };
 };
 
-const getLocalBlogs = (): BlogPost[] => {
-  try {
-    const data = localStorage.getItem(LOCAL_STORAGE_KEY);
-    if (!data) {
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(DEFAULT_BLOG_POSTS));
-      return DEFAULT_BLOG_POSTS;
-    }
-    const parsed = JSON.parse(data);
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed : DEFAULT_BLOG_POSTS;
-  } catch {
-    return DEFAULT_BLOG_POSTS;
-  }
-};
-
-const saveLocalBlogs = (blogs: BlogPost[]): void => {
-  try {
-    // Strip heavy base64 strings if any exist to protect localStorage quota
-    const sanitized = blogs.map((b) => ({
-      ...b,
-      imageUrl: b.imageUrl?.startsWith('data:') ? undefined : b.imageUrl,
-    }));
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(sanitized));
-  } catch (err) {
-    console.warn('[AbtalQuest BlogService] Error saving to localStorage:', err);
-  }
-};
-
 const emitBlogUpdateEvent = () => {
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent('abtalquest_blog_updated'));
@@ -235,109 +206,166 @@ const emitBlogUpdateEvent = () => {
 };
 
 /**
- * Fetches all blog posts from Supabase (with fallback to local storage / default seed).
+ * Real-time synchronization subscription for blog updates across clients.
+ * Subscribes to:
+ * 1. Supabase Realtime (postgres_changes on public.blogs)
+ * 2. Window CustomEvent ('abtalquest_blog_updated') for zero-latency local feedback
+ */
+export const subscribeToBlogChanges = (onUpdate: () => void): (() => void) => {
+  const localHandler = () => onUpdate();
+  if (typeof window !== 'undefined') {
+    window.addEventListener('abtalquest_blog_updated', localHandler);
+  }
+
+  if (!isSupabaseConfigured()) {
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('abtalquest_blog_updated', localHandler);
+      }
+    };
+  }
+
+  const channel = supabase
+    .channel('realtime_blogs_feed')
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'blogs' },
+      () => {
+        onUpdate();
+      }
+    )
+    .subscribe();
+
+  return () => {
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('abtalquest_blog_updated', localHandler);
+    }
+    void supabase.removeChannel(channel);
+  };
+};
+
+/**
+ * Fetches all blog posts directly from Supabase database.
+ * No localStorage fallback.
  */
 export const fetchBlogs = async (options?: {
   onlyPublished?: boolean;
   category?: string;
   search?: string;
 }): Promise<BlogPost[]> => {
-  if (isSupabaseConfigured()) {
-    try {
-      let query = supabase
-        .from('blogs')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (options?.onlyPublished) {
-        query = query.eq('is_published', true);
-      }
-
-      if (options?.category && options.category !== 'all') {
-        query = query.eq('category', options.category);
-      }
-
-      const { data, error } = await query;
-
-      if (!error && data && data.length > 0) {
-        const blogs = data.map((row) => mapRowToBlogPost(row as SupabaseBlogRow));
-
-        if (options?.search) {
-          const s = options.search.toLowerCase();
-          return blogs.filter(
-            (b) =>
-              b.title.toLowerCase().includes(s) ||
-              b.excerpt.toLowerCase().includes(s) ||
-              b.tags.some((t) => t.toLowerCase().includes(s))
-          );
-        }
-
-        saveLocalBlogs(blogs);
-        return blogs;
-      }
-
-      if (error) {
-        console.warn('[AbtalQuest BlogService] Supabase fetch error, using local fallback:', error.message);
-      }
-    } catch (err) {
-      console.warn('[AbtalQuest BlogService] Remote query error, using local cache:', err);
+  if (!isSupabaseConfigured()) {
+    let fallback = [...DEFAULT_BLOG_POSTS];
+    if (options?.onlyPublished) fallback = fallback.filter((b) => b.isPublished);
+    if (options?.category && options.category !== 'all') {
+      fallback = fallback.filter((b) => b.category === options.category);
     }
+    if (options?.search) {
+      const s = options.search.toLowerCase();
+      fallback = fallback.filter((b) => b.title.toLowerCase().includes(s) || b.excerpt.toLowerCase().includes(s));
+    }
+    return fallback;
   }
 
-  // Fallback to local storage
-  let localBlogs = getLocalBlogs();
-  if (options?.onlyPublished) {
-    localBlogs = localBlogs.filter((b) => b.isPublished);
-  }
-  if (options?.category && options.category !== 'all') {
-    localBlogs = localBlogs.filter((b) => b.category === options.category);
-  }
-  if (options?.search) {
-    const s = options.search.toLowerCase();
-    localBlogs = localBlogs.filter(
-      (b) =>
-        b.title.toLowerCase().includes(s) ||
-        b.excerpt.toLowerCase().includes(s) ||
-        b.tags.some((t) => t.toLowerCase().includes(s))
-    );
-  }
+  try {
+    let query = supabase
+      .from('blogs')
+      .select('*')
+      .order('created_at', { ascending: false });
 
-  return localBlogs;
+    if (options?.onlyPublished) {
+      query = query.eq('is_published', true);
+    }
+
+    if (options?.category && options.category !== 'all') {
+      query = query.eq('category', options.category);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      // If table is not provisioned in Supabase schema (PGRST205), show default seed
+      if (error.code === 'PGRST205' || error.message?.includes('not found')) {
+        console.warn('[AbtalQuest BlogService] blogs table not found in Supabase. Using default seed articles.');
+        let fallback = [...DEFAULT_BLOG_POSTS];
+        if (options?.onlyPublished) fallback = fallback.filter((b) => b.isPublished);
+        if (options?.category && options.category !== 'all') {
+          fallback = fallback.filter((b) => b.category === options.category);
+        }
+        return fallback;
+      }
+      console.error('[AbtalQuest BlogService] Supabase fetch error:', error.message);
+      throw new Error(`Failed to fetch blogs from database: ${error.message}`);
+    }
+
+    if (!data || data.length === 0) {
+      return [];
+    }
+
+    const blogs = data.map((row) => mapRowToBlogPost(row as SupabaseBlogRow));
+
+    if (options?.search) {
+      const s = options.search.toLowerCase();
+      return blogs.filter(
+        (b) =>
+          b.title.toLowerCase().includes(s) ||
+          b.excerpt.toLowerCase().includes(s) ||
+          b.tags.some((t) => t.toLowerCase().includes(s))
+      );
+    }
+
+    return blogs;
+  } catch (err: any) {
+    if (err?.message?.includes('PGRST205')) {
+      return DEFAULT_BLOG_POSTS;
+    }
+    throw err;
+  }
 };
 
 /**
- * Fetches a single blog post by its slug or ID
+ * Fetches a single blog post by slug or ID directly from Supabase
  */
 export const fetchBlogBySlug = async (slugOrId: string): Promise<BlogPost | null> => {
-  if (isSupabaseConfigured()) {
-    try {
-      const { data, error } = await supabase
-        .from('blogs')
-        .select('*')
-        .or(`slug.eq.${slugOrId},id.eq.${slugOrId}`)
-        .maybeSingle();
-
-      if (!error && data) {
-        return mapRowToBlogPost(data as SupabaseBlogRow);
-      }
-    } catch (err) {
-      console.warn('[AbtalQuest BlogService] Error fetching blog by slug from Supabase:', err);
-    }
+  if (!isSupabaseConfigured()) {
+    return DEFAULT_BLOG_POSTS.find((b) => b.slug === slugOrId || b.id === slugOrId) || null;
   }
 
-  const local = getLocalBlogs();
-  return local.find((b) => b.slug === slugOrId || b.id === slugOrId) || null;
+  try {
+    const { data, error } = await supabase
+      .from('blogs')
+      .select('*')
+      .or(`slug.eq.${slugOrId},id.eq.${slugOrId}`)
+      .maybeSingle();
+
+    if (error) {
+      if (error.code === 'PGRST205') {
+        return DEFAULT_BLOG_POSTS.find((b) => b.slug === slugOrId || b.id === slugOrId) || null;
+      }
+      console.error('[AbtalQuest BlogService] Error fetching blog by slug:', error.message);
+      return null;
+    }
+
+    if (data) {
+      return mapRowToBlogPost(data as SupabaseBlogRow);
+    }
+    return null;
+  } catch {
+    return null;
+  }
 };
 
 /**
- * Creates a new blog post in Supabase and local storage
+ * Creates a new blog post directly in Supabase (Strict Cloud Persistence)
  */
 export const createBlog = async (input: CreateBlogPostInput): Promise<BlogPost> => {
+  if (!isSupabaseConfigured()) {
+    throw new Error('Supabase credentials not configured. Cannot create blog post.');
+  }
+
   const generatedId = `blog-${Date.now()}`;
   const slug = input.slug?.trim() ? slugify(input.slug) : slugify(input.title) || generatedId;
-  const now = new Date().toISOString();
 
-  const newPost: BlogPost = {
+  const payload = {
     id: generatedId,
     title: input.title.trim(),
     slug,
@@ -345,158 +373,102 @@ export const createBlog = async (input: CreateBlogPostInput): Promise<BlogPost> 
     content: input.content.trim(),
     category: input.category.trim() || 'Parenting & Values',
     tags: input.tags || [],
-    imageUrl: input.imageUrl?.trim() || undefined,
-    authorName: input.authorName.trim() || 'AbtalQuest Editorial Team',
-    authorRole: input.authorRole?.trim() || 'Child Development Specialist',
-    authorAvatar: input.authorAvatar?.trim() || undefined,
-    readTime: input.readTime?.trim() || '5 min read',
-    isPublished: input.isPublished ?? true,
+    image_url: input.imageUrl?.trim() || null,
+    author_name: input.authorName.trim() || 'AbtalQuest Editorial Team',
+    author_role: input.authorRole?.trim() || 'Child Development Specialist',
+    author_avatar: input.authorAvatar?.trim() || null,
+    read_time: input.readTime?.trim() || '5 min read',
+    is_published: input.isPublished ?? true,
     featured: input.featured ?? false,
-    viewsCount: 0,
-    createdAt: now,
-    updatedAt: now,
+    views_count: 0,
   };
 
-  // 1. Insert into Supabase
-  if (isSupabaseConfigured()) {
-    try {
-      const { data, error } = await supabase
-        .from('blogs')
-        .insert({
-          id: newPost.id,
-          title: newPost.title,
-          slug: newPost.slug,
-          excerpt: newPost.excerpt,
-          content: newPost.content,
-          category: newPost.category,
-          tags: newPost.tags,
-          image_url: newPost.imageUrl || null,
-          author_name: newPost.authorName,
-          author_role: newPost.authorRole || null,
-          author_avatar: newPost.authorAvatar || null,
-          read_time: newPost.readTime,
-          is_published: newPost.isPublished,
-          featured: newPost.featured,
-          views_count: 0,
-        })
-        .select()
-        .single();
+  const { data, error } = await supabase
+    .from('blogs')
+    .insert(payload)
+    .select()
+    .single();
 
-      if (!error && data) {
-        const savedPost = mapRowToBlogPost(data as SupabaseBlogRow);
-        const current = getLocalBlogs();
-        saveLocalBlogs([savedPost, ...current.filter((b) => b.id !== savedPost.id)]);
-        emitBlogUpdateEvent();
-        return savedPost;
-      }
-
-      if (error) {
-        console.warn('[AbtalQuest BlogService] Supabase insert warning:', error.message);
-      }
-    } catch (err) {
-      console.warn('[AbtalQuest BlogService] Remote insert error:', err);
-    }
+  if (error) {
+    console.error('[AbtalQuest BlogService] Supabase insert error:', error.message);
+    throw new Error(`Failed to save blog post to Supabase: ${error.message}`);
   }
 
-  // 2. Save to local fallback
-  const current = getLocalBlogs();
-  const updated = [newPost, ...current];
-  saveLocalBlogs(updated);
+  if (!data) {
+    throw new Error('Supabase did not return the created blog post record.');
+  }
+
+  const savedPost = mapRowToBlogPost(data as SupabaseBlogRow);
   emitBlogUpdateEvent();
-  return newPost;
+  return savedPost;
 };
 
 /**
- * Updates an existing blog post in Supabase and local storage
+ * Updates an existing blog post directly in Supabase (Strict Cloud Persistence)
  */
 export const updateBlog = async (
   id: string,
   updates: UpdateBlogPostInput
-): Promise<BlogPost | null> => {
-  const now = new Date().toISOString();
-
-  // 1. Update in Supabase
-  if (isSupabaseConfigured()) {
-    try {
-      const payload: Record<string, unknown> = {
-        updated_at: now,
-      };
-
-      if (updates.title !== undefined) payload.title = updates.title.trim();
-      if (updates.slug !== undefined) payload.slug = slugify(updates.slug);
-      if (updates.excerpt !== undefined) payload.excerpt = updates.excerpt.trim();
-      if (updates.content !== undefined) payload.content = updates.content.trim();
-      if (updates.category !== undefined) payload.category = updates.category.trim();
-      if (updates.tags !== undefined) payload.tags = updates.tags;
-      if (updates.imageUrl !== undefined) payload.image_url = updates.imageUrl.trim() || null;
-      if (updates.authorName !== undefined) payload.author_name = updates.authorName.trim();
-      if (updates.authorRole !== undefined) payload.author_role = updates.authorRole.trim() || null;
-      if (updates.authorAvatar !== undefined) payload.author_avatar = updates.authorAvatar.trim() || null;
-      if (updates.readTime !== undefined) payload.read_time = updates.readTime.trim();
-      if (updates.isPublished !== undefined) payload.is_published = updates.isPublished;
-      if (updates.featured !== undefined) payload.featured = updates.featured;
-
-      const { data, error } = await supabase
-        .from('blogs')
-        .update(payload)
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (!error && data) {
-        const updatedPost = mapRowToBlogPost(data as SupabaseBlogRow);
-        const current = getLocalBlogs();
-        const updatedList = current.map((b) => (b.id === id ? updatedPost : b));
-        saveLocalBlogs(updatedList);
-        emitBlogUpdateEvent();
-        return updatedPost;
-      }
-
-      if (error) {
-        console.warn('[AbtalQuest BlogService] Supabase update warning:', error.message);
-      }
-    } catch (err) {
-      console.warn('[AbtalQuest BlogService] Remote update error:', err);
-    }
+): Promise<BlogPost> => {
+  if (!isSupabaseConfigured()) {
+    throw new Error('Supabase credentials not configured. Cannot update blog post.');
   }
 
-  // 2. Update in local storage
-  const current = getLocalBlogs();
-  const existingIndex = current.findIndex((b) => b.id === id);
-  if (existingIndex === -1) return null;
-
-  const currentItem = current[existingIndex];
-  const updatedItem: BlogPost = {
-    ...currentItem,
-    ...updates,
-    slug: updates.slug ? slugify(updates.slug) : currentItem.slug,
-    updatedAt: now,
+  const now = new Date().toISOString();
+  const payload: Record<string, unknown> = {
+    updated_at: now,
   };
 
-  current[existingIndex] = updatedItem;
-  saveLocalBlogs(current);
+  if (updates.title !== undefined) payload.title = updates.title.trim();
+  if (updates.slug !== undefined) payload.slug = slugify(updates.slug);
+  if (updates.excerpt !== undefined) payload.excerpt = updates.excerpt.trim();
+  if (updates.content !== undefined) payload.content = updates.content.trim();
+  if (updates.category !== undefined) payload.category = updates.category.trim();
+  if (updates.tags !== undefined) payload.tags = updates.tags;
+  if (updates.imageUrl !== undefined) payload.image_url = updates.imageUrl.trim() || null;
+  if (updates.authorName !== undefined) payload.author_name = updates.authorName.trim();
+  if (updates.authorRole !== undefined) payload.author_role = updates.authorRole.trim() || null;
+  if (updates.authorAvatar !== undefined) payload.author_avatar = updates.authorAvatar.trim() || null;
+  if (updates.readTime !== undefined) payload.read_time = updates.readTime.trim();
+  if (updates.isPublished !== undefined) payload.is_published = updates.isPublished;
+  if (updates.featured !== undefined) payload.featured = updates.featured;
+
+  const { data, error } = await supabase
+    .from('blogs')
+    .update(payload)
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) {
+    console.error('[AbtalQuest BlogService] Supabase update error:', error.message);
+    throw new Error(`Failed to update blog post in Supabase: ${error.message}`);
+  }
+
+  if (!data) {
+    throw new Error(`Blog post with ID "${id}" was not found in Supabase.`);
+  }
+
+  const updatedPost = mapRowToBlogPost(data as SupabaseBlogRow);
   emitBlogUpdateEvent();
-  return updatedItem;
+  return updatedPost;
 };
 
 /**
- * Deletes a blog post from Supabase and local storage
+ * Deletes a blog post directly from Supabase (Strict Cloud Persistence)
  */
 export const deleteBlog = async (id: string): Promise<boolean> => {
-  if (isSupabaseConfigured()) {
-    try {
-      const { error } = await supabase.from('blogs').delete().eq('id', id);
-      if (error) {
-        console.warn('[AbtalQuest BlogService] Supabase delete warning:', error.message);
-      }
-    } catch (err) {
-      console.warn('[AbtalQuest BlogService] Remote delete error:', err);
-    }
+  if (!isSupabaseConfigured()) {
+    throw new Error('Supabase credentials not configured. Cannot delete blog post.');
   }
 
-  const current = getLocalBlogs();
-  const filtered = current.filter((b) => b.id !== id);
-  saveLocalBlogs(filtered);
+  const { error } = await supabase.from('blogs').delete().eq('id', id);
+
+  if (error) {
+    console.error('[AbtalQuest BlogService] Supabase delete error:', error.message);
+    throw new Error(`Failed to delete blog post in Supabase: ${error.message}`);
+  }
+
   emitBlogUpdateEvent();
   return true;
 };
@@ -537,7 +509,7 @@ export const uploadBlogImage = async (file: File): Promise<string> => {
 
     console.error('[AbtalQuest Storage] Blog upload failed:', uploadError);
     if (uploadError.message?.toLowerCase().includes('bucket not found') || (uploadError as any)?.statusCode === '404') {
-      throw new Error('Storage Bucket Missing: The "blog-images" bucket does not exist in Supabase. Please run the schema.sql script in your Supabase SQL editor to create it.');
+      throw new Error('Storage Bucket Missing: The "blog-images" bucket does not exist in Supabase. Please run the schema migration in your Supabase SQL editor.');
     }
     throw new Error(`Failed to upload blog image: ${uploadError.message}`);
   }
@@ -551,21 +523,154 @@ export const uploadBlogImage = async (file: File): Promise<string> => {
 };
 
 /**
- * Increments view count for an article
+ * Increments view count for an article in Supabase
  */
 export const incrementBlogViews = async (id: string): Promise<void> => {
-  const current = getLocalBlogs();
-  const post = current.find((b) => b.id === id);
-  if (post) {
-    post.viewsCount = (post.viewsCount || 0) + 1;
-    saveLocalBlogs(current);
-  }
-
   if (isSupabaseConfigured()) {
     try {
       await supabase.rpc('increment_blog_views', { blog_id: id });
     } catch {
-      // RPC might not exist, ignore silently
+      // RPC may not exist, ignore silently
     }
   }
 };
+
+/**
+ * Database health check for the blogs table
+ */
+export interface BlogsDatabaseHealth {
+  configured: boolean;
+  tableReady: boolean;
+  errorMessage?: string;
+  count: number;
+}
+
+export const checkBlogsDatabaseHealth = async (): Promise<BlogsDatabaseHealth> => {
+  if (!isSupabaseConfigured()) {
+    return {
+      configured: false,
+      tableReady: false,
+      errorMessage: 'Supabase credentials are not configured.',
+      count: 0,
+    };
+  }
+
+  try {
+    const { count, error } = await supabase
+      .from('blogs')
+      .select('id', { count: 'exact', head: true });
+
+    if (error) {
+      return {
+        configured: true,
+        tableReady: false,
+        errorMessage: error.message,
+        count: 0,
+      };
+    }
+
+    return {
+      configured: true,
+      tableReady: true,
+      count: count || 0,
+    };
+  } catch (err: any) {
+    return {
+      configured: true,
+      tableReady: false,
+      errorMessage: err?.message || 'Database connectivity error.',
+      count: 0,
+    };
+  }
+};
+
+/**
+ * Copy-paste ready SQL migration to provision the blogs table, RLS, Realtime publication, and storage bucket
+ */
+export const BLOGS_SCHEMA_SQL = `-- ==============================================================================
+-- AbtalQuest: Full Blogs & Storage Bucket Migration
+-- Run this in Supabase SQL Editor (https://supabase.com/dashboard/project/sdatbzgyqwxburnsjbax/sql/new)
+-- ==============================================================================
+
+-- 1. BLOGS TABLE
+CREATE TABLE IF NOT EXISTS public.blogs (
+  id TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  slug TEXT UNIQUE NOT NULL,
+  excerpt TEXT NOT NULL,
+  content TEXT NOT NULL,
+  category TEXT NOT NULL DEFAULT 'Parenting & Values',
+  tags TEXT[] DEFAULT '{}',
+  image_url TEXT,
+  author_name TEXT NOT NULL DEFAULT 'AbtalQuest Editorial Team',
+  author_role TEXT DEFAULT 'Child Development Specialist',
+  author_avatar TEXT,
+  read_time TEXT DEFAULT '5 min read',
+  is_published BOOLEAN DEFAULT true,
+  featured BOOLEAN DEFAULT false,
+  views_count INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_blogs_slug ON public.blogs(slug);
+CREATE INDEX IF NOT EXISTS idx_blogs_created_at ON public.blogs(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_blogs_category ON public.blogs(category);
+CREATE INDEX IF NOT EXISTS idx_blogs_is_published ON public.blogs(is_published);
+
+-- 2. ROW LEVEL SECURITY
+ALTER TABLE public.blogs ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Allow public read on blogs" ON public.blogs;
+DROP POLICY IF EXISTS "Allow admin insert on blogs" ON public.blogs;
+DROP POLICY IF EXISTS "Allow admin update on blogs" ON public.blogs;
+DROP POLICY IF EXISTS "Allow admin delete on blogs" ON public.blogs;
+
+CREATE POLICY "Allow public read on blogs" ON public.blogs FOR SELECT TO anon, authenticated USING (true);
+CREATE POLICY "Allow admin insert on blogs" ON public.blogs FOR INSERT TO anon, authenticated WITH CHECK (true);
+CREATE POLICY "Allow admin update on blogs" ON public.blogs FOR UPDATE TO anon, authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Allow admin delete on blogs" ON public.blogs FOR DELETE TO anon, authenticated USING (true);
+
+-- 3. REALTIME BROADCAST
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables 
+    WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'blogs'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.blogs;
+  END IF;
+EXCEPTION
+  WHEN OTHERS THEN NULL;
+END $$;
+
+-- 4. STORAGE BUCKET FOR BLOG IMAGES
+INSERT INTO storage.buckets (id, name, public) 
+VALUES ('blog-images', 'blog-images', true) 
+ON CONFLICT (id) DO UPDATE SET public = true;
+
+DROP POLICY IF EXISTS "Allow public read on blog images" ON storage.objects;
+DROP POLICY IF EXISTS "Allow upload on blog images" ON storage.objects;
+DROP POLICY IF EXISTS "Allow update on blog images" ON storage.objects;
+DROP POLICY IF EXISTS "Allow delete on blog images" ON storage.objects;
+
+CREATE POLICY "Allow public read on blog images" ON storage.objects FOR SELECT TO anon, authenticated USING (bucket_id = 'blog-images');
+CREATE POLICY "Allow upload on blog images" ON storage.objects FOR INSERT TO anon, authenticated WITH CHECK (bucket_id = 'blog-images');
+CREATE POLICY "Allow update on blog images" ON storage.objects FOR UPDATE TO anon, authenticated USING (bucket_id = 'blog-images');
+CREATE POLICY "Allow delete on blog images" ON storage.objects FOR DELETE TO anon, authenticated USING (bucket_id = 'blog-images');
+
+-- 5. RPC FOR VIEW COUNT INCREMENT
+CREATE OR REPLACE FUNCTION public.increment_blog_views(blog_id TEXT)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+  UPDATE public.blogs SET views_count = COALESCE(views_count, 0) + 1 WHERE id = blog_id;
+END;
+$$;
+
+-- 6. GRANT PERMISSIONS & RELOAD SCHEMA CACHE
+GRANT ALL ON public.blogs TO anon, authenticated, service_role;
+NOTIFY pgrst, 'reload schema';
+`;
