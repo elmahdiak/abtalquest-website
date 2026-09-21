@@ -14,6 +14,7 @@ import ContactModal from './components/common/ContactModal';
 import Button from './components/common/Button';
 import Badge from './components/common/Badge';
 import Card from './components/common/Card';
+import { SafetyStandardsView, type SafetyStandardTab } from './components/compliance/SafetyStandardsView';
 import { subscribeToAuthChanges, signOutUser } from './services/authService';
 import { useLanguage } from './context/LanguageContext';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
@@ -30,7 +31,8 @@ import {
 
 export function App() {
   const { t } = useLanguage();
-  const [currentView, setCurrentView] = useState<'home' | 'marketplace' | 'admin'>('home');
+  const [currentView, setCurrentView] = useState<'home' | 'marketplace' | 'admin' | 'safety-standards'>('home');
+  const [activeSafetyTab, setActiveSafetyTab] = useState<SafetyStandardTab>('privacy-kids');
   const [activeFilter, setActiveFilter] = useState<'all' | 'courage' | 'kindness' | 'wisdom'>('all');
   const [completedQuest, setCompletedQuest] = useState<number | null>(null);
 
@@ -73,6 +75,44 @@ export function App() {
       } else if (hash === '#contact') {
         setContactModalOpen(true);
         setCurrentView('home');
+      } else if (
+        hash === '#privacy-for-kids' ||
+        hash === '#privacy-kids' ||
+        hash === '#privacy'
+      ) {
+        setActiveSafetyTab('privacy-kids');
+        setCurrentView('safety-standards');
+      } else if (
+        hash === '#child-safety-pledge' ||
+        hash === '#safety-pledge' ||
+        hash === '#safety'
+      ) {
+        setActiveSafetyTab('safety-pledge');
+        setCurrentView('safety-standards');
+      } else if (
+        hash === '#ad-free-standard' ||
+        hash === '#ad-free'
+      ) {
+        setActiveSafetyTab('ad-free');
+        setCurrentView('safety-standards');
+      } else if (
+        hash === '#coppa-compliance' ||
+        hash === '#coppa'
+      ) {
+        setActiveSafetyTab('coppa');
+        setCurrentView('safety-standards');
+      } else if (
+        hash === '#parental-oversight' ||
+        hash === '#parent-controls' ||
+        hash === '#parenting-controls'
+      ) {
+        setActiveSafetyTab('parent-oversight');
+        setCurrentView('safety-standards');
+      } else if (
+        hash.startsWith('#safety-standards') ||
+        hash.startsWith('#compliance')
+      ) {
+        setCurrentView('safety-standards');
       } else if (
         hash === '' || 
         hash === '#universe' || 
@@ -181,6 +221,20 @@ export function App() {
         <Marketplace 
           user={user}
           onOpenAuth={() => setAuthModalOpen(true)}
+        />
+      ) : currentView === 'safety-standards' ? (
+        <SafetyStandardsView
+          activeTab={activeSafetyTab}
+          onTabChange={(tab) => setActiveSafetyTab(tab)}
+          onBackToHome={() => {
+            window.location.hash = '#universe';
+            setCurrentView('home');
+          }}
+          onExploreMarketplace={() => {
+            window.location.hash = '#marketplace';
+            setCurrentView('marketplace');
+          }}
+          onOpenContact={() => setContactModalOpen(true)}
         />
       ) : (
         <>

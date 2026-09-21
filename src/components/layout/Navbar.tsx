@@ -27,7 +27,7 @@ export interface NavItem {
 }
 
 export interface NavbarProps {
-  currentView?: 'home' | 'marketplace' | 'admin';
+  currentView?: 'home' | 'marketplace' | 'admin' | 'safety-standards';
   onViewChange?: (view: 'home' | 'marketplace') => void;
   user?: SupabaseUser | null;
   onOpenAuth?: () => void;
@@ -132,9 +132,12 @@ export const Navbar: React.FC<NavbarProps> = ({
               <span>{t('nav.contact_support')}</span>
             </button>
             <span className="text-white/40">|</span>
-            <span className="text-white/80">
+            <a
+              href="#coppa-compliance"
+              className="text-white/80 hover:text-amber-300 hover:underline transition-colors"
+            >
               {t('nav.compliance_notice')}
-            </span>
+            </a>
           </div>
         </div>
       </div>

@@ -350,12 +350,26 @@ export const MarketplaceFooter: React.FC<MarketplaceFooterProps> = ({
         {/* Bottom copyright line */}
         <div className="mt-12 pt-6 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500 dark:text-slate-400">
           <span>&copy; {new Date().getFullYear()} AbtalQuest Universe. {t('footer.rights')}</span>
-          <div className="flex items-center gap-4">
-            <span className="hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer">Privacy Policy</span>
+          <div className="flex flex-wrap items-center gap-3 sm:gap-4">
+            <a href="#privacy-for-kids" className="hover:text-slate-700 dark:hover:text-slate-200 transition-colors">
+              {t('footer.col_safety_privacy') || 'Privacy for Kids'}
+            </a>
             <span>•</span>
-            <span className="hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer">COPPA Compliance</span>
+            <a href="#coppa-compliance" className="hover:text-slate-700 dark:hover:text-slate-200 transition-colors">
+              {t('footer.col_safety_coppa') || 'COPPA Compliance'}
+            </a>
             <span>•</span>
-            <span className="hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer">Terms of Service</span>
+            <a href="#ad-free-standard" className="hover:text-slate-700 dark:hover:text-slate-200 transition-colors">
+              {t('footer.col_safety_ad_free') || 'Ad-Free Standard'}
+            </a>
+            <span>•</span>
+            <a href="#child-safety-pledge" className="hover:text-slate-700 dark:hover:text-slate-200 transition-colors">
+              {t('footer.col_safety_pledge') || 'Child Safety Pledge'}
+            </a>
+            <span>•</span>
+            <a href="#parental-oversight" className="hover:text-slate-700 dark:hover:text-slate-200 transition-colors">
+              {t('safety.tab_parent_oversight') || 'Parental Oversight'}
+            </a>
           </div>
         </div>
       </div>

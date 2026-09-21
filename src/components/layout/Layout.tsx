@@ -8,7 +8,7 @@ import type { User as SupabaseUser } from '@supabase/supabase-js';
 
 export interface LayoutProps {
   children: React.ReactNode;
-  currentView?: 'home' | 'marketplace' | 'admin';
+  currentView?: 'home' | 'marketplace' | 'admin' | 'safety-standards';
   onViewChange?: (view: 'home' | 'marketplace') => void;
   user?: SupabaseUser | null;
   onOpenAuth?: () => void;

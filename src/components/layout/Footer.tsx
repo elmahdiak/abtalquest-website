@@ -201,28 +201,28 @@ export const Footer: React.FC<FooterProps> = ({ onOpenContact }) => {
             </h4>
             <ul className="flex flex-col gap-2.5 font-body text-xs text-slate-400">
               <li>
-                <a href="#privacy" className="hover:text-amber-400 transition-colors">
+                <a href="#privacy-for-kids" className="hover:text-amber-400 transition-colors">
                   {t('footer.col_safety_privacy')}
                 </a>
               </li>
               <li>
-                <a href="#terms" className="hover:text-amber-400 transition-colors">
+                <a href="#child-safety-pledge" className="hover:text-amber-400 transition-colors">
                   {t('footer.col_safety_pledge')}
                 </a>
               </li>
               <li>
-                <a href="#safety-pledge" className="hover:text-amber-400 transition-colors">
+                <a href="#ad-free-standard" className="hover:text-amber-400 transition-colors">
                   {t('footer.col_safety_ad_free')}
                 </a>
               </li>
               <li>
-                <a href="#coppa" className="hover:text-amber-400 transition-colors">
+                <a href="#coppa-compliance" className="hover:text-amber-400 transition-colors">
                   {t('footer.col_safety_coppa')}
                 </a>
               </li>
               <li>
-                <a href="#parent-controls" className="hover:text-amber-400 transition-colors">
-                  {t('footer.pledge_4')}
+                <a href="#parental-oversight" className="hover:text-amber-400 transition-colors">
+                  {t('safety.tab_parent_oversight') || 'Parental Oversight Tools'}
                 </a>
               </li>
             </ul>
