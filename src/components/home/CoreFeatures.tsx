@@ -16,9 +16,9 @@ import { useLanguage } from '../../context/LanguageContext';
 
 export interface FeatureItem {
   id: string;
-  titleKey: 'feat_1_title' | 'feat_2_title' | 'feat_3_title';
-  descKey: 'feat_1_desc' | 'feat_2_desc' | 'feat_3_desc';
-  badgeKey: 'feat_4_title' | 'feat_5_title' | 'feat_6_title';
+  titleKey: string;
+  descKey: string;
+  badgeKey: string;
   badgeVariant: 'gamification' | 'success' | 'secondary';
   icon: React.ReactNode;
   iconBg: string;
@@ -28,8 +28,8 @@ export interface FeatureItem {
 const FEATURES: FeatureItem[] = [
   {
     id: 'cartoons',
-    titleKey: 'feat_1_title',
-    descKey: 'feat_1_desc',
+    titleKey: 'feat_cartoons_title',
+    descKey: 'feat_cartoons_desc',
     badgeKey: 'feat_4_title',
     badgeVariant: 'secondary',
     icon: <Film className="w-8 h-8" />,
@@ -38,8 +38,8 @@ const FEATURES: FeatureItem[] = [
   },
   {
     id: 'quests',
-    titleKey: 'feat_2_title',
-    descKey: 'feat_2_desc',
+    titleKey: 'feat_quests_title',
+    descKey: 'feat_quests_desc',
     badgeKey: 'feat_5_title',
     badgeVariant: 'gamification',
     icon: <Compass className="w-8 h-8" />,
@@ -76,11 +76,11 @@ export const CoreFeatures: React.FC = () => {
           </Badge>
 
           <h2 className="font-headline text-3xl sm:text-4xl lg:text-5xl font-black text-[#1E293B] dark:text-white tracking-tight mt-4 mb-4">
-            {t('features.title')}
+            {t('features.title_revolutionary') || t('features.title')}
           </h2>
 
           <p className="font-body text-sm sm:text-base text-[#64748B] dark:text-slate-300 leading-relaxed">
-            {t('features.subtitle')}
+            {t('features.subtitle_revolutionary') || t('features.subtitle')}
           </p>
         </div>
 

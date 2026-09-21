@@ -6,6 +6,9 @@ import VisionMission from './components/home/VisionMission';
 import PlanetWorlds from './components/home/PlanetWorlds';
 import CoreFeatures from './components/home/CoreFeatures';
 import ParentingResources from './components/home/ParentingResources';
+import DownloadAppSection from './components/home/DownloadAppSection';
+import WhyAbtalQuestSection from './components/home/WhyAbtalQuestSection';
+import MarketplacePreviewSection from './components/home/MarketplacePreviewSection';
 import Marketplace from './components/marketplace/Marketplace';
 import AdminPortal from './components/admin/AdminPortal';
 import AboutUsView from './components/about/AboutUsView';
@@ -13,6 +16,8 @@ import { MarketplaceTrendingCarousel } from './components/marketplace/Marketplac
 import UserAuthModal from './components/auth/UserAuthModal';
 import UserProfileModal from './components/auth/UserProfileModal';
 import ContactModal from './components/common/ContactModal';
+import WatchDemoModal from './components/common/WatchDemoModal';
+import FloatingCartButton from './components/common/FloatingCartButton';
 import Button from './components/common/Button';
 import Badge from './components/common/Badge';
 import Card from './components/common/Card';
@@ -34,9 +39,7 @@ import {
   Award, 
   EyeOff, 
   Lock, 
-  Sparkles,
-  ShoppingBag,
-  ArrowRight
+  Sparkles
 } from 'lucide-react';
 
 export function App() {
@@ -56,6 +59,7 @@ export function App() {
   const [authModalOpen, setAuthModalOpen] = useState<boolean>(false);
   const [profileModalOpen, setProfileModalOpen] = useState<boolean>(false);
   const [contactModalOpen, setContactModalOpen] = useState<boolean>(false);
+  const [watchDemoOpen, setWatchDemoOpen] = useState<boolean>(false);
 
   useEffect(() => {
     const handleHash = () => {
@@ -296,26 +300,44 @@ export function App() {
           {/* 1. HERO SECTION */}
           <Hero
             onExploreClick={() => {
-              const el = document.getElementById('quests-section');
-              el?.scrollIntoView({ behavior: 'smooth' });
-            }}
-            onWorldsClick={() => {
               const el = document.getElementById('planet-worlds');
               el?.scrollIntoView({ behavior: 'smooth' });
             }}
-            onDownloadClick={() => {
-              alert('AbtalQuest App: 100% Safe, Ad-Free & Violence-Free.');
-            }}
+            onWatchDemo={() => setWatchDemoOpen(true)}
           />
 
-          {/* 2. INSTITUTIONAL BACKING, SUPPORTERS & PRESTIGIOUS AWARDS */}
-          <InstitutionalCredibility />
+          {/* 2. EXPLORE THE PLANET WORLDS */}
+          <PlanetWorlds />
 
           {/* 3. VISION & MISSION SECTION */}
           <VisionMission />
 
-          {/* 4. EXPLORE THE PLANET WORLDS */}
-          <PlanetWorlds />
+          {/* 4. CORE FEATURES (REVOLUTIONARY FEATURES) */}
+          <CoreFeatures />
+
+          {/* 5. APP DOWNLOAD SECTION */}
+          <DownloadAppSection />
+
+          {/* 6. PHILOSOPHY & WHY ABTALQUEST */}
+          <WhyAbtalQuestSection
+            onLearnMore={() => {
+              setCurrentView('about');
+              window.location.hash = '#about';
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+          />
+
+          {/* 7. MARKETPLACE PREVIEW SECTION */}
+          <MarketplacePreviewSection
+            onExploreMarketplace={() => {
+              setCurrentView('marketplace');
+              window.location.hash = '#marketplace';
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            onAddToCart={(productId) => {
+              setSelectedMarketplaceProduct(productId);
+            }}
+          />
 
           {/* 🔥 TRENDING NOW PRODUCT CAROUSEL ON HOME */}
           {homeTrendingProducts.length > 0 && (
@@ -343,47 +365,11 @@ export function App() {
             </section>
           )}
 
-          {/* Marketplace Callout Banner on Home */}
-          <section className="py-12 bg-gradient-to-r from-[#016ba5]/10 via-[#fa8221]/10 to-[#7C3AED]/10 dark:from-[#016ba5]/20 dark:via-[#fa8221]/20 dark:to-[#7C3AED]/20 border-b border-slate-200 dark:border-slate-800">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-6">
-              <div className="flex items-center gap-4">
-                <div className="w-14 h-14 rounded-2xl bg-[#fa8221] text-white flex items-center justify-center shadow-cta flex-shrink-0">
-                  <ShoppingBag className="w-7 h-7" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <Badge variant="secondary" size="sm">{t('nav.marketplace')}</Badge>
-                    <span className="font-body text-xs text-slate-500 dark:text-slate-400">{t('hero.stat_offline_desc')}</span>
-                  </div>
-                  <h3 className="font-headline text-xl sm:text-2xl font-black text-slate-900 dark:text-white">
-                    {t('quests.banner_marketplace_title')}
-                  </h3>
-                  <p className="font-body text-xs sm:text-sm text-slate-600 dark:text-slate-300 mt-1">
-                    {t('quests.banner_marketplace_desc')}
-                  </p>
-                </div>
-              </div>
-              <Button
-                variant="cta"
-                size="lg"
-                icon={<ArrowRight className="w-4 h-4 rtl-flip" />}
-                iconPosition="right"
-                onClick={() => {
-                  setCurrentView('marketplace');
-                  window.location.hash = '#marketplace';
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                }}
-              >
-                {t('quests.banner_marketplace_btn')}
-              </Button>
-            </div>
-          </section>
-
-          {/* 4. CORE FEATURES */}
-          <CoreFeatures />
-
-          {/* 5. PARENTING RESOURCES */}
+          {/* 8. PARENTING RESOURCES (BLOG) */}
           <ParentingResources />
+
+          {/* 9. INSTITUTIONAL BACKING, SUPPORTERS & RECOGNITION */}
+          <InstitutionalCredibility />
 
           {/* 6. VALUES & SAFETY PILLARS: 0% Ads, 0% Violence */}
           <section id="safety-pledge" className="py-20 bg-white dark:bg-[#071727] border-b border-slate-200 dark:border-slate-800">
@@ -651,6 +637,25 @@ export function App() {
       <ContactModal
         isOpen={contactModalOpen}
         onClose={() => setContactModalOpen(false)}
+      />
+
+      {/* Floating Cart Button (Available across pages) */}
+      <FloatingCartButton
+        onClick={() => {
+          setCurrentView('marketplace');
+          window.location.hash = '#marketplace';
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
+      />
+
+      {/* Interactive Watch Demo Walkthrough Modal */}
+      <WatchDemoModal
+        isOpen={watchDemoOpen}
+        onClose={() => setWatchDemoOpen(false)}
+        onExplorePlanets={() => {
+          const el = document.getElementById('planet-worlds');
+          el?.scrollIntoView({ behavior: 'smooth' });
+        }}
       />
 
     </Layout>

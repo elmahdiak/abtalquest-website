@@ -3,12 +3,11 @@ import {
   ShieldCheck, 
   Compass, 
   Sparkles, 
-  Smartphone, 
   Star, 
   Heart, 
-  CheckCircle2,
-  Lock,
-  Play
+  CheckCircle2, 
+  Lock, 
+  Play 
 } from 'lucide-react';
 import Button from '../common/Button';
 import Badge from '../common/Badge';
@@ -17,17 +16,17 @@ import { useLanguage } from '../../context/LanguageContext';
 
 export interface HeroProps {
   onExploreClick?: () => void;
-  onWorldsClick?: () => void;
-  onDownloadClick?: () => void;
+  onWatchDemo?: () => void;
 }
 
-export const Hero: React.FC<HeroProps> = ({ onExploreClick, onWorldsClick, onDownloadClick }) => {
+export const Hero: React.FC<HeroProps> = ({ 
+  onExploreClick, 
+  onWatchDemo,
+}) => {
   const { t } = useLanguage();
 
-  const handleWorldsClick = () => {
-    if (onWorldsClick) {
-      onWorldsClick();
-    } else if (onExploreClick) {
+  const handleExplore = () => {
+    if (onExploreClick) {
       onExploreClick();
     } else {
       const el = document.getElementById('planet-worlds') || document.getElementById('planets');
@@ -47,10 +46,10 @@ export const Hero: React.FC<HeroProps> = ({ onExploreClick, onWorldsClick, onDow
           {/* Left Column: Hero Text & Actions (Cols 1-7) */}
           <div className="lg:col-span-7 flex flex-col items-start text-left rtl:text-right">
             
-            {/* Core Brand Creed Badge */}
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#fa8221]/10 dark:bg-[#fa8221]/20 border border-[#fa8221]/30 text-[#e87313] dark:text-[#fb923c] text-xs sm:text-sm font-bold mb-4 shadow-sm">
+            {/* 1. Next-Gen Educational Adventure Badge */}
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#fa8221]/10 dark:bg-[#fa8221]/20 border border-[#fa8221]/30 text-[#e87313] dark:text-[#fb923c] text-xs sm:text-sm font-bold mb-4 shadow-sm">
               <Sparkles className="w-4 h-4 text-[#fa8221] flex-shrink-0 animate-pulse" />
-              <span>"{t('hero.creed')}"</span>
+              <span>{t('hero.badge_nextgen') || 'Next-Gen Educational Adventure'}</span>
             </div>
 
             {/* Security & Values Badges */}
@@ -66,11 +65,11 @@ export const Hero: React.FC<HeroProps> = ({ onExploreClick, onWorldsClick, onDow
               </Badge>
             </div>
 
-            {/* Main Headline */}
+            {/* Main Headline: Protecting Childhood. Empowering Growth. */}
             <h1 className="font-headline text-3xl sm:text-5xl lg:text-6xl font-black text-[#1E293B] dark:text-white tracking-tight leading-[1.15] mb-5 break-words">
-              {t('hero.title_prefix')}{' '}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#016ba5] via-[#0284c7] to-[#fa8221]">
-                {t('hero.title_highlight')}
+              {t('hero.title_protecting') || 'Protecting Childhood.'}{' '}
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#fa8221] via-[#e87313] to-[#7C3AED]">
+                {t('hero.title_empowering') || 'Empowering Growth.'}
               </span>
             </h1>
 
@@ -87,40 +86,26 @@ export const Hero: React.FC<HeroProps> = ({ onExploreClick, onWorldsClick, onDow
 
             {/* Primary Call-to-Action Buttons */}
             <div className="flex flex-wrap items-center gap-3 sm:gap-4 w-full sm:w-auto mb-10">
-              {/* CTA Button 1: Start Your Adventure */}
+              {/* Primary Button 1: Solid orange "Start Your Adventure ->" */}
               <Button
                 variant="cta"
                 size="lg"
-                icon={<Compass className="w-5 h-5" />}
-                iconPosition="left"
-                onClick={onExploreClick}
-                className="w-full sm:w-auto shadow-cta hover:shadow-cta-hover transform hover:-translate-y-0.5 bg-[#016ba5] hover:bg-[#015684] text-white"
+                onClick={handleExplore}
+                className="w-full sm:w-auto shadow-cta hover:shadow-cta-hover transform hover:-translate-y-0.5 bg-[#fa8221] hover:bg-[#e87313] text-white font-bold px-7 py-3 rounded-full flex items-center justify-center gap-2"
               >
-                {t('hero.cta_adventure')}
+                <span>{t('hero.cta_adventure_arrow') || 'Start Your Adventure ->'}</span>
               </Button>
 
-              {/* CTA Button 2: Explore the Planet Worlds */}
+              {/* Primary Button 2: Outlined Pill "Watch Demo" */}
               <Button
                 variant="outline"
                 size="lg"
-                icon={<Sparkles className="w-5 h-5 text-[#fa8221]" />}
+                icon={<Play className="w-4 h-4 text-[#fa8221] fill-current" />}
                 iconPosition="left"
-                onClick={handleWorldsClick}
-                className="w-full sm:w-auto transform hover:-translate-y-0.5"
+                onClick={onWatchDemo}
+                className="w-full sm:w-auto rounded-full border-2 border-slate-300 dark:border-slate-600 hover:border-[#fa8221] dark:hover:border-[#fa8221] px-6 transform hover:-translate-y-0.5"
               >
-                {t('hero.cta_worlds')}
-              </Button>
-
-              {/* CTA Button 3: Download App */}
-              <Button
-                variant="cta"
-                size="lg"
-                icon={<Smartphone className="w-5 h-5" />}
-                iconPosition="left"
-                onClick={onDownloadClick}
-                className="w-full sm:w-auto bg-[#fa8221] hover:bg-[#e87313] text-white shadow-cta hover:shadow-cta-hover transform hover:-translate-y-0.5"
-              >
-                {t('hero.cta_download')}
+                {t('hero.cta_watch_demo') || 'Watch Demo'}
               </Button>
             </div>
 

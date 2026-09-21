@@ -92,8 +92,8 @@ export const DEFAULT_BLOG_CATEGORIES = [
 export const DEFAULT_BLOG_POSTS: BlogPost[] = [
   {
     id: 'blog-resilient-kids',
-    title: 'Raising Resilient Kids in the Digital Age',
-    slug: 'raising-resilient-kids-digital-age',
+    title: 'How to Raise Emotionally Resilient Kids',
+    slug: 'how-to-raise-emotionally-resilient-kids',
     excerpt: 'Discover actionable emotional wellness strategies from child psychologists to help your children thrive amidst digital overload and constant stimulation.',
     content: `In today's hyper-connected environment, children are exposed to unprecedented cognitive stimuli. As parents and educators, nurturing emotional resilience is no longer an optional skill—it is foundational.
 
@@ -124,8 +124,8 @@ When emotional storms erupt, children mirror their parents' emotional regulation
   },
   {
     id: 'blog-digital-safety',
-    title: 'Navigating Screen Time & Online Safety with Confidence',
-    slug: 'navigating-screen-time-online-safety',
+    title: 'Digital Dangers: What You Need to Know',
+    slug: 'digital-dangers-what-you-need-to-know',
     excerpt: 'Practical insights and family agreements to safeguard young minds against digital vulnerabilities while empowering healthy curiosity.',
     content: `Digital safety begins with proactive dialogue rather than restrictive punishment. When children understand the reasons behind boundaries, they become active guardians of their own wellbeing.
 
@@ -153,8 +153,8 @@ Prioritize educational, violence-free, and ad-free ecosystems where young minds 
   },
   {
     id: 'blog-family-bonding',
-    title: 'The Power of Play: Building Unbreakable Family Bonds',
-    slug: 'power-of-play-building-family-bonds',
+    title: 'Fun Habits to Try with Your Kids',
+    slug: 'fun-habits-to-try-with-your-kids',
     excerpt: 'Why unplugged cooperative games and imaginative family challenges foster lifelong empathy, teamwork, and mutual trust.',
     content: `Play is the universal language through which children decipher relationships, ethics, and emotional bonds. Cooperative family play bridges generational divides and reinforces mutual trust.
 

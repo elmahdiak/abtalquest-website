@@ -235,12 +235,31 @@ export const ParentingResources: React.FC = () => {
     };
   }, []);
 
-  const getCategoryVariant = (category: string): 'primary' | 'warning' | 'success' | 'gamification' => {
-    const cat = category.toLowerCase();
-    if (cat.includes('emotional') || cat.includes('wellness') || cat.includes('heart')) return 'primary';
-    if (cat.includes('safety') || cat.includes('digital') || cat.includes('courage')) return 'warning';
-    if (cat.includes('family') || cat.includes('bonding') || cat.includes('play')) return 'success';
-    return 'gamification';
+  const getCategoryVariant = (cat: string): 'gamification' | 'success' | 'secondary' | 'warning' => {
+    switch (cat.toLowerCase()) {
+      case 'emotional wellness':
+        return 'gamification';
+      case 'digital safety':
+        return 'secondary';
+      case 'family bonding':
+        return 'success';
+      default:
+        return 'warning';
+    }
+  };
+
+  const getLocalizedTitle = (article: BlogPost) => {
+    if (article.id === 'blog-resilient-kids') return t('parenting.card_1_title') || article.title;
+    if (article.id === 'blog-digital-safety') return t('parenting.card_2_title') || article.title;
+    if (article.id === 'blog-family-bonding') return t('parenting.card_3_title') || article.title;
+    return article.title;
+  };
+
+  const getLocalizedExcerpt = (article: BlogPost) => {
+    if (article.id === 'blog-resilient-kids') return t('parenting.card_1_desc') || article.excerpt;
+    if (article.id === 'blog-digital-safety') return t('parenting.card_2_desc') || article.excerpt;
+    if (article.id === 'blog-family-bonding') return t('parenting.card_3_desc') || article.excerpt;
+    return article.excerpt;
   };
 
   const categories = ['all', ...Array.from(new Set(blogs.map((b) => b.category)))];
@@ -370,12 +389,12 @@ export const ParentingResources: React.FC = () => {
 
                   {/* Article Title */}
                   <h3 className="font-headline text-xl font-extrabold text-[#1E293B] dark:text-white group-hover:text-[#016ba5] dark:group-hover:text-[#38BDF8] transition-colors tracking-tight leading-snug mb-3">
-                    {article.title}
+                    {getLocalizedTitle(article)}
                   </h3>
 
                   {/* Summary Description */}
                   <p className="font-body text-xs text-[#64748B] dark:text-slate-300 leading-relaxed mb-6 line-clamp-3">
-                    {article.excerpt}
+                    {getLocalizedExcerpt(article)}
                   </p>
                 </div>
 

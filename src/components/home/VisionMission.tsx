@@ -85,7 +85,7 @@ export const VisionMission: React.FC = () => {
 
               {/* Title using Montserrat */}
               <h3 className="font-headline text-2xl sm:text-3xl font-extrabold text-[#1E293B] dark:text-white mb-4 tracking-tight flex items-center gap-2">
-                <span>{t('vision.vision_title')}</span>
+                <span>{t('vision.card_vision_title') || t('vision.vision_title')}</span>
                 <ArrowUpRight className="w-5 h-5 text-[#016ba5] opacity-0 group-hover:opacity-100 transition-opacity rtl-flip" />
               </h3>
 
@@ -93,7 +93,7 @@ export const VisionMission: React.FC = () => {
               <blockquote className="text-base sm:text-lg text-slate-800 dark:text-slate-100 leading-relaxed font-medium bg-white/80 dark:bg-slate-900/60 p-5 rounded-2xl border border-[#016ba5]/10 dark:border-[#016ba5]/30 shadow-sm mb-6 relative">
                 <span className="text-3xl text-[#016ba5] font-bold absolute -top-2 left-2 rtl:left-auto rtl:right-2 opacity-30 select-none">“</span>
                 <p className="relative z-10 pl-3 rtl:pl-0 rtl:pr-3">
-                  {t('vision.vision_desc')}
+                  {t('vision.card_vision_desc') || t('vision.vision_desc')}
                 </p>
               </blockquote>
 
@@ -155,13 +155,13 @@ export const VisionMission: React.FC = () => {
                   <Target className="w-7 h-7" />
                 </div>
                 <Badge variant="secondary" size="sm" icon={<ShieldCheck className="w-3.5 h-3.5" />}>
-                  {t('vision.mission_title')}
+                  {t('vision.card_mission_title') || t('vision.mission_title')}
                 </Badge>
               </div>
 
               {/* Title using Montserrat */}
               <h3 className="font-headline text-2xl sm:text-3xl font-extrabold text-[#1E293B] dark:text-white mb-4 tracking-tight flex items-center gap-2">
-                <span>{t('vision.mission_title')}</span>
+                <span>{t('vision.card_mission_title') || t('vision.mission_title')}</span>
                 <ArrowUpRight className="w-5 h-5 text-[#fa8221] opacity-0 group-hover:opacity-100 transition-opacity rtl-flip" />
               </h3>
 
@@ -169,7 +169,7 @@ export const VisionMission: React.FC = () => {
               <blockquote className="text-base sm:text-lg text-slate-800 dark:text-slate-100 leading-relaxed font-medium bg-white/80 dark:bg-slate-900/60 p-5 rounded-2xl border border-[#fa8221]/15 dark:border-[#fa8221]/30 shadow-sm mb-6 relative">
                 <span className="text-3xl text-[#fa8221] font-bold absolute -top-2 left-2 rtl:left-auto rtl:right-2 opacity-30 select-none">“</span>
                 <p className="relative z-10 pl-3 rtl:pl-0 rtl:pr-3">
-                  {t('vision.mission_desc')}
+                  {t('vision.card_mission_desc') || t('vision.mission_desc')}
                 </p>
               </blockquote>
 

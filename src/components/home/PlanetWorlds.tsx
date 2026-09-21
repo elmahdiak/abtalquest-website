@@ -163,28 +163,32 @@ export const PlanetWorlds: React.FC = () => {
         return {
           name: t('planets.planet_thinkers'),
           sub: t('planets.planet_thinkers_sub'),
-          desc: t('planets.planet_thinkers_desc')
+          desc: t('planets.planet_thinkers_desc'),
+          skillsSummary: t('planets.thinkers_skills_summary') || 'Logic, STEM & Curiosity – Intellectual curiosity, clockwork contraptions, algorithmic reasoning',
         };
       case 'brave':
         return {
           name: t('planets.planet_brave'),
           sub: t('planets.planet_brave_sub'),
-          desc: t('planets.planet_brave_desc')
+          desc: t('planets.planet_brave_desc'),
+          skillsSummary: t('planets.brave_skills_summary') || 'Resilience, Truth & Moral Courage – Fortitude, speaking truth with kindness, perseverance',
         };
       case 'solvers':
         return {
           name: t('planets.planet_solvers'),
           sub: t('planets.planet_solvers_sub'),
-          desc: t('planets.planet_solvers_desc')
+          desc: t('planets.planet_solvers_desc'),
+          skillsSummary: t('planets.solvers_skills_summary') || 'Engineering & Innovation – Inventive spirit, eco-conscious building, collaborative teamwork',
         };
       case 'heart':
         return {
           name: t('planets.planet_heart'),
           sub: t('planets.planet_heart_sub'),
-          desc: t('planets.planet_heart_desc')
+          desc: t('planets.planet_heart_desc'),
+          skillsSummary: t('planets.heart_skills_summary') || 'Empathy, Kindness & Emotional Wellness – Emotional literacy, active listening, compassionate action',
         };
       default:
-        return { name: fallbackName, sub: fallbackSub, desc: fallbackDesc };
+        return { name: fallbackName, sub: fallbackSub, desc: fallbackDesc, skillsSummary: '' };
     }
   };
 
@@ -300,12 +304,19 @@ export const PlanetWorlds: React.FC = () => {
                   </div>
 
                   {/* Primary Skill Callout */}
-                  <div className="bg-slate-50 dark:bg-[#0A2540] rounded-xl py-2 px-3 text-center border border-slate-100 dark:border-slate-700 mb-4">
+                  <div className="bg-slate-50 dark:bg-[#0A2540] rounded-xl py-2 px-3 text-center border border-slate-100 dark:border-slate-700 mb-3">
                     <span className="font-body text-xs text-slate-500 dark:text-slate-400 block">{pData.sub}</span>
                     <span className="font-headline font-bold text-sm text-slate-800 dark:text-slate-200">
                       {planet.skill}
                     </span>
                   </div>
+
+                  {/* Skills Summary / Character Focus */}
+                  {pData.skillsSummary && (
+                    <div className="text-[11px] font-medium text-slate-600 dark:text-slate-300 bg-[#016ba5]/5 dark:bg-white/5 border border-slate-200/60 dark:border-slate-700/60 rounded-xl px-2.5 py-1.5 mb-3 text-center">
+                      {pData.skillsSummary}
+                    </div>
+                  )}
 
                   {/* Short Description (Roboto Mono) */}
                   <p className="font-body text-xs text-[#64748B] dark:text-slate-300 leading-relaxed mb-4 text-center">
