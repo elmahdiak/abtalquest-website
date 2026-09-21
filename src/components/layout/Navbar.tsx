@@ -27,8 +27,8 @@ export interface NavItem {
 }
 
 export interface NavbarProps {
-  currentView?: 'home' | 'marketplace' | 'admin' | 'safety-standards';
-  onViewChange?: (view: 'home' | 'marketplace') => void;
+  currentView?: 'home' | 'marketplace' | 'admin' | 'safety-standards' | 'about';
+  onViewChange?: (view: 'home' | 'marketplace' | 'about') => void;
   user?: SupabaseUser | null;
   onOpenAuth?: () => void;
   onOpenProfile?: () => void;
@@ -57,11 +57,11 @@ export const Navbar: React.FC<NavbarProps> = ({
     { id: 'home', label: t('nav.home'), href: '#universe' },
     { id: 'blog', label: t('nav.blog'), href: '#parenting-resources' },
     { id: 'marketplace', label: t('nav.marketplace'), href: '#marketplace', badge: t('nav.badge_kits') },
-    { id: 'about', label: t('nav.about'), href: '#vision-mission' },
+    { id: 'about', label: t('nav.about'), href: '#about' },
   ];
 
   // Sync active navigation tab with current view
-  const activeTab = currentView === 'marketplace' ? 'marketplace' : selectedNavTab;
+  const activeTab = currentView === 'marketplace' ? 'marketplace' : currentView === 'about' ? 'about' : selectedNavTab;
 
   // Handle scroll detection for frosted glass transition
   useEffect(() => {
@@ -91,6 +91,10 @@ export const Navbar: React.FC<NavbarProps> = ({
     if (item.id === 'marketplace') {
       e.preventDefault();
       onViewChange?.('marketplace');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else if (item.id === 'about') {
+      e.preventDefault();
+      onViewChange?.('about');
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
       onViewChange?.('home');

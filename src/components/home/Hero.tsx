@@ -17,11 +17,23 @@ import { useLanguage } from '../../context/LanguageContext';
 
 export interface HeroProps {
   onExploreClick?: () => void;
+  onWorldsClick?: () => void;
   onDownloadClick?: () => void;
 }
 
-export const Hero: React.FC<HeroProps> = ({ onExploreClick, onDownloadClick }) => {
+export const Hero: React.FC<HeroProps> = ({ onExploreClick, onWorldsClick, onDownloadClick }) => {
   const { t } = useLanguage();
+
+  const handleWorldsClick = () => {
+    if (onWorldsClick) {
+      onWorldsClick();
+    } else if (onExploreClick) {
+      onExploreClick();
+    } else {
+      const el = document.getElementById('planet-worlds') || document.getElementById('planets');
+      if (el) el.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
 
   return (
     <section className="relative overflow-hidden bg-gradient-to-b from-[#016ba5]/10 via-white to-slate-50/60 dark:from-[#0A2540] dark:via-[#071727] dark:to-[#0A2540] pt-12 pb-20 sm:pt-16 sm:pb-28 border-b border-slate-100 dark:border-slate-800">
@@ -35,7 +47,13 @@ export const Hero: React.FC<HeroProps> = ({ onExploreClick, onDownloadClick }) =
           {/* Left Column: Hero Text & Actions (Cols 1-7) */}
           <div className="lg:col-span-7 flex flex-col items-start text-left rtl:text-right">
             
-            {/* Top Security & Values Badges */}
+            {/* Core Brand Creed Badge */}
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#fa8221]/10 dark:bg-[#fa8221]/20 border border-[#fa8221]/30 text-[#e87313] dark:text-[#fb923c] text-xs sm:text-sm font-bold mb-4 shadow-sm">
+              <Sparkles className="w-4 h-4 text-[#fa8221] flex-shrink-0 animate-pulse" />
+              <span>"{t('hero.creed')}"</span>
+            </div>
+
+            {/* Security & Values Badges */}
             <div className="flex flex-wrap items-center gap-2.5 mb-6">
               <Badge variant="success" size="md" icon={<ShieldCheck className="w-4 h-4" />}>
                 {t('hero.badge_safe')}
@@ -43,13 +61,13 @@ export const Hero: React.FC<HeroProps> = ({ onExploreClick, onDownloadClick }) =
               <Badge variant="warning" size="md" icon={<Lock className="w-3.5 h-3.5" />}>
                 {t('nav.safety_ticker_bold_1')} • {t('nav.safety_ticker_bold_2')}
               </Badge>
-              <Badge variant="gamification" size="md" icon={<Sparkles className="w-3.5 h-3.5" />}>
+              <Badge variant="gamification" size="md" icon={<Star className="w-3.5 h-3.5" />}>
                 {t('hero.badge_kids')}
               </Badge>
             </div>
 
             {/* Main Headline */}
-            <h1 className="font-headline text-3xl sm:text-5xl lg:text-6xl font-black text-[#1E293B] dark:text-white tracking-tight leading-[1.15] mb-6 break-words">
+            <h1 className="font-headline text-3xl sm:text-5xl lg:text-6xl font-black text-[#1E293B] dark:text-white tracking-tight leading-[1.15] mb-5 break-words">
               {t('hero.title_prefix')}{' '}
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#016ba5] via-[#0284c7] to-[#fa8221]">
                 {t('hero.title_highlight')}
@@ -57,34 +75,52 @@ export const Hero: React.FC<HeroProps> = ({ onExploreClick, onDownloadClick }) =
             </h1>
 
             {/* Sub-headline */}
-            <p className="font-body text-sm sm:text-lg text-[#64748B] dark:text-slate-300 leading-relaxed mb-8 max-w-2xl">
+            <p className="font-body text-base sm:text-lg text-[#475569] dark:text-slate-200 leading-relaxed mb-4 max-w-2xl font-medium">
               {t('hero.subtitle')}
             </p>
 
+            {/* Ad-Free Standard Motto Callout */}
+            <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800/70 border border-slate-200/80 dark:border-slate-700 text-xs sm:text-sm text-slate-700 dark:text-slate-300 mb-8 max-w-2xl">
+              <ShieldCheck className="w-4 h-4 text-[#22C55E] flex-shrink-0" />
+              <span className="font-semibold text-slate-900 dark:text-white">{t('hero.ad_free_motto')}</span>
+            </div>
+
             {/* Primary Call-to-Action Buttons */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 w-full sm:w-auto mb-10">
-              {/* CTA Button 1: Explore the Quest */}
+            <div className="flex flex-wrap items-center gap-3 sm:gap-4 w-full sm:w-auto mb-10">
+              {/* CTA Button 1: Start Your Adventure */}
               <Button
                 variant="cta"
                 size="lg"
                 icon={<Compass className="w-5 h-5" />}
                 iconPosition="left"
                 onClick={onExploreClick}
-                className="w-full sm:w-auto shadow-cta hover:shadow-cta-hover transform hover:-translate-y-0.5"
+                className="w-full sm:w-auto shadow-cta hover:shadow-cta-hover transform hover:-translate-y-0.5 bg-[#016ba5] hover:bg-[#015684] text-white"
               >
-                {t('hero.cta_explore')}
+                {t('hero.cta_adventure')}
               </Button>
 
-              {/* CTA Button 2: Download App */}
+              {/* CTA Button 2: Explore the Planet Worlds */}
+              <Button
+                variant="outline"
+                size="lg"
+                icon={<Sparkles className="w-5 h-5 text-[#fa8221]" />}
+                iconPosition="left"
+                onClick={handleWorldsClick}
+                className="w-full sm:w-auto transform hover:-translate-y-0.5"
+              >
+                {t('hero.cta_worlds')}
+              </Button>
+
+              {/* CTA Button 3: Download App */}
               <Button
                 variant="cta"
                 size="lg"
                 icon={<Smartphone className="w-5 h-5" />}
                 iconPosition="left"
                 onClick={onDownloadClick}
-                className="w-full sm:w-auto bg-[#fa8221] hover:bg-[#e87313] shadow-cta hover:shadow-cta-hover transform hover:-translate-y-0.5"
+                className="w-full sm:w-auto bg-[#fa8221] hover:bg-[#e87313] text-white shadow-cta hover:shadow-cta-hover transform hover:-translate-y-0.5"
               >
-                {t('nav.download_app')}
+                {t('hero.cta_download')}
               </Button>
             </div>
 

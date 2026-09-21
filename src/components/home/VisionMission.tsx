@@ -23,18 +23,47 @@ export const VisionMission: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         
         {/* Section Header */}
-        <div className="text-center max-w-3xl mx-auto mb-16 sm:mb-20">
+        <div className="text-center max-w-3xl mx-auto mb-14 sm:mb-16">
           <Badge variant="primary" size="md" icon={<Compass className="w-4 h-4" />}>
             {t('vision.badge')}
           </Badge>
           
-          <h2 className="font-headline text-3xl sm:text-4xl lg:text-5xl font-black text-[#1E293B] dark:text-white tracking-tight mt-4 mb-5">
+          <h2 className="font-headline text-3xl sm:text-4xl lg:text-5xl font-black text-[#1E293B] dark:text-white tracking-tight mt-4 mb-4">
             {t('vision.title')}
           </h2>
 
-          <p className="font-body text-sm sm:text-base text-[#64748B] dark:text-slate-300 leading-relaxed">
+          {/* Creed Banner */}
+          <p className="font-headline text-lg sm:text-xl font-bold text-[#fa8221] dark:text-[#fb923c] mb-4">
+            "{t('vision.creed')}"
+          </p>
+
+          <p className="font-body text-sm sm:text-base text-[#64748B] dark:text-slate-300 leading-relaxed max-w-2xl mx-auto">
             {t('vision.subtitle')}
           </p>
+        </div>
+
+        {/* Founding Story Callout Banner */}
+        <div className="mb-12 rounded-3xl p-6 sm:p-8 bg-gradient-to-r from-[#016ba5]/10 via-[#fa8221]/10 to-purple-500/10 dark:from-[#0A2540] dark:via-[#0E3558] dark:to-[#17233E] border border-[#016ba5]/20 dark:border-[#016ba5]/40 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="flex items-start sm:items-center gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-[#016ba5] text-white flex items-center justify-center flex-shrink-0 shadow-md">
+              <Sparkles className="w-6 h-6 text-amber-300 animate-pulse" />
+            </div>
+            <div>
+              <span className="text-xs font-headline font-bold uppercase tracking-wider text-[#016ba5] dark:text-[#38BDF8] block">
+                {t('vision.founding_narrative_title')}
+              </span>
+              <p className="text-sm sm:text-base font-medium text-slate-800 dark:text-slate-200 mt-0.5">
+                {t('vision.founding_narrative')}
+              </p>
+            </div>
+          </div>
+          <a
+            href="#about"
+            className="flex-shrink-0 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white dark:bg-slate-800 text-[#016ba5] dark:text-[#38BDF8] hover:bg-slate-50 dark:hover:bg-slate-700 text-xs sm:text-sm font-bold border border-slate-200 dark:border-slate-700 shadow-sm transition-all hover:-translate-y-0.5"
+          >
+            <span>{t('nav.about')}</span>
+            <ArrowUpRight className="w-4 h-4 rtl-flip" />
+          </a>
         </div>
 
         {/* Clean Two-Card Layout with Soft Background Surfaces & Generous Spacing */}

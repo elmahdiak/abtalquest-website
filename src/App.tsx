@@ -8,6 +8,8 @@ import CoreFeatures from './components/home/CoreFeatures';
 import ParentingResources from './components/home/ParentingResources';
 import Marketplace from './components/marketplace/Marketplace';
 import AdminPortal from './components/admin/AdminPortal';
+import AboutUsView from './components/about/AboutUsView';
+import { MarketplaceTrendingCarousel } from './components/marketplace/MarketplaceTrendingCarousel';
 import UserAuthModal from './components/auth/UserAuthModal';
 import UserProfileModal from './components/auth/UserProfileModal';
 import ContactModal from './components/common/ContactModal';
@@ -16,6 +18,14 @@ import Badge from './components/common/Badge';
 import Card from './components/common/Card';
 import { SafetyStandardsView, type SafetyStandardTab } from './components/compliance/SafetyStandardsView';
 import { subscribeToAuthChanges, signOutUser } from './services/authService';
+import { 
+  type Product, 
+  DEFAULT_PRODUCTS, 
+  fetchMarketplaceProducts, 
+  getAllOrdersForAdmin, 
+  getProductViewCounts, 
+  rankProductsByPopularity 
+} from './services/marketplaceService';
 import { useLanguage } from './context/LanguageContext';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 import { 
@@ -31,7 +41,12 @@ import {
 
 export function App() {
   const { t } = useLanguage();
-  const [currentView, setCurrentView] = useState<'home' | 'marketplace' | 'admin' | 'safety-standards'>('home');
+  const [currentView, setCurrentView] = useState<'home' | 'marketplace' | 'admin' | 'safety-standards' | 'about'>('home');
+  const [selectedMarketplaceProduct, setSelectedMarketplaceProduct] = useState<string | null>(null);
+  const [homeTrendingProducts, setHomeTrendingProducts] = useState<Product[]>(() => {
+    const { rankedProducts } = rankProductsByPopularity(DEFAULT_PRODUCTS, [], {});
+    return rankedProducts.slice(0, 8);
+  });
   const [activeSafetyTab, setActiveSafetyTab] = useState<SafetyStandardTab>('privacy-kids');
   const [activeFilter, setActiveFilter] = useState<'all' | 'courage' | 'kindness' | 'wisdom'>('all');
   const [completedQuest, setCompletedQuest] = useState<number | null>(null);
@@ -109,6 +124,13 @@ export function App() {
         setActiveSafetyTab('parent-oversight');
         setCurrentView('safety-standards');
       } else if (
+        hash === '#about' ||
+        hash === '#about-us' ||
+        hash === '#/about' ||
+        pathname === '/about'
+      ) {
+        setCurrentView('about');
+      } else if (
         hash.startsWith('#safety-standards') ||
         hash.startsWith('#compliance')
       ) {
@@ -127,6 +149,23 @@ export function App() {
     handleHash();
     window.addEventListener('hashchange', handleHash);
     window.addEventListener('popstate', handleHash);
+
+    // Fetch live products to power the Home Page Trending Carousel
+    const loadHomeProducts = async () => {
+      try {
+        const [prodResult, orders] = await Promise.all([
+          fetchMarketplaceProducts(),
+          getAllOrdersForAdmin().catch(() => []),
+        ]);
+        const prods = Array.isArray(prodResult) ? prodResult : (prodResult?.products || DEFAULT_PRODUCTS);
+        const viewCounts = getProductViewCounts();
+        const { rankedProducts } = rankProductsByPopularity(prods.length > 0 ? prods : DEFAULT_PRODUCTS, orders, viewCounts);
+        setHomeTrendingProducts(rankedProducts.slice(0, 8));
+      } catch (e) {
+        console.warn('Failed to load home trending products:', e);
+      }
+    };
+    void loadHomeProducts();
 
     // Subscribe to auth state
     const authSub = subscribeToAuthChanges((currentUser) => {
@@ -210,7 +249,7 @@ export function App() {
       currentView={currentView}
       onViewChange={(view) => {
         setCurrentView(view);
-        window.location.hash = view === 'marketplace' ? '#marketplace' : '#universe';
+        window.location.hash = view === 'marketplace' ? '#marketplace' : view === 'about' ? '#about' : '#universe';
       }}
       user={user}
       onOpenAuth={() => setAuthModalOpen(true)}
@@ -221,6 +260,20 @@ export function App() {
         <Marketplace 
           user={user}
           onOpenAuth={() => setAuthModalOpen(true)}
+          initialProductId={selectedMarketplaceProduct}
+        />
+      ) : currentView === 'about' ? (
+        <AboutUsView
+          onBackToHome={() => {
+            window.location.hash = '#universe';
+            setCurrentView('home');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          onExploreMarketplace={() => {
+            window.location.hash = '#marketplace';
+            setCurrentView('marketplace');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
         />
       ) : currentView === 'safety-standards' ? (
         <SafetyStandardsView
@@ -229,10 +282,12 @@ export function App() {
           onBackToHome={() => {
             window.location.hash = '#universe';
             setCurrentView('home');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
           }}
           onExploreMarketplace={() => {
             window.location.hash = '#marketplace';
             setCurrentView('marketplace');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
           }}
           onOpenContact={() => setContactModalOpen(true)}
         />
@@ -242,6 +297,10 @@ export function App() {
           <Hero
             onExploreClick={() => {
               const el = document.getElementById('quests-section');
+              el?.scrollIntoView({ behavior: 'smooth' });
+            }}
+            onWorldsClick={() => {
+              const el = document.getElementById('planet-worlds');
               el?.scrollIntoView({ behavior: 'smooth' });
             }}
             onDownloadClick={() => {
@@ -255,8 +314,34 @@ export function App() {
           {/* 3. VISION & MISSION SECTION */}
           <VisionMission />
 
-          {/* 3. EXPLORE THE PLANET WORLDS */}
+          {/* 4. EXPLORE THE PLANET WORLDS */}
           <PlanetWorlds />
+
+          {/* 🔥 TRENDING NOW PRODUCT CAROUSEL ON HOME */}
+          {homeTrendingProducts.length > 0 && (
+            <section className="py-10 sm:py-14 bg-gradient-to-b from-amber-500/[0.03] to-transparent dark:from-amber-500/[0.02] border-b border-slate-200/80 dark:border-slate-800">
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <MarketplaceTrendingCarousel
+                  products={homeTrendingProducts}
+                  onSelectProduct={(prod) => {
+                    setSelectedMarketplaceProduct(prod.id);
+                    setCurrentView('marketplace');
+                    window.location.hash = '#marketplace';
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  onAddToCart={(prod) => {
+                    setSelectedMarketplaceProduct(prod.id);
+                    setCurrentView('marketplace');
+                    window.location.hash = '#marketplace';
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  onToggleWishlist={() => {}}
+                  wishlistIds={[]}
+                  cart={[]}
+                />
+              </div>
+            </section>
+          )}
 
           {/* Marketplace Callout Banner on Home */}
           <section className="py-12 bg-gradient-to-r from-[#016ba5]/10 via-[#fa8221]/10 to-[#7C3AED]/10 dark:from-[#016ba5]/20 dark:via-[#fa8221]/20 dark:to-[#7C3AED]/20 border-b border-slate-200 dark:border-slate-800">

@@ -165,7 +165,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenContact }) => {
                 </a>
               </li>
               <li>
-                <a href="#vision-mission" className="hover:text-amber-400 transition-colors flex items-center gap-2">
+                <a href="#about" className="hover:text-amber-400 transition-colors flex items-center gap-2">
                   <span>{t('nav.about')}</span>
                 </a>
               </li>
