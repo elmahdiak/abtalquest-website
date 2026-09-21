@@ -2827,3 +2827,204 @@ export const formatPrice = (amount: number, language: string = 'en'): string => 
   return `${formattedNum} MAD`;
 };
 
+const PRODUCT_VIEWS_STORAGE_KEY = 'abtalquest_product_views';
+
+/**
+ * Record a product view impression to factor into popularity
+ */
+export const recordProductView = (productId: string): void => {
+  if (typeof window === 'undefined' || !productId) return;
+  try {
+    const raw = localStorage.getItem(PRODUCT_VIEWS_STORAGE_KEY);
+    const views: Record<string, number> = raw ? JSON.parse(raw) : {};
+    views[productId] = (views[productId] || 0) + 1;
+    localStorage.setItem(PRODUCT_VIEWS_STORAGE_KEY, JSON.stringify(views));
+  } catch (e) {
+    console.warn('Could not record product view:', e);
+  }
+};
+
+/**
+ * Get product view counts dictionary
+ */
+export const getProductViewCounts = (): Record<string, number> => {
+  if (typeof window === 'undefined') return {};
+  try {
+    const raw = localStorage.getItem(PRODUCT_VIEWS_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+};
+
+/**
+ * Popularity metrics calculated for each product
+ */
+export interface ProductPopularityStats {
+  productId: string;
+  title: string;
+  unitsSold: number;
+  orderCount: number;
+  revenue: number;
+  rating: number;
+  reviewsCount: number;
+  isBestSeller: boolean;
+  viewCount: number;
+  score: number;
+}
+
+/**
+ * Ranks a list of products strictly from most trending to least trending
+ * using sales volume, order frequency, views, ratings, and best-seller metadata.
+ */
+export const rankProductsByPopularity = (
+  products: Product[],
+  orders: AdminOrder[] = [],
+  viewCounts: Record<string, number> = {}
+): { rankedProducts: Product[]; statsMap: Map<string, ProductPopularityStats> } => {
+  if (!products || products.length === 0) {
+    return { rankedProducts: [], statsMap: new Map() };
+  }
+
+  // Aggregate orders by product ID and product title
+  const salesMap = new Map<string, { units: number; orders: number; revenue: number }>();
+
+  orders.forEach((order) => {
+    // Collect distinct products in this order
+    const seenInThisOrder = new Set<string>();
+
+    order.items?.forEach((item) => {
+      const pId = item.productId || item.productTitle?.toLowerCase().trim();
+      if (!pId) return;
+
+      const current = salesMap.get(pId) || { units: 0, orders: 0, revenue: 0 };
+      current.units += Number(item.quantity || 1);
+      current.revenue += Number(item.unitPrice || 0) * Number(item.quantity || 1);
+
+      if (!seenInThisOrder.has(pId)) {
+        seenInThisOrder.add(pId);
+        current.orders += 1;
+      }
+      salesMap.set(pId, current);
+
+      // Also index by title if distinct
+      if (item.productTitle) {
+        const titleKey = item.productTitle.toLowerCase().trim();
+        if (titleKey !== pId) {
+          const titleCurrent = salesMap.get(titleKey) || { units: 0, orders: 0, revenue: 0 };
+          titleCurrent.units += Number(item.quantity || 1);
+          titleCurrent.revenue += Number(item.unitPrice || 0) * Number(item.quantity || 1);
+          if (!seenInThisOrder.has(titleKey)) {
+            seenInThisOrder.add(titleKey);
+            titleCurrent.orders += 1;
+          }
+          salesMap.set(titleKey, titleCurrent);
+        }
+      }
+    });
+  });
+
+  const statsMap = new Map<string, ProductPopularityStats>();
+
+  const scoredProducts = products.map((product) => {
+    const idKey = product.id;
+    const titleKey = product.title.toLowerCase().trim();
+    const idStats = salesMap.get(idKey);
+    const titleStats = salesMap.get(titleKey);
+
+    const unitsSold = (idStats?.units || 0) + (idStats ? 0 : (titleStats?.units || 0));
+    const orderCount = (idStats?.orders || 0) + (idStats ? 0 : (titleStats?.orders || 0));
+    const revenue = (idStats?.revenue || 0) + (idStats ? 0 : (titleStats?.revenue || 0));
+    const viewCount = viewCounts[product.id] || 0;
+
+    // Popularity score formula
+    let score = (unitsSold * 15) + (orderCount * 8);
+
+    if (product.isBestSeller) {
+      score += 25;
+    }
+
+    if (product.rating) {
+      score += Math.max(0, (product.rating - 4.0) * 10);
+    }
+
+    if (product.reviewsCount) {
+      score += Math.min(product.reviewsCount * 2, 20);
+    }
+
+    score += Math.min(viewCount * 0.5, 15);
+
+    // Minor boost for items with XP bonus (educational value)
+    if (product.xpBonus) {
+      score += Math.min(product.xpBonus * 0.05, 10);
+    }
+
+    // Demote out-of-stock items slightly so shoppers discover purchasable trending products
+    if (!product.inStock || product.stockCount <= 0) {
+      score -= 50;
+    }
+
+    const stats: ProductPopularityStats = {
+      productId: product.id,
+      title: product.title,
+      unitsSold,
+      orderCount,
+      revenue,
+      rating: product.rating,
+      reviewsCount: product.reviewsCount,
+      isBestSeller: Boolean(product.isBestSeller),
+      viewCount,
+      score: Math.round(score * 10) / 10,
+    };
+
+    statsMap.set(product.id, stats);
+
+    return { product, stats };
+  });
+
+  // Sort strictly descending by score, tie-breaking by unitsSold, rating, reviewsCount
+  scoredProducts.sort((a, b) => {
+    if (b.stats.score !== a.stats.score) {
+      return b.stats.score - a.stats.score;
+    }
+    if (b.stats.unitsSold !== a.stats.unitsSold) {
+      return b.stats.unitsSold - a.stats.unitsSold;
+    }
+    if (b.stats.rating !== a.stats.rating) {
+      return b.stats.rating - a.stats.rating;
+    }
+    return (b.stats.reviewsCount || 0) - (a.stats.reviewsCount || 0);
+  });
+
+  return {
+    rankedProducts: scoredProducts.map((sp) => sp.product),
+    statsMap,
+  };
+};
+
+/**
+ * High-level helper: Fetches orders from Supabase (or local cache) and returns
+ * products sorted strictly from most trending to least trending.
+ */
+export const getTrendingProducts = async (
+  products: Product[],
+  limit: number = 8,
+  preloadedOrders?: AdminOrder[]
+): Promise<Product[]> => {
+  if (!products || products.length === 0) return [];
+
+  let orders = preloadedOrders;
+  if (!orders) {
+    try {
+      orders = await getAllOrdersForAdmin();
+    } catch {
+      orders = [];
+    }
+  }
+
+  const viewCounts = getProductViewCounts();
+  const { rankedProducts } = rankProductsByPopularity(products, orders, viewCounts);
+
+  return rankedProducts.slice(0, limit);
+};
+

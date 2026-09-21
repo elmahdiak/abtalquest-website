@@ -15,12 +15,18 @@ import {
   type OrderConfirmation,
   loadWishlistFromStorage,
   saveWishlistToStorage,
-  toggleWishlistItem
+  toggleWishlistItem,
+  getAllOrdersForAdmin,
+  type AdminOrder,
+  rankProductsByPopularity,
+  recordProductView,
+  getProductViewCounts,
 } from '../../services/marketplaceService';
 import { supabase, isSupabaseConfigured } from '../../supabaseClient';
 import { incrementCouponUsage, type Coupon } from '../../services/couponService';
 import { MarketplaceHeader } from './MarketplaceHeader';
 import { MarketplaceBannerCarousel } from './MarketplaceBannerCarousel';
+import { MarketplaceTrendingCarousel } from './MarketplaceTrendingCarousel';
 import { MarketplaceCategoryPills } from './MarketplaceCategoryPills';
 import { MarketplaceProductGrid } from './MarketplaceProductGrid';
 import { MarketplaceProductDetailPage } from './MarketplaceProductDetailPage';
@@ -49,6 +55,7 @@ export const Marketplace: React.FC<MarketplaceProps> = ({
   const [loadingProducts, setLoadingProducts] = useState<boolean>(true);
   const [isFromSupabase, setIsFromSupabase] = useState<boolean>(false);
   const [_supabaseStatus, setSupabaseStatus] = useState<SupabaseHealth | null>(null);
+  const [adminOrders, setAdminOrders] = useState<AdminOrder[]>([]);
 
   // Search, taxonomy, and filtering state
   const [searchTerm, setSearchTerm] = useState('');
@@ -105,6 +112,7 @@ export const Marketplace: React.FC<MarketplaceProps> = ({
   // Navigation handler between catalog and dedicated product page
   const handleSelectProduct = useCallback((product: Product | null) => {
     if (product) {
+      recordProductView(product.id);
       setActiveProductId(product.id);
       const targetHash = `#marketplace/product/${product.id}`;
       if (window.location.hash !== targetHash) {
@@ -187,21 +195,23 @@ export const Marketplace: React.FC<MarketplaceProps> = ({
 
     async function loadData() {
       try {
-        const [result, health, loadedCategories] = await Promise.all([
+        const [result, health, loadedCategories, loadedOrders] = await Promise.all([
           fetchMarketplaceProducts(),
           checkSupabaseHealth(),
           fetchCategories(),
+          getAllOrdersForAdmin().catch(() => []),
         ]);
 
         if (isMounted) {
           setProducts(result.products);
           setCategories(loadedCategories);
+          setAdminOrders(loadedOrders || []);
           setIsFromSupabase(result.isFromSupabase);
           setSupabaseStatus(health);
           setLoadingProducts(false);
         }
       } catch (err) {
-        console.warn('Error loading products/categories:', err);
+        console.warn('Error loading products/categories/orders:', err);
         if (isMounted) {
           setProducts(DEFAULT_PRODUCTS);
           setCategories(DEFAULT_CATEGORIES);
@@ -230,11 +240,24 @@ export const Marketplace: React.FC<MarketplaceProps> = ({
       });
     };
 
+    const handleOrdersChange = () => {
+      getAllOrdersForAdmin()
+        .then((ords) => {
+          if (isMounted) {
+            setAdminOrders(ords);
+          }
+        })
+        .catch(() => {});
+    };
+
     window.addEventListener('abtalquest_product_updated', handleProductChange);
     window.addEventListener('abtalquest_category_updated', handleCategoryChange);
+    window.addEventListener('abtalquest_orders_updated', handleOrdersChange);
+    window.addEventListener('abtalquest_order_created', handleOrdersChange);
 
     // Real-time Supabase subscription across devices worldwide
     let productChannel: any = null;
+    let ordersChannel: any = null;
     if (isSupabaseConfigured()) {
       try {
         productChannel = supabase
@@ -252,8 +275,23 @@ export const Marketplace: React.FC<MarketplaceProps> = ({
             }
           )
           .subscribe();
+
+        ordersChannel = supabase
+          .channel('public_orders_live_sync')
+          .on(
+            'postgres_changes',
+            { event: '*', schema: 'public', table: 'orders' },
+            () => {
+              getAllOrdersForAdmin().then((ords) => {
+                if (isMounted) {
+                  setAdminOrders(ords);
+                }
+              }).catch(() => {});
+            }
+          )
+          .subscribe();
       } catch (err) {
-        console.warn('Realtime subscription error for products:', err);
+        console.warn('Realtime subscription error for marketplace:', err);
       }
     }
 
@@ -261,8 +299,13 @@ export const Marketplace: React.FC<MarketplaceProps> = ({
       isMounted = false;
       window.removeEventListener('abtalquest_product_updated', handleProductChange);
       window.removeEventListener('abtalquest_category_updated', handleCategoryChange);
+      window.removeEventListener('abtalquest_orders_updated', handleOrdersChange);
+      window.removeEventListener('abtalquest_order_created', handleOrdersChange);
       if (productChannel) {
         supabase.removeChannel(productChannel);
+      }
+      if (ordersChannel) {
+        supabase.removeChannel(ordersChannel);
       }
     };
   }, []);
@@ -465,6 +508,14 @@ export const Marketplace: React.FC<MarketplaceProps> = ({
     });
   }, [products, searchTerm, selectedPlanet, selectedAge, selectedType, activePill, sortBy]);
 
+  // Dynamically ranked trending products powered by Supabase sales volume, order frequency, views, and ratings
+  const trendingProducts = useMemo(() => {
+    if (!products || products.length === 0) return [];
+    const viewCounts = getProductViewCounts();
+    const { rankedProducts } = rankProductsByPopularity(products, adminOrders, viewCounts);
+    return rankedProducts.slice(0, 10);
+  }, [products, adminOrders]);
+
   // Clear single or all filters
   const handleClearFilter = useCallback((key: 'planet' | 'age' | 'type' | 'search' | 'all') => {
     if (key === 'planet' || key === 'all') setSelectedPlanet('all');
@@ -666,7 +717,19 @@ export const Marketplace: React.FC<MarketplaceProps> = ({
             }}
           />
 
-          {/* 3. Horizontal Category Pills Selector */}
+          {/* 3. 🔥 Trending Now Section */}
+          {trendingProducts.length > 0 && !searchTerm.trim() && (
+            <MarketplaceTrendingCarousel
+              products={trendingProducts}
+              onSelectProduct={handleSelectProduct}
+              onAddToCart={handleAddToCart}
+              onToggleWishlist={handleToggleWishlist}
+              wishlistIds={wishlistIds}
+              cart={cart}
+            />
+          )}
+
+          {/* 4. Horizontal Category Pills Selector */}
           <MarketplaceCategoryPills
             activePill={activePill}
             onSelectPill={handleSelectPill}

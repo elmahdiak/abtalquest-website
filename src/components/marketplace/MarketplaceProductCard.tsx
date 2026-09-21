@@ -10,7 +10,8 @@ import {
   Brain,
   Compass,
   Wrench,
-  Heart as HeartIcon
+  Heart as HeartIcon,
+  Flame,
 } from 'lucide-react';
 import { formatPrice, getProductDisplayImage, type Product } from '../../services/marketplaceService';
 import { useLanguage } from '../../context/LanguageContext';
@@ -23,6 +24,7 @@ export interface MarketplaceProductCardProps {
   onToggleWishlist: (product: Product) => void;
   isWishlisted: boolean;
   isInCart?: boolean;
+  trendingRank?: number;
 }
 
 export const MarketplaceProductCard: React.FC<MarketplaceProductCardProps> = ({
@@ -32,6 +34,7 @@ export const MarketplaceProductCard: React.FC<MarketplaceProductCardProps> = ({
   onToggleWishlist,
   isWishlisted,
   isInCart = false,
+  trendingRank,
 }) => {
   const { t, language } = useLanguage();
   const [justAdded, setJustAdded] = useState(false);
@@ -115,9 +118,27 @@ export const MarketplaceProductCard: React.FC<MarketplaceProductCardProps> = ({
           </div>
         )}
 
-        {/* Top Badges (Bestseller, New, Discount) */}
+        {/* Top Badges (Trending Rank, Bestseller, New, Discount) */}
         <div className="absolute top-2 left-2 sm:top-3 sm:left-3 flex flex-col gap-1 z-10">
-          {product.isBestSeller && (
+          {trendingRank !== undefined && (
+            <span
+              className={cn(
+                "px-2 py-0.5 sm:px-2.5 sm:py-0.5 rounded-full text-[9px] sm:text-[10px] font-black uppercase tracking-wider shadow-md flex items-center gap-1 w-fit",
+                trendingRank === 1
+                  ? "bg-gradient-to-r from-amber-400 via-amber-300 to-orange-500 text-amber-950 ring-2 ring-amber-300/80 font-black"
+                  : trendingRank === 2
+                  ? "bg-gradient-to-r from-slate-200 to-slate-400 text-slate-900 ring-1 ring-white/60"
+                  : trendingRank === 3
+                  ? "bg-gradient-to-r from-amber-600 to-orange-700 text-white ring-1 ring-amber-400/60"
+                  : "bg-slate-900/80 dark:bg-slate-950/90 text-white border border-white/20 backdrop-blur-sm"
+              )}
+            >
+              <Flame className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-orange-500 fill-orange-500 shrink-0" />
+              <span>#{trendingRank}</span>
+            </span>
+          )}
+
+          {product.isBestSeller && trendingRank === undefined && (
             <span className="px-1.5 py-0.5 sm:px-2.5 sm:py-1 rounded-full text-[8px] sm:text-[10px] font-black uppercase tracking-wider bg-amber-400 text-amber-950 shadow-sm">
               {t('marketplace.badge_bestseller')}
             </span>
