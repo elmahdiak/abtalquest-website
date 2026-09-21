@@ -31,13 +31,20 @@ export const FloatingCartButton: React.FC<FloatingCartButtonProps> = ({
   useEffect(() => {
     if (cartCountOverride !== undefined) return;
 
-    refreshCartCount();
+    let isMounted = true;
+    loadCartFromSupabase()
+      .then((cart) => {
+        if (isMounted) {
+          setInternalCount(calculateCount(cart));
+        }
+      })
+      .catch(() => {});
 
     const handleCartUpdate = (e: any) => {
       if (e?.detail && typeof e.detail === 'object') {
         setInternalCount(calculateCount(e.detail));
       } else {
-        refreshCartCount();
+        void refreshCartCount();
       }
     };
 
@@ -45,6 +52,7 @@ export const FloatingCartButton: React.FC<FloatingCartButtonProps> = ({
     window.addEventListener('storage', refreshCartCount);
 
     return () => {
+      isMounted = false;
       window.removeEventListener('abtalquest_cart_updated', handleCartUpdate);
       window.removeEventListener('storage', refreshCartCount);
     };
@@ -54,9 +62,7 @@ export const FloatingCartButton: React.FC<FloatingCartButtonProps> = ({
 
   return (
     <div
-      className={`fixed bottom-6 ${
-        direction === 'rtl' ? 'left-6' : 'right-6'
-      } z-40 transition-all duration-300 animate-fadeIn`}
+      className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-40 transition-all duration-300 animate-fadeIn"
     >
       <button
         type="button"

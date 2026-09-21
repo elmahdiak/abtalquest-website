@@ -58,6 +58,18 @@ export const WhatsAppButton: React.FC<WhatsAppButtonProps> = ({
     onPositionChange?.(nextPos);
   }, [isRight, onPositionChange]);
 
+  // Detect if a modal is open (via body overflow hidden) to avoid any modal collision
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  useEffect(() => {
+    const checkModalState = () => {
+      setIsModalOpen(document.body.style.overflow === 'hidden');
+    };
+    checkModalState();
+    const observer = new MutationObserver(checkModalState);
+    observer.observe(document.body, { attributes: true, attributeFilter: ['style'] });
+    return () => observer.disconnect();
+  }, []);
+
   const whatsappUrl = `https://wa.me/${phoneNumber}`;
 
   // Flex alignment:
@@ -71,16 +83,18 @@ export const WhatsAppButton: React.FC<WhatsAppButtonProps> = ({
     ? (direction === 'rtl' ? 'ml-3' : 'mr-3')
     : (direction === 'rtl' ? 'mr-3' : 'ml-3');
 
+  // Bottom-left is default; if docked right, offset vertically above the floating cart button (bottom-24)
   const positionClasses = isRight
-    ? "bottom-4 right-4 sm:bottom-6 sm:right-6 md:bottom-7 md:right-7"
+    ? "bottom-24 right-4 sm:bottom-24 sm:right-6 md:bottom-24 md:right-7"
     : "bottom-4 left-4 sm:bottom-6 sm:left-6 md:bottom-7 md:left-7";
 
   return (
     <div
       className={cn(
-        "fixed z-40 flex items-center group transition-all duration-300 ease-out",
+        "fixed z-50 flex items-center group transition-all duration-300 ease-out",
         positionClasses,
         flexDirClass,
+        isModalOpen ? "opacity-0 pointer-events-none scale-90 translate-y-4" : "opacity-100 pointer-events-auto scale-100 translate-y-0",
         className
       )}
       onMouseEnter={() => setIsHovered(true)}
@@ -93,8 +107,11 @@ export const WhatsAppButton: React.FC<WhatsAppButtonProps> = ({
           target="_blank"
           rel="noopener noreferrer"
           aria-label={t('whatsapp.chat_with_us')}
-          className="relative w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-full bg-[#25D366] hover:bg-[#20bd5a] active:bg-[#1da850] text-white flex items-center justify-center shadow-[0_4px_20px_rgba(37,211,102,0.45)] hover:shadow-[0_8px_30px_rgba(37,211,102,0.65)] hover:scale-110 active:scale-95 transition-all duration-300 ease-out focus:outline-none focus-visible:ring-4 focus-visible:ring-[#25D366]/40 cursor-pointer"
+          className="relative w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-full bg-[#25D366] hover:bg-[#20bd5a] active:bg-[#1da850] text-white flex items-center justify-center shadow-[0_4px_20px_rgba(37,211,102,0.45)] hover:shadow-[0_12px_36px_rgba(37,211,102,0.7)] hover:scale-110 active:scale-95 transition-all duration-300 ease-out focus:outline-none focus-visible:ring-4 focus-visible:ring-[#25D366]/40 cursor-pointer"
         >
+          {/* Subtle Ambient Pulse Ring */}
+          <span className="absolute -inset-1.5 rounded-full bg-[#25D366]/30 animate-pulse pointer-events-none" />
+
           {/* Radar / Ping animation */}
           <span className="absolute -inset-1 rounded-full bg-[#25D366] opacity-35 animate-ping pointer-events-none group-hover:opacity-0 transition-opacity duration-300" />
 

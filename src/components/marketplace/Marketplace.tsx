@@ -675,7 +675,7 @@ export const Marketplace: React.FC<MarketplaceProps> = ({
   }, [activeProductId, products]);
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors font-body flex flex-col">
+    <div id="marketplace" className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors font-body flex flex-col w-full flex-1">
       
       {/* 1. Header & Search Experience */}
       <MarketplaceHeader

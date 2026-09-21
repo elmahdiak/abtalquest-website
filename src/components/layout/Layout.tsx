@@ -40,7 +40,7 @@ export const Layout: React.FC<LayoutProps> = ({
       <main className="flex-1 w-full max-w-full flex flex-col overflow-x-hidden">
         {children}
       </main>
-      <Footer onOpenContact={onOpenContact} />
+      {currentView !== 'marketplace' && <Footer onOpenContact={onOpenContact} />}
       <WhatsAppButton position={whatsappPosition} />
     </div>
   );

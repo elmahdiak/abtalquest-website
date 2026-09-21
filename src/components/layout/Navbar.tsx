@@ -11,7 +11,8 @@ import {
   Download,
   User as UserIcon,
   MessageSquare,
-  ChevronRight
+  ChevronRight,
+  ShoppingBag
 } from 'lucide-react';
 import AbtalQuestLogo from '../common/AbtalQuestLogo';
 import { cn } from '../../lib/utils';
@@ -83,7 +84,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Handle navigation clicks
+  // Handle navigation clicks with instant scroll to eliminate layout shift
   const handleNavClick = (item: NavItem, e: React.MouseEvent) => {
     setSelectedNavTab(item.id);
     setMobileMenuOpen(false);
@@ -91,19 +92,19 @@ export const Navbar: React.FC<NavbarProps> = ({
     if (item.id === 'marketplace') {
       e.preventDefault();
       onViewChange?.('marketplace');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      window.scrollTo({ top: 0, behavior: 'instant' });
     } else if (item.id === 'about') {
       e.preventDefault();
       onViewChange?.('about');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      window.scrollTo({ top: 0, behavior: 'instant' });
     } else if (item.id === 'blog') {
       e.preventDefault();
       onViewChange?.('blog');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      window.scrollTo({ top: 0, behavior: 'instant' });
     } else {
       onViewChange?.('home');
       e.preventDefault();
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      window.scrollTo({ top: 0, behavior: 'instant' });
     }
   };
 
@@ -189,14 +190,26 @@ export const Navbar: React.FC<NavbarProps> = ({
                         'font-headline text-sm font-semibold transition-all duration-200 relative py-1 group select-none flex items-center gap-1.5',
                         isActive
                           ? 'text-[#016ba5] dark:text-[#38BDF8] font-bold'
-                          : 'text-slate-600 dark:text-slate-300 hover:text-[#016ba5] dark:hover:text-[#fa8221]'
+                          : 'text-slate-600 dark:text-slate-300 hover:text-[#016ba5] dark:hover:text-[#fa8221]',
+                        item.id === 'marketplace' && 'font-bold text-slate-800 dark:text-white'
                       )}
                     >
+                      {item.id === 'marketplace' && (
+                        <ShoppingBag className={cn(
+                          'w-4 h-4 transition-transform duration-200 group-hover:scale-110',
+                          isActive ? 'text-[#016ba5] dark:text-[#38BDF8]' : 'text-[#fa8221]'
+                        )} />
+                      )}
                       <span>{item.label}</span>
 
                       {/* Optional badge for featured destinations */}
                       {item.badge && (
-                        <span className="text-[10px] font-gamification font-bold px-1.5 py-0.5 rounded-full bg-[#fa8221]/10 text-[#fa8221] border border-[#fa8221]/20">
+                        <span className={cn(
+                          "text-[10px] font-gamification font-bold px-1.5 py-0.5 rounded-full border transition-colors",
+                          item.id === 'marketplace'
+                            ? "bg-[#fa8221]/15 text-[#fa8221] border-[#fa8221]/30 font-extrabold shadow-sm"
+                            : "bg-[#fa8221]/10 text-[#fa8221] border border-[#fa8221]/20"
+                        )}>
                           {item.badge}
                         </span>
                       )}
@@ -396,12 +409,23 @@ export const Navbar: React.FC<NavbarProps> = ({
                       'font-headline text-base font-semibold px-4 py-3 rounded-2xl flex items-center justify-between transition-colors',
                       isActive
                         ? 'text-[#016ba5] dark:text-[#38BDF8] bg-[#016ba5]/10 dark:bg-[#016ba5]/30 font-bold'
-                        : 'text-slate-700 dark:text-slate-200 hover:text-[#016ba5] dark:hover:text-[#fa8221] hover:bg-slate-50 dark:hover:bg-slate-800/80'
+                        : 'text-slate-700 dark:text-slate-200 hover:text-[#016ba5] dark:hover:text-[#fa8221] hover:bg-slate-50 dark:hover:bg-slate-800/80',
+                      item.id === 'marketplace' && !isActive && 'bg-amber-500/[0.04] border border-amber-500/20 text-slate-900 dark:text-white font-bold'
                     )}
                   >
-                    <span>{item.label}</span>
+                    <div className="flex items-center gap-2.5">
+                      {item.id === 'marketplace' && (
+                        <ShoppingBag className="w-5 h-5 text-[#fa8221]" />
+                      )}
+                      <span>{item.label}</span>
+                    </div>
                     {item.badge && (
-                      <span className="text-xs font-gamification font-bold px-2 py-0.5 rounded-full bg-[#fa8221]/10 text-[#fa8221]">
+                      <span className={cn(
+                        "text-xs font-gamification font-bold px-2 py-0.5 rounded-full border",
+                        item.id === 'marketplace'
+                          ? "bg-[#fa8221]/15 text-[#fa8221] border-[#fa8221]/30 font-extrabold shadow-sm"
+                          : "bg-[#fa8221]/10 text-[#fa8221] border-transparent"
+                      )}>
                         {item.badge}
                       </span>
                     )}

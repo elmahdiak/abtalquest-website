@@ -40,7 +40,7 @@ export const WatchDemoModal: React.FC<WatchDemoModalProps> = ({
       role="dialog"
       aria-modal="true"
       aria-labelledby="demo-modal-title"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fadeIn"
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fadeIn"
       onClick={onClose}
     >
       <div

@@ -4,7 +4,7 @@ export const WHATSAPP_POSITION_STORAGE_KEY = 'abtalquest_whatsapp_position';
 export const WHATSAPP_POSITION_EVENT = 'abtalquest_whatsapp_position_changed';
 
 export function getStoredWhatsAppPosition(): WhatsAppPosition {
-  if (typeof window === 'undefined') return 'bottom-right';
+  if (typeof window === 'undefined') return 'bottom-left';
   try {
     const saved = localStorage.getItem(WHATSAPP_POSITION_STORAGE_KEY);
     if (saved === 'bottom-left' || saved === 'bottom-right') {
@@ -13,7 +13,7 @@ export function getStoredWhatsAppPosition(): WhatsAppPosition {
   } catch (e) {
     console.warn('Failed to read WhatsApp position from localStorage:', e);
   }
-  return 'bottom-right';
+  return 'bottom-left';
 }
 
 export function setStoredWhatsAppPosition(pos: WhatsAppPosition): void {
