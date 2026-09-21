@@ -12,7 +12,6 @@ import {
   Coins, 
   Sparkles, 
   Users, 
-  ArrowUpRight, 
   Mail, 
   ExternalLink,
   Loader2,
@@ -43,11 +42,19 @@ import {
   Download,
   UserCheck,
   CreditCard,
-  Banknote
+  Banknote,
+  Bell,
+  CheckCheck,
+  Sun,
+  Moon,
+  TrendingUp,
+  ShoppingBag,
+  Calendar
 } from 'lucide-react';
 import Badge from '../common/Badge';
 import Button from '../common/Button';
 import AbtalQuestLogo from '../common/AbtalQuestLogo';
+import { useTheme } from '../../context/ThemeContext';
 import { 
   getStoredWhatsAppPosition, 
   setStoredWhatsAppPosition, 
@@ -78,6 +85,8 @@ import {
   getContactMessagesForAdmin, 
   updateContactMessageStatus, 
   getSiteMetrics,
+  getFilteredSiteMetrics,
+  type AnalyticsTimeframe,
   fetchMarketplaceProducts,
   createProduct,
   updateProduct,
@@ -95,6 +104,15 @@ import {
   type Product,
   type ProductCategory
 } from '../../services/marketplaceService';
+import {
+  fetchAdminNotifications,
+  markNotificationAsRead,
+  markAllNotificationsAsRead,
+  clearAllNotifications,
+  setupRealtimeNotificationSubscriptions,
+  formatRelativeTime,
+  type AdminNotification
+} from '../../services/notificationService';
 import {
   fetchBlogs,
   createBlog,
@@ -145,6 +163,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
   const [dispatchedCode, setDispatchedCode] = useState<string | null>(null);
 
   // Dashboard state
+  const { theme, toggleTheme } = useTheme();
   const [activeTab, setActiveTab] = useState<'orders' | 'products' | 'categories' | 'blogs' | 'subscribers' | 'messages' | 'analytics' | 'team' | 'settings'>('orders');
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(false);
   const [whatsappPosition, setWhatsappPosition] = useState<WhatsAppPosition>(getStoredWhatsAppPosition);
@@ -152,6 +171,14 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
   const [messages, setMessages] = useState<ContactMessage[]>([]);
   const [metrics, setMetrics] = useState<SiteMetrics | null>(null);
   const [loadingData, setLoadingData] = useState<boolean>(true);
+
+  // Notifications state
+  const [notifications, setNotifications] = useState<AdminNotification[]>([]);
+  const [notificationsOpen, setNotificationsOpen] = useState<boolean>(false);
+  const [notificationFilter, setNotificationFilter] = useState<'all' | 'unread'>('all');
+
+  // Analytics Timeframe state
+  const [analyticsTimeframe, setAnalyticsTimeframe] = useState<AnalyticsTimeframe>('overview');
 
   // Products & Inventory state
   const [productsList, setProductsList] = useState<Product[]>([]);
@@ -397,10 +424,48 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
       if (subscribersData.error && !subscribersData.isTableMissing) {
         setSubscribersError(subscribersData.error);
       }
+
+      // Fetch live notifications aggregated from Supabase & recent events
+      const notifs = await fetchAdminNotifications(ordersList, messagesList, subscribersData.subscribers);
+      setNotifications(notifs);
     } catch (err) {
       console.warn('Dashboard data load error:', err);
     } finally {
       setLoadingData(false);
+    }
+  };
+
+  // Set up Supabase Realtime notification subscription
+  useEffect(() => {
+    if (!isAdmin) return;
+    const unsubscribe = setupRealtimeNotificationSubscriptions((newNotif) => {
+      setNotifications((prev) => [newNotif, ...prev.filter((n) => n.id !== newNotif.id)]);
+    });
+    return () => {
+      unsubscribe();
+    };
+  }, [isAdmin]);
+
+  const handleMarkNotificationRead = async (id: string) => {
+    await markNotificationAsRead(id);
+    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, isRead: true } : n)));
+  };
+
+  const handleMarkAllNotificationsRead = async () => {
+    await markAllNotificationsAsRead(notifications);
+    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+  };
+
+  const handleClearAllNotifications = async () => {
+    await clearAllNotifications(notifications);
+    setNotifications([]);
+  };
+
+  const handleNotificationClick = async (notif: AdminNotification) => {
+    await handleMarkNotificationRead(notif.id);
+    if (notif.linkTab) {
+      setActiveTab(notif.linkTab);
+      setNotificationsOpen(false);
     }
   };
 
@@ -2049,6 +2114,174 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
               </div>
 
               <div className="flex items-center gap-2 sm:gap-3">
+                {/* 1. Notification Center Toggle Button & Dropdown */}
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setNotificationsOpen((prev) => !prev)}
+                    aria-label="Centre de notifications"
+                    className="relative p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-[#fa8221] cursor-pointer flex items-center justify-center"
+                  >
+                    <Bell className="w-4 h-4" />
+                    {notifications.filter((n) => !n.isRead).length > 0 && (
+                      <span className="absolute -top-1 -right-1 px-1.5 py-0.2 rounded-full bg-red-500 text-white font-headline font-black text-[10px] animate-pulse border-2 border-[#0A2540] shadow-sm">
+                        {notifications.filter((n) => !n.isRead).length > 99 ? '99+' : notifications.filter((n) => !n.isRead).length}
+                      </span>
+                    )}
+                  </button>
+
+                  {/* Notification Center Popover */}
+                  {notificationsOpen && (
+                    <div className="absolute right-0 mt-3 w-80 sm:w-96 rounded-2xl bg-white dark:bg-[#0A2540] border border-slate-200 dark:border-slate-800 shadow-2xl z-50 overflow-hidden animate-fadeIn text-slate-800 dark:text-slate-100">
+                      {/* Header */}
+                      <div className="p-3.5 border-b border-slate-100 dark:border-slate-800/80 flex items-center justify-between bg-slate-50/70 dark:bg-slate-900/40">
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-headline font-bold text-sm text-slate-900 dark:text-white">
+                            Notifications
+                          </h4>
+                          {notifications.filter((n) => !n.isRead).length > 0 && (
+                            <span className="px-2 py-0.5 rounded-full bg-red-500/10 text-red-500 dark:text-red-400 font-headline font-bold text-[10px]">
+                              {notifications.filter((n) => !n.isRead).length} non lue{notifications.filter((n) => !n.isRead).length > 1 ? 's' : ''}
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-1">
+                          {notifications.filter((n) => !n.isRead).length > 0 && (
+                            <button
+                              type="button"
+                              onClick={handleMarkAllNotificationsRead}
+                              title="Tout marquer comme lu"
+                              className="p-1 rounded-lg text-xs text-slate-500 hover:text-[#016ba5] dark:hover:text-[#38BDF8] hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex items-center gap-1 cursor-pointer"
+                            >
+                              <CheckCheck className="w-3.5 h-3.5" />
+                              <span className="text-[11px] hidden sm:inline">Tout lire</span>
+                            </button>
+                          )}
+                          {notifications.length > 0 && (
+                            <button
+                              type="button"
+                              onClick={handleClearAllNotifications}
+                              title="Effacer l'historique"
+                              className="p-1 rounded-lg text-xs text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors cursor-pointer"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Filter Tabs: Toutes vs Non lues */}
+                      <div className="flex border-b border-slate-100 dark:border-slate-800 text-xs font-headline font-bold">
+                        <button
+                          type="button"
+                          onClick={() => setNotificationFilter('all')}
+                          className={`flex-1 py-2 text-center transition-colors cursor-pointer border-b-2 ${
+                            notificationFilter === 'all'
+                              ? 'border-[#016ba5] dark:border-[#38BDF8] text-[#016ba5] dark:text-[#38BDF8] bg-slate-50/50 dark:bg-slate-800/30'
+                              : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+                          }`}
+                        >
+                          Toutes ({notifications.length})
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setNotificationFilter('unread')}
+                          className={`flex-1 py-2 text-center transition-colors cursor-pointer border-b-2 ${
+                            notificationFilter === 'unread'
+                              ? 'border-[#016ba5] dark:border-[#38BDF8] text-[#016ba5] dark:text-[#38BDF8] bg-slate-50/50 dark:bg-slate-800/30'
+                              : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+                          }`}
+                        >
+                          Non lues ({notifications.filter((n) => !n.isRead).length})
+                        </button>
+                      </div>
+
+                      {/* Notification Items List */}
+                      <div className="max-h-80 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/60">
+                        {(notificationFilter === 'unread' ? notifications.filter((n) => !n.isRead) : notifications).length === 0 ? (
+                          <div className="py-8 text-center px-4">
+                            <Bell className="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto mb-2 opacity-50" />
+                            <p className="text-xs text-slate-500 dark:text-slate-400 font-body">
+                              {notificationFilter === 'unread'
+                                ? 'Aucune notification non lue'
+                                : 'Aucune notification pour le moment'}
+                            </p>
+                          </div>
+                        ) : (
+                          (notificationFilter === 'unread' ? notifications.filter((n) => !n.isRead) : notifications).map((n) => (
+                            <div
+                              key={n.id}
+                              onClick={() => handleNotificationClick(n)}
+                              className={`p-3 sm:p-3.5 flex items-start gap-3 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors cursor-pointer group ${
+                                !n.isRead ? 'bg-[#016ba5]/5 dark:bg-[#016ba5]/15' : ''
+                              }`}
+                            >
+                              {/* Type Icon */}
+                              <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
+                                n.type === 'order'
+                                  ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400'
+                                  : n.type === 'payment_failed'
+                                  ? 'bg-red-500/10 text-red-600 dark:text-red-400'
+                                  : n.type === 'message'
+                                  ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                                  : 'bg-purple-500/10 text-purple-600 dark:text-purple-400'
+                              }`}>
+                                {n.type === 'order' ? (
+                                  <Package className="w-4 h-4" />
+                                ) : n.type === 'payment_failed' ? (
+                                  <AlertCircle className="w-4 h-4" />
+                                ) : n.type === 'message' ? (
+                                  <MessageSquare className="w-4 h-4" />
+                                ) : (
+                                  <Mail className="w-4 h-4" />
+                                )}
+                              </div>
+
+                              {/* Content */}
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between gap-1 mb-0.5">
+                                  <h5 className={`font-headline text-xs font-bold truncate ${
+                                    !n.isRead ? 'text-slate-900 dark:text-white' : 'text-slate-700 dark:text-slate-300'
+                                  }`}>
+                                    {n.title}
+                                  </h5>
+                                  <span className="text-[10px] text-slate-400 shrink-0 font-body">
+                                    {formatRelativeTime(n.timestamp)}
+                                  </span>
+                                </div>
+                                <p className="text-[11px] font-body text-slate-600 dark:text-slate-400 leading-snug line-clamp-2">
+                                  {n.message}
+                                </p>
+                              </div>
+
+                              {/* Unread indicator */}
+                              {!n.isRead && (
+                                <span className="w-2 h-2 rounded-full bg-[#016ba5] dark:bg-[#38BDF8] shrink-0 mt-1.5" />
+                              )}
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* 2. Dark / Light Mode Toggle Button */}
+                <button
+                  type="button"
+                  onClick={toggleTheme}
+                  aria-label={theme === 'dark' ? 'Passer en mode clair' : 'Passer en mode sombre'}
+                  title={theme === 'dark' ? 'Mode Clair' : 'Mode Sombre'}
+                  className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-amber-400 dark:hover:text-amber-300 transition-colors focus:outline-none focus:ring-2 focus:ring-[#fa8221] cursor-pointer"
+                >
+                  {theme === 'dark' ? (
+                    <Sun className="w-4 h-4 transition-transform duration-300 hover:rotate-45 text-amber-400" />
+                  ) : (
+                    <Moon className="w-4 h-4 transition-transform duration-300 hover:-rotate-12 text-sky-300" />
+                  )}
+                </button>
+
                 <button
                   type="button"
                   onClick={handleExitAdmin}
@@ -2071,7 +2304,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
           </header>
 
           {/* Main Content Area beside Sidebar - INDEPENDENT INTERNAL SCROLL */}
-          <main className="flex-1 min-w-0 bg-slate-100 p-4 sm:p-6 lg:p-8 overflow-y-auto">
+          <main className="flex-1 min-w-0 bg-slate-100 dark:bg-[#071727] p-4 sm:p-6 lg:p-8 overflow-y-auto text-slate-800 dark:text-slate-100">
             <div className="w-full max-w-7xl mx-auto space-y-6">
             {loadingData ? (
               <div className="py-24 text-center">
@@ -3790,205 +4023,296 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
             {/* ========================================================
                 TAB 3: KEY SITE METRICS & TRAFFIC ANALYTICS
                ======================================================== */}
-            {activeTab === 'analytics' && metrics && (
-              <div className="space-y-8">
-                <div>
-                  <h2 className="font-headline text-2xl font-black text-slate-900">
-                    Key Site Metrics & Traffic Analytics
-                  </h2>
-                  <p className="font-body text-xs text-slate-500">
-                    Live platform performance, visitor engagement trends, and product velocity.
-                  </p>
-                </div>
-
-                {/* 4 KPI Cards */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-                  <div className="p-6 rounded-3xl bg-white border border-slate-200 shadow-sm flex flex-col justify-between">
+            {activeTab === 'analytics' && (() => {
+              const currentAnalytics = getFilteredSiteMetrics(analyticsTimeframe, orders, productsList, metrics);
+              return (
+                <div className="space-y-8 animate-in fade-in duration-200">
+                  {/* Header with Title and Timeframe Filters */}
+                  <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                     <div>
-                      <div className="flex items-center justify-between text-slate-500 mb-2">
-                        <span className="font-headline font-bold text-xs uppercase tracking-wider">Gross Revenue</span>
-                        <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                          <Coins className="w-4 h-4" />
-                        </div>
-                      </div>
-                      <h3 className="font-headline text-3xl font-black text-slate-900">
-                        {metrics.totalRevenue.toLocaleString()} MAD
-                      </h3>
-                    </div>
-                    <div className="mt-4 pt-3 border-t border-slate-100 flex items-center gap-1.5 text-xs text-emerald-600 font-semibold">
-                      <ArrowUpRight className="w-4 h-4" /> +18.2% from last month
-                    </div>
-                  </div>
-
-                  <div className="p-6 rounded-3xl bg-white border border-slate-200 shadow-sm flex flex-col justify-between">
-                    <div>
-                      <div className="flex items-center justify-between text-slate-500 mb-2">
-                        <span className="font-headline font-bold text-xs uppercase tracking-wider">Total Orders</span>
-                        <div className="w-9 h-9 rounded-xl bg-blue-50 text-[#016ba5] flex items-center justify-center">
-                          <Package className="w-4 h-4" />
-                        </div>
-                      </div>
-                      <h3 className="font-headline text-3xl font-black text-slate-900">
-                        {metrics.totalOrders}
-                      </h3>
-                    </div>
-                    <div className="mt-4 pt-3 border-t border-slate-100 text-xs text-slate-500">
-                      Conversion rate: <strong className="text-slate-800">{metrics.conversionRate}%</strong>
-                    </div>
-                  </div>
-
-                  <div className="p-6 rounded-3xl bg-white border border-slate-200 shadow-sm flex flex-col justify-between">
-                    <div>
-                      <div className="flex items-center justify-between text-slate-500 mb-2">
-                        <span className="font-headline font-bold text-xs uppercase tracking-wider">Quest XP Unlocked</span>
-                        <div className="w-9 h-9 rounded-xl bg-purple-50 text-[#7C3AED] flex items-center justify-center">
-                          <Sparkles className="w-4 h-4" />
-                        </div>
-                      </div>
-                      <h3 className="font-headline text-3xl font-black text-[#7C3AED]">
-                        +{metrics.totalXpAwarded.toLocaleString()} XP
-                      </h3>
-                    </div>
-                    <div className="mt-4 pt-3 border-t border-slate-100 text-xs text-slate-500">
-                      Character development points
-                    </div>
-                  </div>
-
-                  <div className="p-6 rounded-3xl bg-white border border-slate-200 shadow-sm flex flex-col justify-between">
-                    <div>
-                      <div className="flex items-center justify-between text-slate-500 mb-2">
-                        <span className="font-headline font-bold text-xs uppercase tracking-wider">Weekly Visitors</span>
-                        <div className="w-9 h-9 rounded-xl bg-amber-50 text-[#fa8221] flex items-center justify-center">
-                          <Users className="w-4 h-4" />
-                        </div>
-                      </div>
-                      <h3 className="font-headline text-3xl font-black text-slate-900">
-                        {metrics.activeVisitorsWeek.toLocaleString()}
-                      </h3>
-                    </div>
-                    <div className="mt-4 pt-3 border-t border-slate-100 text-xs text-emerald-600 font-semibold flex items-center gap-1">
-                      <ShieldCheck className="w-3.5 h-3.5" /> 100% Organic & Parent Referrals
-                    </div>
-                  </div>
-                </div>
-
-                {/* Charts Grid: 7-Day Trend + Planet Popularity */}
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                  
-                  {/* Left: 7-Day Trend Chart (Cols 1-7) */}
-                  <div className="lg:col-span-7 bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-sm">
-                    <div className="flex items-center justify-between mb-6">
-                      <div>
-                        <h4 className="font-headline font-bold text-base text-slate-900">
-                          7-Day Traffic & Sales Velocity
-                        </h4>
-                        <span className="font-body text-xs text-slate-500">
-                          Daily visitors vs. kit orders placed
+                      <div className="flex items-center gap-2.5 mb-1">
+                        <h2 className="font-headline text-2xl font-black text-slate-900 dark:text-white">
+                          Tableau de Bord & Métriques Clés
+                        </h2>
+                        <span className="px-2.5 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/40 text-[#016ba5] dark:text-[#38BDF8] border border-blue-200 dark:border-blue-800 text-[10px] font-bold">
+                          En direct
                         </span>
                       </div>
-                      <span className="text-xs font-body font-semibold px-2.5 py-1 rounded-full bg-slate-100 text-slate-700">
-                        Last 7 Days
+                      <p className="font-body text-xs text-slate-500 dark:text-slate-400">
+                        Performance commerciale, volume des ventes et dynamique des kits d'apprentissage.
+                      </p>
+                    </div>
+
+                    {/* Timeframe Quick-Filter Buttons */}
+                    <div className="bg-white dark:bg-slate-800/90 p-1.5 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-xs flex items-center flex-wrap gap-1">
+                      <div className="flex items-center gap-1 px-2 text-slate-400 hidden sm:flex">
+                        <Calendar className="w-3.5 h-3.5" />
+                        <span className="text-[11px] font-headline font-bold uppercase tracking-wider">Période:</span>
+                      </div>
+
+                      {[
+                        { id: 'overview', label: "Vue d'ensemble" },
+                        { id: 'today', label: "Aujourd'hui" },
+                        { id: 'week', label: 'Cette semaine' },
+                        { id: 'month', label: 'Ce mois' },
+                        { id: 'year', label: 'Cette année' },
+                      ].map((tf) => (
+                        <button
+                          key={tf.id}
+                          type="button"
+                          onClick={() => setAnalyticsTimeframe(tf.id as AnalyticsTimeframe)}
+                          className={`px-3 py-1.5 rounded-xl font-headline text-xs font-bold transition-all cursor-pointer ${
+                            analyticsTimeframe === tf.id
+                              ? 'bg-[#016ba5] dark:bg-[#38BDF8] text-white dark:text-slate-900 shadow-xs'
+                              : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700/50'
+                          }`}
+                        >
+                          {tf.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* 4 Primary Performance KPI Cards */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                    {/* Card 1: Total Orders */}
+                    <div className="p-6 rounded-3xl bg-white dark:bg-[#0A2540]/80 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+                      <div>
+                        <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 mb-2">
+                          <span className="font-headline font-bold text-xs uppercase tracking-wider">Commandes</span>
+                          <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-950/40 text-[#016ba5] dark:text-[#38BDF8] flex items-center justify-center">
+                            <Package className="w-4 h-4" />
+                          </div>
+                        </div>
+                        <h3 className="font-headline text-3xl font-black text-slate-900 dark:text-white">
+                          {currentAnalytics.totalOrders}
+                        </h3>
+                      </div>
+                      <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
+                        <span>{currentAnalytics.statusBreakdown.confirmed + currentAnalytics.statusBreakdown.delivered} validées / livrées</span>
+                        <span className="font-bold text-amber-600 dark:text-amber-400">{currentAnalytics.statusBreakdown.pending_cod} COD</span>
+                      </div>
+                    </div>
+
+                    {/* Card 2: Gross Revenue */}
+                    <div className="p-6 rounded-3xl bg-white dark:bg-[#0A2540]/80 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+                      <div>
+                        <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 mb-2">
+                          <span className="font-headline font-bold text-xs uppercase tracking-wider">Chiffre d'Affaires</span>
+                          <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                            <Coins className="w-4 h-4" />
+                          </div>
+                        </div>
+                        <h3 className="font-headline text-3xl font-black text-slate-900 dark:text-white truncate">
+                          {formatPrice(currentAnalytics.totalRevenue, 'fr')}
+                        </h3>
+                      </div>
+                      <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 font-semibold">
+                        <TrendingUp className="w-3.5 h-3.5" />
+                        <span>Période: {currentAnalytics.timeframeLabel}</span>
+                      </div>
+                    </div>
+
+                    {/* Card 3: Average Order Value / AOV */}
+                    <div className="p-6 rounded-3xl bg-white dark:bg-[#0A2540]/80 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+                      <div>
+                        <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 mb-2">
+                          <span className="font-headline font-bold text-xs uppercase tracking-wider">Panier Moyen (AOV)</span>
+                          <div className="w-9 h-9 rounded-xl bg-purple-50 dark:bg-purple-950/40 text-[#7C3AED] dark:text-purple-300 flex items-center justify-center">
+                            <ShoppingBag className="w-4 h-4" />
+                          </div>
+                        </div>
+                        <h3 className="font-headline text-3xl font-black text-[#7C3AED] dark:text-purple-300 truncate">
+                          {formatPrice(currentAnalytics.averageOrderValue, 'fr')}
+                        </h3>
+                      </div>
+                      <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800/80 text-xs text-slate-500 dark:text-slate-400">
+                        Valeur moyenne par commande
+                      </div>
+                    </div>
+
+                    {/* Card 4: Site Visits / Traffic */}
+                    <div className="p-6 rounded-3xl bg-white dark:bg-[#0A2540]/80 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+                      <div>
+                        <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 mb-2">
+                          <span className="font-headline font-bold text-xs uppercase tracking-wider">Visites Estimées</span>
+                          <div className="w-9 h-9 rounded-xl bg-amber-50 dark:bg-amber-950/40 text-[#fa8221] dark:text-amber-400 flex items-center justify-center">
+                            <Users className="w-4 h-4" />
+                          </div>
+                        </div>
+                        <h3 className="font-headline text-3xl font-black text-slate-900 dark:text-white">
+                          {currentAnalytics.siteVisits.toLocaleString()}
+                        </h3>
+                      </div>
+                      <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+                        <span>Taux de conversion:</span>
+                        <strong className="text-emerald-600 dark:text-emerald-400">{currentAnalytics.conversionRate}%</strong>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Top Featured Products Leaderboard ("Produits vedettes") */}
+                  <div className="bg-white dark:bg-[#0A2540]/80 p-6 sm:p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-6">
+                      <div>
+                        <h4 className="font-headline font-bold text-lg text-slate-900 dark:text-white">
+                          Produits Vedettes & Meilleures Ventes
+                        </h4>
+                        <p className="font-body text-xs text-slate-500 dark:text-slate-400">
+                          Classement des kits d'apprentissage et chroniques pour: <strong className="text-[#016ba5] dark:text-[#38BDF8]">{currentAnalytics.timeframeLabel}</strong>
+                        </p>
+                      </div>
+                      <span className="text-xs font-headline font-bold px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 w-fit">
+                        {currentAnalytics.topProducts.length} kits répertoriés
                       </span>
                     </div>
 
-                    <div className="h-48 flex items-end justify-between gap-3 pt-6 border-b border-slate-100">
-                      {metrics.recentDaysTrend.map((t, idx) => (
-                        <div key={idx} className="flex-1 flex flex-col items-center gap-2 h-full justify-end group">
-                          <span className="text-[10px] font-body text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity">
-                            ${t.revenue}
-                          </span>
-                          <div 
-                            style={{ height: `${Math.max(20, Math.min(100, (t.revenue / 250) * 100))}%` }}
-                            className="w-full max-w-[32px] rounded-t-xl bg-gradient-to-t from-[#016ba5] to-[#fa8221] group-hover:brightness-110 transition-all shadow-sm"
-                          />
-                          <span className="font-headline font-bold text-xs text-slate-600">
-                            {t.day}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {currentAnalytics.topProducts.map((prod, idx) => (
+                        <div
+                          key={idx}
+                          className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-700/70 flex items-center justify-between gap-3 hover:border-slate-300 dark:hover:border-slate-600 transition-colors"
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            {/* Rank Badge */}
+                            <div className={`w-8 h-8 rounded-xl font-headline font-black text-xs flex items-center justify-center shrink-0 ${
+                              idx === 0 
+                                ? 'bg-amber-400 text-slate-950 shadow-xs' 
+                                : idx === 1 
+                                ? 'bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200' 
+                                : idx === 2 
+                                ? 'bg-amber-700/20 text-amber-700 dark:text-amber-400' 
+                                : 'bg-[#016ba5]/10 text-[#016ba5] dark:text-[#38BDF8]'
+                            }`}>
+                              #{idx + 1}
+                            </div>
+
+                            {/* Product Thumbnail */}
+                            <div className="w-12 h-12 rounded-xl overflow-hidden bg-slate-200 dark:bg-slate-700 shrink-0 border border-slate-200 dark:border-slate-600">
+                              {prod.imageUrl ? (
+                                <img
+                                  src={prod.imageUrl}
+                                  alt={prod.title}
+                                  className="w-full h-full object-cover"
+                                  onError={(e) => {
+                                    (e.target as HTMLElement).style.display = 'none';
+                                  }}
+                                />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center text-slate-400">
+                                  <Package className="w-5 h-5" />
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Info */}
+                            <div className="min-w-0">
+                              <h5 className="font-headline font-bold text-xs text-slate-900 dark:text-white truncate">
+                                {prod.title}
+                              </h5>
+                              <div className="flex items-center gap-2 mt-0.5">
+                                <span className="text-[11px] font-headline font-semibold text-blue-600 dark:text-blue-400">
+                                  {prod.unitsSold} vendus
+                                </span>
+                                <span className="text-[10px] text-slate-400">•</span>
+                                <span className={`text-[10px] font-bold ${
+                                  prod.inStock ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500 dark:text-red-400'
+                                }`}>
+                                  {prod.inStock ? 'En stock' : 'Rupture'}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Revenue */}
+                          <span className="font-headline font-black text-sm text-slate-900 dark:text-white shrink-0">
+                            {formatPrice(prod.revenue, 'fr')}
                           </span>
                         </div>
                       ))}
                     </div>
-                    <div className="flex items-center justify-center gap-6 mt-4 text-xs font-body text-slate-500">
-                      <div className="flex items-center gap-2">
-                        <span className="w-3 h-3 rounded bg-[#016ba5]" />
-                        <span>Daily Orders Activity</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="w-3 h-3 rounded bg-[#fa8221]" />
-                        <span>Revenue Volume</span>
-                      </div>
-                    </div>
                   </div>
 
-                  {/* Right: Planet Sales Distribution (Cols 8-12) */}
-                  <div className="lg:col-span-5 bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-sm">
-                    <h4 className="font-headline font-bold text-base text-slate-900 mb-1">
-                      Planet World Engagement
-                    </h4>
-                    <span className="font-body text-xs text-slate-500 block mb-6">
-                      Distribution of kits purchased by life skill planet
-                    </span>
-
-                    <div className="space-y-4">
-                      {metrics.planetSales.map((p, idx) => (
-                        <div key={idx} className="space-y-1.5">
-                          <div className="flex items-center justify-between text-xs font-headline font-bold">
-                            <span className="text-slate-800">{p.planet}</span>
-                            <span className="text-slate-500">{p.salesCount} kits</span>
-                          </div>
-                          <div className="w-full h-3 rounded-full bg-slate-100 overflow-hidden">
-                            <div
-                              className="h-full rounded-full transition-all duration-500"
-                              style={{ 
-                                width: `${Math.max(15, (p.salesCount / (metrics.totalOrders || 1)) * 100)}%`,
-                                backgroundColor: p.color
-                              }}
-                            />
-                          </div>
+                  {/* Charts Grid: Dynamic Velocity Trend + Planet World Engagement */}
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                    {/* Left: Dynamic Velocity Chart (Cols 1-7) */}
+                    <div className="lg:col-span-7 bg-white dark:bg-[#0A2540]/80 p-6 sm:p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                      <div className="flex items-center justify-between mb-6">
+                        <div>
+                          <h4 className="font-headline font-bold text-base text-slate-900 dark:text-white">
+                            Activité & Vélocité des Ventes
+                          </h4>
+                          <span className="font-body text-xs text-slate-500 dark:text-slate-400">
+                            Répartition chronologique pour {currentAnalytics.timeframeLabel}
+                          </span>
                         </div>
-                      ))}
-                    </div>
-                  </div>
-
-                </div>
-
-                {/* Top Performing Learning Kits Leaderboard */}
-                <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-sm">
-                  <h4 className="font-headline font-bold text-base text-slate-900 mb-1">
-                    Top Performing Learning Kits
-                  </h4>
-                  <p className="font-body text-xs text-slate-500 mb-6">
-                    Bestselling physical kits and chronicles ranked by units ordered.
-                  </p>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {metrics.topProducts.map((prod, idx) => (
-                      <div
-                        key={idx}
-                        className="p-4 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-between"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-xl bg-[#016ba5]/10 text-[#016ba5] font-headline font-black text-sm flex items-center justify-center">
-                            #{idx + 1}
-                          </div>
-                          <div>
-                            <h5 className="font-headline font-bold text-xs text-slate-800 line-clamp-1">
-                              {prod.title}
-                            </h5>
-                            <span className="font-body text-[11px] text-slate-500">
-                              {prod.unitsSold} units shipped
-                            </span>
-                          </div>
-                        </div>
-                        <span className="font-headline font-black text-sm text-slate-900">
-                          ${prod.revenue.toFixed(2)}
+                        <span className="text-xs font-body font-semibold px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                          {currentAnalytics.trendData.length} intervalles
                         </span>
                       </div>
-                    ))}
-                  </div>
-                </div>
 
-              </div>
-            )}
+                      <div className="h-48 flex items-end justify-between gap-3 pt-6 border-b border-slate-100 dark:border-slate-800">
+                        {currentAnalytics.trendData.map((t, idx) => (
+                          <div key={idx} className="flex-1 flex flex-col items-center gap-2 h-full justify-end group">
+                            <span className="text-[10px] font-body text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                              {t.revenue} Dhs
+                            </span>
+                            <div 
+                              style={{ height: `${Math.max(18, Math.min(100, (t.revenue / Math.max(1, currentAnalytics.totalRevenue * 0.4 || 400)) * 100))}%` }}
+                              className="w-full max-w-[32px] rounded-t-xl bg-gradient-to-t from-[#016ba5] to-[#fa8221] group-hover:brightness-110 transition-all shadow-sm"
+                            />
+                            <span className="font-headline font-bold text-xs text-slate-600 dark:text-slate-400">
+                              {t.label}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="flex items-center justify-center gap-6 mt-4 text-xs font-body text-slate-500 dark:text-slate-400">
+                        <div className="flex items-center gap-2">
+                          <span className="w-3 h-3 rounded bg-[#016ba5]" />
+                          <span>Commandes ({currentAnalytics.totalOrders})</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="w-3 h-3 rounded bg-[#fa8221]" />
+                          <span>Chiffre d'affaires ({formatPrice(currentAnalytics.totalRevenue, 'fr')})</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Right: Planet Sales Distribution (Cols 8-12) */}
+                    <div className="lg:col-span-5 bg-white dark:bg-[#0A2540]/80 p-6 sm:p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                      <h4 className="font-headline font-bold text-base text-slate-900 dark:text-white mb-1">
+                        Univers & Planètes Éducatives
+                      </h4>
+                      <span className="font-body text-xs text-slate-500 dark:text-slate-400 block mb-6">
+                        Distribution des kits commandés par pilier de valeurs
+                      </span>
+
+                      <div className="space-y-4">
+                        {currentAnalytics.planetSales.map((p, idx) => (
+                          <div key={idx} className="space-y-1.5">
+                            <div className="flex items-center justify-between text-xs font-headline font-bold">
+                              <span className="text-slate-800 dark:text-slate-200">{p.planet}</span>
+                              <span className="text-slate-500 dark:text-slate-400">{p.salesCount} kits</span>
+                            </div>
+                            <div className="w-full h-3 rounded-full bg-slate-100 dark:bg-slate-700/60 overflow-hidden">
+                              <div
+                                className="h-full rounded-full transition-all duration-500"
+                                style={{ 
+                                  width: `${Math.max(12, (p.salesCount / Math.max(1, currentAnalytics.totalOrders)) * 100)}%`,
+                                  backgroundColor: p.color
+                                }}
+                              />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+              );
+            })()}
 
             {/* ========================================================
                 TAB 4: ADMIN TEAM & ACCESS (SUPER ADMIN EXCLUSIVE)

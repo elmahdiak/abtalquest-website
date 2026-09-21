@@ -1245,6 +1245,58 @@ When parents participate alongside children—embracing mistakes with humor and 
 ON CONFLICT (id) DO NOTHING;
 
 -- ==============================================================================
+-- 12. ADMIN NOTIFICATIONS TABLE (Live Admin Center & Realtime Event Feed)
+-- ==============================================================================
+CREATE TABLE IF NOT EXISTS public.admin_notifications (
+  id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  type TEXT NOT NULL,
+  title TEXT NOT NULL,
+  message TEXT NOT NULL,
+  data JSONB DEFAULT '{}'::jsonb,
+  is_read BOOLEAN NOT NULL DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_admin_notifications_created_at ON public.admin_notifications(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_admin_notifications_is_read ON public.admin_notifications(is_read);
+
+-- Enable RLS
+ALTER TABLE public.admin_notifications ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Allow authenticated read notifications" ON public.admin_notifications;
+DROP POLICY IF EXISTS "Allow insert notifications" ON public.admin_notifications;
+DROP POLICY IF EXISTS "Allow update notifications" ON public.admin_notifications;
+DROP POLICY IF EXISTS "Allow delete notifications" ON public.admin_notifications;
+
+CREATE POLICY "Allow authenticated read notifications"
+  ON public.admin_notifications FOR SELECT TO anon, authenticated USING (true);
+
+CREATE POLICY "Allow insert notifications"
+  ON public.admin_notifications FOR INSERT TO anon, authenticated WITH CHECK (true);
+
+CREATE POLICY "Allow update notifications"
+  ON public.admin_notifications FOR UPDATE TO anon, authenticated USING (true) WITH CHECK (true);
+
+CREATE POLICY "Allow delete notifications"
+  ON public.admin_notifications FOR DELETE TO anon, authenticated USING (true);
+
+-- Enable Realtime publication
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables 
+    WHERE pubname = 'supabase_realtime' 
+      AND schemaname = 'public' 
+      AND tablename = 'admin_notifications'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.admin_notifications;
+  END IF;
+EXCEPTION
+  WHEN OTHERS THEN
+    NULL;
+END $$;
+
+-- ==============================================================================
 -- 13. GRANT PERMISSIONS & RELOAD SCHEMA CACHE
 -- ==============================================================================
 GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated, service_role;
