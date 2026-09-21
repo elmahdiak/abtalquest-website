@@ -256,6 +256,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
   // Orders filters
   const [orderSearch, setOrderSearch] = useState<string>('');
   const [orderStatusFilter, setOrderStatusFilter] = useState<string>('all');
+  const [orderPaymentFilter, setOrderPaymentFilter] = useState<'all' | 'payzone' | 'cod'>('all');
   const [selectedOrder, setSelectedOrder] = useState<AdminOrder | null>(null);
   const [syncingOrders, setSyncingOrders] = useState<boolean>(false);
   const [syncFeedback, setSyncFeedback] = useState<string | null>(null);
@@ -1244,7 +1245,10 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
     setStoredWhatsAppPosition(newPos);
   };
 
-  // Filtered orders
+  // Filtered orders & payment method counts
+  const payzoneOrdersCount = orders.filter((o) => o.paymentMethod === 'payzone').length;
+  const codOrdersCount = orders.filter((o) => o.paymentMethod === 'cod' || !o.paymentMethod).length;
+
   const filteredOrders = orders.filter((o) => {
     const orderId = String(o.id || o.orderId || '').toLowerCase();
     const customerName = String(o.customerName || '').toLowerCase();
@@ -1258,7 +1262,13 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
       customerEmail.includes(search);
 
     const matchesStatus = orderStatusFilter === 'all' || o.status === orderStatusFilter;
-    return matchesSearch && matchesStatus;
+
+    const matchesPayment =
+      orderPaymentFilter === 'all' ||
+      (orderPaymentFilter === 'payzone' && o.paymentMethod === 'payzone') ||
+      (orderPaymentFilter === 'cod' && (o.paymentMethod === 'cod' || !o.paymentMethod));
+
+    return matchesSearch && matchesStatus && matchesPayment;
   });
 
   // Filtered messages
@@ -2055,7 +2065,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
                   <div>
                     <div className="flex items-center gap-3">
                       <h2 className="font-headline text-2xl font-black text-slate-900">
-                        Customer Orders ({orders.length})
+                        Customer Orders ({filteredOrders.length}{filteredOrders.length !== orders.length ? ` of ${orders.length}` : ''})
                       </h2>
                       {dbHealth?.ordersTableExists ? (
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
@@ -2158,34 +2168,112 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
                   </div>
                 )}
 
-                {/* Filter & Search Bar */}
-                <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row gap-4 justify-between">
-                  <div className="relative flex-1 max-w-md">
-                    <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="text"
-                      value={orderSearch}
-                      onChange={(e) => setOrderSearch(e.target.value)}
-                      placeholder="Search by Order ID, customer name, email..."
-                      className="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-200 text-xs font-body focus:outline-none focus:ring-2 focus:ring-[#016ba5]"
-                    />
+                {/* Filter & Search Bar with Payment Method Separation */}
+                <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3.5">
+                  <div className="flex flex-col lg:flex-row gap-3 justify-between items-stretch lg:items-center">
+                    {/* Search Input */}
+                    <div className="relative flex-1 max-w-md">
+                      <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="text"
+                        value={orderSearch}
+                        onChange={(e) => setOrderSearch(e.target.value)}
+                        placeholder="Search Order ID, customer, email..."
+                        className="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-200 text-xs font-body focus:outline-none focus:ring-2 focus:ring-[#016ba5]"
+                      />
+                    </div>
+
+                    {/* Payment Method Separation Quick-Filter Tabs */}
+                    <div className="flex items-center gap-1 p-1 bg-slate-100/90 rounded-xl border border-slate-200/80 overflow-x-auto">
+                      <button
+                        type="button"
+                        onClick={() => setOrderPaymentFilter('all')}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-headline font-bold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
+                          orderPaymentFilter === 'all'
+                            ? 'bg-white text-slate-900 shadow-xs'
+                            : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+                        }`}
+                      >
+                        <span>All Payments</span>
+                        <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${
+                          orderPaymentFilter === 'all' ? 'bg-slate-900 text-white' : 'bg-slate-200 text-slate-700'
+                        }`}>
+                          {orders.length}
+                        </span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setOrderPaymentFilter('payzone')}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-headline font-bold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
+                          orderPaymentFilter === 'payzone'
+                            ? 'bg-purple-600 text-white shadow-xs'
+                            : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+                        }`}
+                      >
+                        <CreditCard className="w-3.5 h-3.5" />
+                        <span>Credit Card (Payzone)</span>
+                        <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${
+                          orderPaymentFilter === 'payzone' ? 'bg-white/20 text-white' : 'bg-purple-100 text-purple-700 font-bold'
+                        }`}>
+                          {payzoneOrdersCount}
+                        </span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setOrderPaymentFilter('cod')}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-headline font-bold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
+                          orderPaymentFilter === 'cod'
+                            ? 'bg-amber-600 text-white shadow-xs'
+                            : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+                        }`}
+                      >
+                        <Banknote className="w-3.5 h-3.5" />
+                        <span>Cash on Delivery (COD)</span>
+                        <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${
+                          orderPaymentFilter === 'cod' ? 'bg-white/20 text-white' : 'bg-amber-100 text-amber-800 font-bold'
+                        }`}>
+                          {codOrdersCount}
+                        </span>
+                      </button>
+                    </div>
                   </div>
 
                   {/* Status Filters */}
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    {['all', 'pending_cod', 'confirmed', 'processing', 'shipped', 'delivered'].map((status) => (
-                      <button
-                        key={status}
-                        onClick={() => setOrderStatusFilter(status)}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-headline font-bold capitalize transition-colors ${
-                          orderStatusFilter === status
-                            ? 'bg-[#016ba5] text-white'
-                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                        }`}
-                      >
-                        {status === 'pending_cod' ? 'Pending COD' : status}
-                      </button>
-                    ))}
+                  <div className="flex flex-wrap items-center gap-1.5 pt-2.5 border-t border-slate-100">
+                    <span className="text-[11px] font-headline font-bold uppercase tracking-wider text-slate-400 mr-1.5">
+                      Status:
+                    </span>
+                    {['all', 'pending_cod', 'confirmed', 'processing', 'shipped', 'delivered'].map((status) => {
+                      const countForStatus = orders.filter((o) => {
+                        const matchesPayment =
+                          orderPaymentFilter === 'all' ||
+                          (orderPaymentFilter === 'payzone' && o.paymentMethod === 'payzone') ||
+                          (orderPaymentFilter === 'cod' && (o.paymentMethod === 'cod' || !o.paymentMethod));
+                        return matchesPayment && (status === 'all' || o.status === status);
+                      }).length;
+
+                      return (
+                        <button
+                          key={status}
+                          type="button"
+                          onClick={() => setOrderStatusFilter(status)}
+                          className={`px-3 py-1 rounded-lg text-xs font-headline font-bold capitalize transition-colors flex items-center gap-1.5 cursor-pointer ${
+                            orderStatusFilter === status
+                              ? 'bg-[#016ba5] text-white shadow-xs'
+                              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                          }`}
+                        >
+                          <span>{status === 'pending_cod' ? 'Pending COD' : status}</span>
+                          <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${
+                            orderStatusFilter === status ? 'bg-white/20 text-white' : 'bg-slate-200/80 text-slate-600'
+                          }`}>
+                            {countForStatus}
+                          </span>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
 

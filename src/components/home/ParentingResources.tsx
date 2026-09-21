@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   BookOpen, 
   Clock, 
   ArrowRight, 
+  ArrowLeft,
   Calendar, 
   BookmarkCheck,
   Compass,
@@ -12,7 +13,8 @@ import {
   Sparkles,
   Loader2,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  Eye
 } from 'lucide-react';
 import Badge from '../common/Badge';
 import Button from '../common/Button';
@@ -35,6 +37,106 @@ export const ParentingResources: React.FC = () => {
   const [newsletterEmail, setNewsletterEmail] = useState<string>('');
   const [newsletterSubmitting, setNewsletterSubmitting] = useState<boolean>(false);
   const [newsletterFeedback, setNewsletterFeedback] = useState<{ type: 'success' | 'duplicate' | 'error'; message: string } | null>(null);
+
+  // References for full-page view container and landing page scroll restoration
+  const scrollPosRef = useRef<number>(0);
+  const fullPageContainerRef = useRef<HTMLDivElement>(null);
+
+  // 1. Lock background body scrolling when full-page article view is active
+  useEffect(() => {
+    if (selectedBlog) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [selectedBlog]);
+
+  // 2. Browser history popstate handler for back/forward navigation
+  useEffect(() => {
+    const handlePopState = (event: PopStateEvent) => {
+      const hash = window.location.hash;
+      if (!hash.startsWith('#article-') && !hash.startsWith('#blog-')) {
+        // User navigated back away from article view
+        if (selectedBlog) {
+          setSelectedBlog(null);
+          const targetScroll = event.state?.scrollY ?? scrollPosRef.current;
+          requestAnimationFrame(() => {
+            window.scrollTo({ top: targetScroll, behavior: 'instant' });
+          });
+        }
+      } else {
+        // User navigated forward to an article
+        const rawSlug = hash.replace(/^#(article|blog)-/, '');
+        const found = blogs.find((b) => b.slug === rawSlug || b.id === rawSlug);
+        if (found) {
+          scrollPosRef.current = window.pageYOffset || document.documentElement.scrollTop;
+          setSelectedBlog(found);
+          if (fullPageContainerRef.current) {
+            fullPageContainerRef.current.scrollTop = 0;
+          }
+        }
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [selectedBlog, blogs]);
+
+  const handleOpenArticle = (blog: BlogPost) => {
+    // Save current landing page scroll position
+    const currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+    scrollPosRef.current = currentScroll;
+
+    // Push history state with article hash and scroll position
+    const slug = blog.slug || blog.id;
+    const articleHash = `#article-${slug}`;
+    if (window.location.hash !== articleHash) {
+      window.history.pushState(
+        { abtalquest_article_id: blog.id, scrollY: currentScroll },
+        '',
+        articleHash
+      );
+    }
+
+    setSelectedBlog(blog);
+    void incrementBlogViews(blog.id);
+
+    // Scroll to top of full-page container
+    if (fullPageContainerRef.current) {
+      fullPageContainerRef.current.scrollTop = 0;
+    }
+  };
+
+  const handleCloseArticle = () => {
+    if (window.location.hash.startsWith('#article-') || window.location.hash.startsWith('#blog-')) {
+      // Trigger history.back() which fires popstate and restores exact landing page scroll position
+      window.history.back();
+    } else {
+      setSelectedBlog(null);
+      const targetScroll = scrollPosRef.current;
+      requestAnimationFrame(() => {
+        window.scrollTo({ top: targetScroll, behavior: 'instant' });
+      });
+    }
+  };
+
+  const handleShareArticle = async (blog: BlogPost) => {
+    const slug = blog.slug || blog.id;
+    const url = `${window.location.origin}${window.location.pathname}#article-${slug}`;
+    if (navigator.clipboard) {
+      try {
+        await navigator.clipboard.writeText(`${blog.title} - Read on AbtalQuest: ${url}`);
+        setCopiedLink(true);
+        setTimeout(() => setCopiedLink(false), 3000);
+      } catch {
+        // Fallback silently
+      }
+    }
+  };
 
   const handleParentingSubscribe = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -93,6 +195,14 @@ export const ParentingResources: React.FC = () => {
         if (isMounted) {
           setBlogs(data);
           setLoading(false);
+          const hash = window.location.hash;
+          if (hash.startsWith('#article-') || hash.startsWith('#blog-')) {
+            const rawSlug = hash.replace(/^#(article|blog)-/, '');
+            const found = data.find((b) => b.slug === rawSlug || b.id === rawSlug);
+            if (found) {
+              setSelectedBlog(found);
+            }
+          }
         }
       } catch (err) {
         console.warn('Failed to load published blogs:', err);
@@ -114,24 +224,6 @@ export const ParentingResources: React.FC = () => {
       unsubscribe();
     };
   }, []);
-
-  const handleOpenArticle = (blog: BlogPost) => {
-    setSelectedBlog(blog);
-    void incrementBlogViews(blog.id);
-  };
-
-  const handleShareArticle = async (blog: BlogPost) => {
-    const url = `${window.location.origin}${window.location.pathname}#parenting-resources`;
-    if (navigator.clipboard) {
-      try {
-        await navigator.clipboard.writeText(`${blog.title} - Read on AbtalQuest: ${url}`);
-        setCopiedLink(true);
-        setTimeout(() => setCopiedLink(false), 3000);
-      } catch {
-        // Fallback silently
-      }
-    }
-  };
 
   const getCategoryVariant = (category: string): 'primary' | 'warning' | 'success' | 'gamification' => {
     const cat = category.toLowerCase();
@@ -386,29 +478,130 @@ export const ParentingResources: React.FC = () => {
       </div>
 
       {/* ========================================================
-          FULL ARTICLE READING MODAL OVERLAY
+          DEDICATED FULL-PAGE ARTICLE READING VIEW
          ======================================================== */}
       {selectedBlog && (
         <div 
-          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-950/70 backdrop-blur-md animate-fadeIn"
-          onClick={() => setSelectedBlog(null)}
+          ref={fullPageContainerRef}
+          role="dialog"
+          aria-modal="true"
+          aria-label={selectedBlog.title}
+          className="fixed inset-0 z-50 overflow-y-auto bg-slate-50 dark:bg-[#071727] text-slate-800 dark:text-slate-100 flex flex-col animate-fadeIn"
         >
-          <div 
-            className="relative w-full max-w-3xl bg-white dark:bg-[#0c2238] rounded-3xl p-6 sm:p-10 shadow-2xl border border-slate-100 dark:border-slate-800 max-h-[92vh] overflow-y-auto text-left"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Close Button */}
-            <button
-              type="button"
-              onClick={() => setSelectedBlog(null)}
-              className="absolute top-5 right-5 p-2 rounded-full text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer transition-colors"
-            >
-              <X className="w-5 h-5" />
-            </button>
+          {/* Sticky Editorial Top Bar */}
+          <header className="sticky top-0 z-40 bg-white/95 dark:bg-[#0c2238]/95 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 shrink-0">
+            <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+              {/* Back to Resources Button */}
+              <button
+                type="button"
+                onClick={handleCloseArticle}
+                className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800/90 hover:bg-[#016ba5] hover:text-white dark:hover:bg-[#016ba5] font-headline font-bold text-xs text-slate-700 dark:text-slate-200 transition-all cursor-pointer shadow-xs group"
+              >
+                <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" />
+                <span>Back to Articles</span>
+              </button>
 
-            {/* Article Hero Banner (if image available) */}
+              {/* Breadcrumb / Category indicator */}
+              <div className="hidden md:flex items-center gap-2 text-xs font-headline">
+                <span className="text-slate-400">Parenting Resources</span>
+                <span className="text-slate-300 dark:text-slate-600">•</span>
+                <Badge variant={getCategoryVariant(selectedBlog.category)} size="sm">
+                  {selectedBlog.category}
+                </Badge>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleShareArticle(selectedBlog)}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 font-headline font-bold text-xs text-slate-700 dark:text-slate-200 transition-colors cursor-pointer"
+                  title="Share article link"
+                >
+                  {copiedLink ? <Check className="w-4 h-4 text-emerald-500" /> : <Share2 className="w-4 h-4" />}
+                  <span className="hidden sm:inline">{copiedLink ? 'Copied!' : 'Share'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleCloseArticle}
+                  aria-label="Close article"
+                  className="p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+          </header>
+
+          {/* Full Page Editorial Container */}
+          <main className="flex-1 w-full max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+            {/* Meta Tags Row */}
+            <div className="flex flex-wrap items-center gap-2.5 mb-5">
+              <Badge variant={getCategoryVariant(selectedBlog.category)} size="md">
+                {selectedBlog.category}
+              </Badge>
+              <span className="font-body text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800/90 px-3 py-1 rounded-full">
+                <Clock className="w-3.5 h-3.5 text-[#fa8221]" />
+                {selectedBlog.readTime || '5 min read'}
+              </span>
+              <span className="font-body text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800/90 px-3 py-1 rounded-full">
+                <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                {new Date(selectedBlog.createdAt).toLocaleDateString(undefined, {
+                  month: 'long',
+                  day: 'numeric',
+                  year: 'numeric',
+                })}
+              </span>
+              {selectedBlog.viewsCount !== undefined && selectedBlog.viewsCount > 0 && (
+                <span className="font-body text-xs text-slate-400 flex items-center gap-1 bg-slate-100 dark:bg-slate-800/90 px-3 py-1 rounded-full">
+                  <Eye className="w-3.5 h-3.5 text-purple-400" />
+                  {selectedBlog.viewsCount.toLocaleString()} reads
+                </span>
+              )}
+            </div>
+
+            {/* Article Headline */}
+            <h1 className="font-headline text-3xl sm:text-4xl md:text-5xl font-black text-slate-900 dark:text-white leading-[1.15] tracking-tight mb-8">
+              {selectedBlog.title}
+            </h1>
+
+            {/* Author Profile Card */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl bg-white dark:bg-[#0c2238] border border-slate-200/80 dark:border-slate-800 shadow-sm mb-8">
+              <div className="flex items-center gap-3.5">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#016ba5] to-[#fa8221] text-white flex items-center justify-center font-headline font-black text-lg shadow-sm shrink-0">
+                  {selectedBlog.authorName ? selectedBlog.authorName.charAt(0) : 'A'}
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-headline font-bold text-sm sm:text-base text-slate-900 dark:text-white">
+                      {selectedBlog.authorName}
+                    </span>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-headline font-bold bg-blue-50 dark:bg-blue-900/40 text-[#016ba5] dark:text-blue-300">
+                      Author
+                    </span>
+                  </div>
+                  <span className="font-body text-xs text-slate-500 dark:text-slate-400 block mt-0.5">
+                    {selectedBlog.authorRole || 'Child Development & Digital Safety Specialist'}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleShareArticle(selectedBlog)}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-xs font-headline font-bold text-slate-600 dark:text-slate-300 hover:text-[#016ba5] transition-colors cursor-pointer"
+                >
+                  {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Share2 className="w-3.5 h-3.5" />}
+                  <span>{copiedLink ? 'Link Copied!' : 'Share Article'}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Featured Image */}
             {selectedBlog.imageUrl && (
-              <div className="mb-6 rounded-2xl overflow-hidden max-h-72 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm">
+              <div className="mb-10 rounded-3xl overflow-hidden max-h-[480px] bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-md">
                 <img
                   src={selectedBlog.imageUrl}
                   alt={selectedBlog.title}
@@ -417,78 +610,33 @@ export const ParentingResources: React.FC = () => {
               </div>
             )}
 
-            {/* Meta Tags Row */}
-            <div className="flex flex-wrap items-center gap-2 mb-4">
-              <Badge variant={getCategoryVariant(selectedBlog.category)} size="sm">
-                {selectedBlog.category}
-              </Badge>
-              <span className="font-body text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1 bg-slate-100 dark:bg-slate-800/80 px-2.5 py-0.5 rounded-full">
-                <Clock className="w-3.5 h-3.5 text-[#fa8221]" />
-                {selectedBlog.readTime || '5 min read'}
-              </span>
-              <span className="font-body text-xs text-slate-400 flex items-center gap-1">
-                <Calendar className="w-3.5 h-3.5" />
-                {new Date(selectedBlog.createdAt).toLocaleDateString(undefined, {
-                  month: 'long',
-                  day: 'numeric',
-                  year: 'numeric',
-                })}
-              </span>
-            </div>
-
-            {/* Article Title */}
-            <h2 className="font-headline text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 dark:text-white mb-4 leading-tight">
-              {selectedBlog.title}
-            </h2>
-
-            {/* Author Box */}
-            <div className="flex items-center justify-between gap-4 p-4 rounded-2xl bg-slate-50 dark:bg-[#071727] border border-slate-200/80 dark:border-slate-800 mb-8">
-              <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-[#016ba5] to-[#fa8221] text-white flex items-center justify-center font-headline font-black text-base shadow-sm">
-                  {selectedBlog.authorName.charAt(0)}
-                </div>
-                <div>
-                  <span className="font-headline font-bold text-sm text-slate-900 dark:text-white block">
-                    {selectedBlog.authorName}
-                  </span>
-                  <span className="font-body text-xs text-slate-500 dark:text-slate-400 block">
-                    {selectedBlog.authorRole || 'Child Development Specialist'}
-                  </span>
-                </div>
+            {/* Styled Pull-Quote / Key Insight */}
+            {selectedBlog.excerpt && (
+              <div className="p-6 sm:p-7 rounded-2xl bg-gradient-to-r from-[#016ba5]/10 via-[#016ba5]/5 to-transparent dark:from-[#016ba5]/20 border-l-4 border-[#016ba5] mb-10 shadow-xs">
+                <span className="font-headline font-bold text-xs uppercase tracking-wider text-[#016ba5] block mb-2">
+                  Executive Summary & Practical Guidance
+                </span>
+                <p className="font-body text-base sm:text-lg text-slate-800 dark:text-slate-100 italic leading-relaxed">
+                  &ldquo;{selectedBlog.excerpt}&rdquo;
+                </p>
               </div>
+            )}
 
-              <button
-                type="button"
-                onClick={() => handleShareArticle(selectedBlog)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-headline font-bold text-slate-600 dark:text-slate-300 hover:text-[#016ba5] transition-colors cursor-pointer"
-              >
-                {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Share2 className="w-3.5 h-3.5" />}
-                <span>{copiedLink ? 'Link Copied!' : 'Share'}</span>
-              </button>
-            </div>
-
-            {/* Excerpt Summary Box */}
-            <div className="p-4 rounded-2xl bg-[#016ba5]/5 dark:bg-[#016ba5]/15 border-l-4 border-[#016ba5] mb-8">
-              <p className="font-body text-xs sm:text-sm text-slate-700 dark:text-slate-200 italic leading-relaxed">
-                "{selectedBlog.excerpt}"
-              </p>
-            </div>
-
-            {/* Formatted Article Body */}
-            <div className="font-body text-sm sm:text-base text-slate-700 dark:text-slate-200 leading-relaxed space-y-5 whitespace-pre-wrap">
+            {/* Full Formatted Article Content Body */}
+            <article className="prose prose-slate dark:prose-invert max-w-none font-body text-base sm:text-lg leading-[1.8] text-slate-700 dark:text-slate-200 space-y-6 whitespace-pre-wrap">
               {selectedBlog.content}
-            </div>
+            </article>
 
             {/* Tags Pills */}
             {selectedBlog.tags && selectedBlog.tags.length > 0 && (
-              <div className="mt-8 pt-6 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center gap-2">
-                <span className="text-xs font-headline font-bold text-slate-400 uppercase tracking-wider">
-                  Tags:
+              <div className="mt-12 pt-8 border-t border-slate-200 dark:border-slate-800 flex flex-wrap items-center gap-2">
+                <span className="text-xs font-headline font-bold text-slate-400 uppercase tracking-wider mr-2">
+                  Topic Tags:
                 </span>
                 {selectedBlog.tags.map((tag, idx) => (
                   <span
                     key={idx}
-                    className="px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-body text-xs font-medium"
+                    className="px-3.5 py-1.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-body text-xs font-semibold hover:bg-slate-200 transition-colors"
                   >
                     #{tag}
                   </span>
@@ -496,20 +644,28 @@ export const ParentingResources: React.FC = () => {
               </div>
             )}
 
-            {/* Modal Footer */}
-            <div className="flex items-center justify-between gap-4 mt-8 pt-6 border-t border-slate-100 dark:border-slate-800">
-              <span className="font-body text-xs text-slate-400">
-                AbtalQuest Educational Publishing • Values-Driven Parenting
-              </span>
+            {/* Editorial Footer & Return Button */}
+            <div className="mt-12 pt-8 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h4 className="font-headline font-bold text-sm text-slate-900 dark:text-white">
+                  AbtalQuest Educational Publishing
+                </h4>
+                <p className="font-body text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  Values-driven resources designed to help Arab families raise confident, emotionally grounded digital explorers.
+                </p>
+              </div>
+
               <Button
                 variant="primary"
-                size="sm"
-                onClick={() => setSelectedBlog(null)}
+                size="md"
+                onClick={handleCloseArticle}
+                icon={<ArrowLeft className="w-4 h-4" />}
+                iconPosition="left"
               >
-                Done Reading
+                Return to All Resources
               </Button>
             </div>
-          </div>
+          </main>
         </div>
       )}
     </section>

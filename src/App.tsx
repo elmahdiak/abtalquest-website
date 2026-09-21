@@ -73,7 +73,14 @@ export function App() {
       } else if (hash === '#contact') {
         setContactModalOpen(true);
         setCurrentView('home');
-      } else if (hash === '' || hash === '#universe' || hash === '#home') {
+      } else if (
+        hash === '' || 
+        hash === '#universe' || 
+        hash === '#home' || 
+        hash.startsWith('#article-') || 
+        hash.startsWith('#blog-') || 
+        hash.startsWith('#parenting')
+      ) {
         setCurrentView('home');
       }
     };
