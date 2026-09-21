@@ -24,6 +24,8 @@ import {
   KeyRound,
   CheckCircle2,
   ArrowLeft,
+  ChevronLeft,
+  ChevronRight,
   RefreshCw,
   SlidersHorizontal,
   Database,
@@ -178,6 +180,38 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
   const { theme, toggleTheme } = useTheme();
   const [activeTab, setActiveTab] = useState<'orders' | 'products' | 'categories' | 'coupons' | 'blogs' | 'subscribers' | 'messages' | 'analytics' | 'team' | 'settings'>('orders');
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    try {
+      return localStorage.getItem('abtalquest_admin_sidebar_collapsed') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const toggleSidebarCollapse = () => {
+    setIsSidebarCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem('abtalquest_admin_sidebar_collapsed', String(next));
+      } catch {
+        // Ignore storage errors
+      }
+      return next;
+    });
+  };
+
+  // Keyboard shortcut (Ctrl+B or Cmd+B) to toggle sidebar collapse on desktop
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b') {
+        e.preventDefault();
+        toggleSidebarCollapse();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
   const [whatsappPosition, setWhatsappPosition] = useState<WhatsAppPosition>(getStoredWhatsAppPosition);
   const [orders, setOrders] = useState<AdminOrder[]>([]);
   const [messages, setMessages] = useState<ContactMessage[]>([]);
@@ -1958,16 +1992,18 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
 
       {/* Left Vertical Sidebar (Sticky / Fixed h-screen) */}
       <aside
-        className={`fixed md:sticky top-0 left-0 z-50 h-screen w-64 lg:w-72 bg-[#0A2540] border-r border-slate-800/80 flex flex-col justify-between shrink-0 transition-transform duration-300 ease-in-out ${
+        className={`fixed md:sticky top-0 left-0 z-50 h-screen bg-[#0A2540] border-r border-slate-800/80 flex flex-col justify-between shrink-0 transition-all duration-300 ease-in-out ${
           sidebarOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full md:translate-x-0'
-        }`}
+        } ${
+          isSidebarCollapsed ? 'md:w-20' : 'md:w-64 lg:w-72'
+        } w-64`}
       >
         {/* Brand Header at top of Sidebar */}
-        <div className="p-4 border-b border-slate-800/80 flex items-center justify-between shrink-0">
+        <div className={`p-4 border-b border-slate-800/80 flex items-center shrink-0 ${isSidebarCollapsed ? 'justify-between md:justify-center md:flex-col md:gap-2' : 'justify-between'}`}>
           <AbtalQuestLogo 
             variant="dark" 
             size="sm" 
-            showText={true} 
+            showText={!isSidebarCollapsed} 
             clickable={true} 
             href="#universe" 
             onClick={handleExitAdmin}
@@ -1981,33 +2017,57 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
           >
             <X className="w-5 h-5" />
           </button>
+
+          {/* Desktop Sidebar Collapse / Expand Toggle Button inside sidebar header */}
+          <button
+            type="button"
+            onClick={toggleSidebarCollapse}
+            aria-label={isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            title={isSidebarCollapsed ? 'Expand sidebar (Ctrl+B)' : 'Collapse sidebar (Ctrl+B)'}
+            className={`hidden md:flex items-center justify-center p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/80 transition-all cursor-pointer ${
+              isSidebarCollapsed ? 'mt-1 w-8 h-8' : ''
+            }`}
+          >
+            {isSidebarCollapsed ? (
+              <ChevronRight className="w-4 h-4 text-[#fa8221]" />
+            ) : (
+              <ChevronLeft className="w-4 h-4" />
+            )}
+          </button>
         </div>
 
         {/* Scrollable Navigation Links Grouped Vertically */}
-        <div className="flex-1 p-3.5 space-y-5 overflow-y-auto">
+        <div className={`flex-1 p-3.5 space-y-5 overflow-y-auto ${isSidebarCollapsed ? 'md:p-2 md:space-y-4' : ''}`}>
           {/* Section 1: Commerce & Inventory */}
           <div>
-            <div className="px-3 pb-2 text-[10px] font-headline font-black uppercase tracking-wider text-slate-400/80 flex items-center justify-between">
-              <span>Commerce & Inventory</span>
-            </div>
+            {!isSidebarCollapsed ? (
+              <div className="px-3 pb-2 text-[10px] font-headline font-black uppercase tracking-wider text-slate-400/80 flex items-center justify-between">
+                <span>Commerce & Inventory</span>
+              </div>
+            ) : (
+              <div className="hidden md:block border-t border-slate-800/80 my-2 mx-1" />
+            )}
               <div className="space-y-1">
                 <button
                   type="button"
+                  title={isSidebarCollapsed ? 'Orders' : undefined}
                   onClick={() => {
                     setActiveTab('orders');
                     setSidebarOpen(false);
                   }}
-                  className={`w-full px-3 py-2.5 rounded-xl font-headline text-xs font-bold transition-all flex items-center justify-between group cursor-pointer ${
+                  className={`w-full px-3 py-2.5 rounded-xl font-headline text-xs font-bold transition-all flex items-center group cursor-pointer relative ${
+                    isSidebarCollapsed ? 'md:justify-center md:px-0' : 'justify-between'
+                  } ${
                     activeTab === 'orders'
                       ? 'bg-[#fa8221] text-white shadow-sm'
                       : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
                   }`}
                 >
-                  <div className="flex items-center gap-2.5">
-                    <Package className={`w-4 h-4 ${activeTab === 'orders' ? 'text-white' : 'text-slate-400 group-hover:text-slate-200'}`} />
-                    <span>Orders</span>
+                  <div className={`flex items-center ${isSidebarCollapsed ? 'md:justify-center' : 'gap-2.5'}`}>
+                    <Package className={`w-4 h-4 shrink-0 ${activeTab === 'orders' ? 'text-white' : 'text-slate-400 group-hover:text-slate-200'}`} />
+                    <span className={isSidebarCollapsed ? 'md:hidden' : 'inline'}>Orders</span>
                   </div>
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${isSidebarCollapsed ? 'md:hidden' : 'inline-block'} ${
                     activeTab === 'orders' ? 'bg-white/20 text-white' : 'bg-slate-800 text-slate-300 group-hover:bg-slate-700'
                   }`}>
                     {orders.length}
@@ -2016,21 +2076,24 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
 
                 <button
                   type="button"
+                  title={isSidebarCollapsed ? 'Products Inventory' : undefined}
                   onClick={() => {
                     setActiveTab('products');
                     setSidebarOpen(false);
                   }}
-                  className={`w-full px-3 py-2.5 rounded-xl font-headline text-xs font-bold transition-all flex items-center justify-between group cursor-pointer ${
+                  className={`w-full px-3 py-2.5 rounded-xl font-headline text-xs font-bold transition-all flex items-center group cursor-pointer relative ${
+                    isSidebarCollapsed ? 'md:justify-center md:px-0' : 'justify-between'
+                  } ${
                     activeTab === 'products'
                       ? 'bg-[#fa8221] text-white shadow-sm'
                       : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
                   }`}
                 >
-                  <div className="flex items-center gap-2.5">
-                    <Layers className={`w-4 h-4 ${activeTab === 'products' ? 'text-white' : 'text-slate-400 group-hover:text-slate-200'}`} />
-                    <span>Products Inventory</span>
+                  <div className={`flex items-center ${isSidebarCollapsed ? 'md:justify-center' : 'gap-2.5'}`}>
+                    <Layers className={`w-4 h-4 shrink-0 ${activeTab === 'products' ? 'text-white' : 'text-slate-400 group-hover:text-slate-200'}`} />
+                    <span className={isSidebarCollapsed ? 'md:hidden' : 'inline'}>Products Inventory</span>
                   </div>
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${isSidebarCollapsed ? 'md:hidden' : 'inline-block'} ${
                     activeTab === 'products' ? 'bg-white/20 text-white' : 'bg-slate-800 text-slate-300 group-hover:bg-slate-700'
                   }`}>
                     {productsList.length}
@@ -2039,21 +2102,24 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
 
                 <button
                   type="button"
+                  title={isSidebarCollapsed ? 'Categories & Planets' : undefined}
                   onClick={() => {
                     setActiveTab('categories');
                     setSidebarOpen(false);
                   }}
-                  className={`w-full px-3 py-2.5 rounded-xl font-headline text-xs font-bold transition-all flex items-center justify-between group cursor-pointer ${
+                  className={`w-full px-3 py-2.5 rounded-xl font-headline text-xs font-bold transition-all flex items-center group cursor-pointer relative ${
+                    isSidebarCollapsed ? 'md:justify-center md:px-0' : 'justify-between'
+                  } ${
                     activeTab === 'categories'
                       ? 'bg-[#fa8221] text-white shadow-sm'
                       : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
                   }`}
                 >
-                  <div className="flex items-center gap-2.5">
-                    <Tag className={`w-4 h-4 ${activeTab === 'categories' ? 'text-white' : 'text-slate-400 group-hover:text-slate-200'}`} />
-                    <span>Categories & Planets</span>
+                  <div className={`flex items-center ${isSidebarCollapsed ? 'md:justify-center' : 'gap-2.5'}`}>
+                    <Tag className={`w-4 h-4 shrink-0 ${activeTab === 'categories' ? 'text-white' : 'text-slate-400 group-hover:text-slate-200'}`} />
+                    <span className={isSidebarCollapsed ? 'md:hidden' : 'inline'}>Categories & Planets</span>
                   </div>
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${isSidebarCollapsed ? 'md:hidden' : 'inline-block'} ${
                     activeTab === 'categories' ? 'bg-white/20 text-white' : 'bg-slate-800 text-slate-300 group-hover:bg-slate-700'
                   }`}>
                     {categoriesList.length}
@@ -2062,21 +2128,24 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
 
                 <button
                   type="button"
+                  title={isSidebarCollapsed ? 'Coupons & Codes Promo' : undefined}
                   onClick={() => {
                     setActiveTab('coupons');
                     setSidebarOpen(false);
                   }}
-                  className={`w-full px-3 py-2.5 rounded-xl font-headline text-xs font-bold transition-all flex items-center justify-between group cursor-pointer ${
+                  className={`w-full px-3 py-2.5 rounded-xl font-headline text-xs font-bold transition-all flex items-center group cursor-pointer relative ${
+                    isSidebarCollapsed ? 'md:justify-center md:px-0' : 'justify-between'
+                  } ${
                     activeTab === 'coupons'
                       ? 'bg-[#fa8221] text-white shadow-sm'
                       : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
                   }`}
                 >
-                  <div className="flex items-center gap-2.5">
-                    <Ticket className={`w-4 h-4 ${activeTab === 'coupons' ? 'text-white' : 'text-slate-400 group-hover:text-slate-200'}`} />
-                    <span>Coupons & Codes Promo</span>
+                  <div className={`flex items-center ${isSidebarCollapsed ? 'md:justify-center' : 'gap-2.5'}`}>
+                    <Ticket className={`w-4 h-4 shrink-0 ${activeTab === 'coupons' ? 'text-white' : 'text-slate-400 group-hover:text-slate-200'}`} />
+                    <span className={isSidebarCollapsed ? 'md:hidden' : 'inline'}>Coupons & Codes Promo</span>
                   </div>
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${isSidebarCollapsed ? 'md:hidden' : 'inline-block'} ${
                     activeTab === 'coupons' ? 'bg-white/20 text-white' : 'bg-slate-800 text-slate-300 group-hover:bg-slate-700'
                   }`}>
                     {couponsList.length}
@@ -2087,27 +2156,34 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
 
             {/* Section 2: Content & Community */}
             <div>
-              <div className="px-3 pb-2 text-[10px] font-headline font-black uppercase tracking-wider text-slate-400/80 flex items-center justify-between">
-                <span>Content & Community</span>
-              </div>
+              {!isSidebarCollapsed ? (
+                <div className="px-3 pb-2 text-[10px] font-headline font-black uppercase tracking-wider text-slate-400/80 flex items-center justify-between">
+                  <span>Content & Community</span>
+                </div>
+              ) : (
+                <div className="hidden md:block border-t border-slate-800/80 my-2 mx-1" />
+              )}
               <div className="space-y-1">
                 <button
                   type="button"
+                  title={isSidebarCollapsed ? 'Blogs & Articles' : undefined}
                   onClick={() => {
                     setActiveTab('blogs');
                     setSidebarOpen(false);
                   }}
-                  className={`w-full px-3 py-2.5 rounded-xl font-headline text-xs font-bold transition-all flex items-center justify-between group cursor-pointer ${
+                  className={`w-full px-3 py-2.5 rounded-xl font-headline text-xs font-bold transition-all flex items-center group cursor-pointer relative ${
+                    isSidebarCollapsed ? 'md:justify-center md:px-0' : 'justify-between'
+                  } ${
                     activeTab === 'blogs'
                       ? 'bg-[#fa8221] text-white shadow-sm'
                       : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
                   }`}
                 >
-                  <div className="flex items-center gap-2.5">
-                    <BookOpen className={`w-4 h-4 ${activeTab === 'blogs' ? 'text-white' : 'text-slate-400 group-hover:text-slate-200'}`} />
-                    <span>Blogs & Articles</span>
+                  <div className={`flex items-center ${isSidebarCollapsed ? 'md:justify-center' : 'gap-2.5'}`}>
+                    <BookOpen className={`w-4 h-4 shrink-0 ${activeTab === 'blogs' ? 'text-white' : 'text-slate-400 group-hover:text-slate-200'}`} />
+                    <span className={isSidebarCollapsed ? 'md:hidden' : 'inline'}>Blogs & Articles</span>
                   </div>
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${isSidebarCollapsed ? 'md:hidden' : 'inline-block'} ${
                     activeTab === 'blogs' ? 'bg-white/20 text-white' : 'bg-slate-800 text-slate-300 group-hover:bg-slate-700'
                   }`}>
                     {blogsList.length}
@@ -2116,22 +2192,25 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
 
                 <button
                   type="button"
+                  title={isSidebarCollapsed ? 'Explorer Club' : undefined}
                   onClick={() => {
                     setActiveTab('subscribers');
                     loadSubscribers();
                     setSidebarOpen(false);
                   }}
-                  className={`w-full px-3 py-2.5 rounded-xl font-headline text-xs font-bold transition-all flex items-center justify-between group cursor-pointer ${
+                  className={`w-full px-3 py-2.5 rounded-xl font-headline text-xs font-bold transition-all flex items-center group cursor-pointer relative ${
+                    isSidebarCollapsed ? 'md:justify-center md:px-0' : 'justify-between'
+                  } ${
                     activeTab === 'subscribers'
                       ? 'bg-[#fa8221] text-white shadow-sm'
                       : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
                   }`}
                 >
-                  <div className="flex items-center gap-2.5">
-                    <Mail className={`w-4 h-4 ${activeTab === 'subscribers' ? 'text-white' : 'text-slate-400 group-hover:text-slate-200'}`} />
-                    <span>Explorer Club</span>
+                  <div className={`flex items-center ${isSidebarCollapsed ? 'md:justify-center' : 'gap-2.5'}`}>
+                    <Mail className={`w-4 h-4 shrink-0 ${activeTab === 'subscribers' ? 'text-white' : 'text-slate-400 group-hover:text-slate-200'}`} />
+                    <span className={isSidebarCollapsed ? 'md:hidden' : 'inline'}>Explorer Club</span>
                   </div>
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${isSidebarCollapsed ? 'md:hidden' : 'inline-block'} ${
                     activeTab === 'subscribers' ? 'bg-white/20 text-white' : 'bg-slate-800 text-slate-300 group-hover:bg-slate-700'
                   }`}>
                     {subscribersList.length}
@@ -2140,26 +2219,34 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
 
                 <button
                   type="button"
+                  title={isSidebarCollapsed ? 'Contact Messages' : undefined}
                   onClick={() => {
                     setActiveTab('messages');
                     setSidebarOpen(false);
                   }}
-                  className={`w-full px-3 py-2.5 rounded-xl font-headline text-xs font-bold transition-all flex items-center justify-between group cursor-pointer ${
+                  className={`w-full px-3 py-2.5 rounded-xl font-headline text-xs font-bold transition-all flex items-center group cursor-pointer relative ${
+                    isSidebarCollapsed ? 'md:justify-center md:px-0' : 'justify-between'
+                  } ${
                     activeTab === 'messages'
                       ? 'bg-[#fa8221] text-white shadow-sm'
                       : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
                   }`}
                 >
-                  <div className="flex items-center gap-2.5">
-                    <MessageSquare className={`w-4 h-4 ${activeTab === 'messages' ? 'text-white' : 'text-slate-400 group-hover:text-slate-200'}`} />
-                    <span>Contact Messages</span>
+                  <div className={`flex items-center ${isSidebarCollapsed ? 'md:justify-center' : 'gap-2.5'}`}>
+                    <MessageSquare className={`w-4 h-4 shrink-0 ${activeTab === 'messages' ? 'text-white' : 'text-slate-400 group-hover:text-slate-200'}`} />
+                    <span className={isSidebarCollapsed ? 'md:hidden' : 'inline'}>Contact Messages</span>
                   </div>
                   {unreadCount > 0 ? (
-                    <span className="px-2 py-0.5 bg-emerald-500 text-white rounded-full text-[10px] font-black animate-pulse shadow-sm">
-                      {unreadCount}
-                    </span>
+                    <>
+                      <span className={`px-2 py-0.5 bg-emerald-500 text-white rounded-full text-[10px] font-black animate-pulse shadow-sm ${isSidebarCollapsed ? 'md:hidden' : 'inline-block'}`}>
+                        {unreadCount}
+                      </span>
+                      {isSidebarCollapsed && (
+                        <span className="hidden md:inline-block w-2 h-2 rounded-full bg-emerald-400 absolute top-1.5 right-1.5 animate-pulse" />
+                      )}
+                    </>
                   ) : (
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${isSidebarCollapsed ? 'md:hidden' : 'inline-block'} ${
                       activeTab === 'messages' ? 'bg-white/20 text-white' : 'bg-slate-800 text-slate-400'
                     }`}>
                       {messages.length}
@@ -2171,47 +2258,57 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
 
             {/* Section 3: Intelligence & System */}
             <div>
-              <div className="px-3 pb-2 text-[10px] font-headline font-black uppercase tracking-wider text-slate-400/80 flex items-center justify-between">
-                <span>Intelligence & System</span>
-              </div>
+              {!isSidebarCollapsed ? (
+                <div className="px-3 pb-2 text-[10px] font-headline font-black uppercase tracking-wider text-slate-400/80 flex items-center justify-between">
+                  <span>Intelligence & System</span>
+                </div>
+              ) : (
+                <div className="hidden md:block border-t border-slate-800/80 my-2 mx-1" />
+              )}
               <div className="space-y-1">
                 <button
                   type="button"
+                  title={isSidebarCollapsed ? 'Key Metrics' : undefined}
                   onClick={() => {
                     setActiveTab('analytics');
                     setSidebarOpen(false);
                   }}
-                  className={`w-full px-3 py-2.5 rounded-xl font-headline text-xs font-bold transition-all flex items-center justify-between group cursor-pointer ${
+                  className={`w-full px-3 py-2.5 rounded-xl font-headline text-xs font-bold transition-all flex items-center group cursor-pointer relative ${
+                    isSidebarCollapsed ? 'md:justify-center md:px-0' : 'justify-between'
+                  } ${
                     activeTab === 'analytics'
                       ? 'bg-[#fa8221] text-white shadow-sm'
                       : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
                   }`}
                 >
-                  <div className="flex items-center gap-2.5">
-                    <BarChart3 className={`w-4 h-4 ${activeTab === 'analytics' ? 'text-white' : 'text-slate-400 group-hover:text-slate-200'}`} />
-                    <span>Key Metrics</span>
+                  <div className={`flex items-center ${isSidebarCollapsed ? 'md:justify-center' : 'gap-2.5'}`}>
+                    <BarChart3 className={`w-4 h-4 shrink-0 ${activeTab === 'analytics' ? 'text-white' : 'text-slate-400 group-hover:text-slate-200'}`} />
+                    <span className={isSidebarCollapsed ? 'md:hidden' : 'inline'}>Key Metrics</span>
                   </div>
                 </button>
 
                 {isSuperAdmin(currentUser) && (
                   <button
                     type="button"
+                    title={isSidebarCollapsed ? 'Admin Team (MASTER)' : undefined}
                     onClick={() => {
                       setActiveTab('team');
                       loadAdmins();
                       setSidebarOpen(false);
                     }}
-                    className={`w-full px-3 py-2.5 rounded-xl font-headline text-xs font-bold transition-all flex items-center justify-between group cursor-pointer ${
+                    className={`w-full px-3 py-2.5 rounded-xl font-headline text-xs font-bold transition-all flex items-center group cursor-pointer relative ${
+                      isSidebarCollapsed ? 'md:justify-center md:px-0' : 'justify-between'
+                    } ${
                       activeTab === 'team'
                         ? 'bg-purple-600 text-white shadow-sm'
                         : 'text-purple-300 hover:text-white hover:bg-purple-900/40'
                     }`}
                   >
-                    <div className="flex items-center gap-2.5">
-                      <Crown className="w-4 h-4 text-amber-300" />
-                      <span>Admin Team</span>
+                    <div className={`flex items-center ${isSidebarCollapsed ? 'md:justify-center' : 'gap-2.5'}`}>
+                      <Crown className="w-4 h-4 shrink-0 text-amber-300" />
+                      <span className={isSidebarCollapsed ? 'md:hidden' : 'inline'}>Admin Team</span>
                     </div>
-                    <span className="px-2 py-0.5 bg-amber-400 text-slate-900 rounded-full text-[9px] font-black">
+                    <span className={`px-2 py-0.5 bg-amber-400 text-slate-900 rounded-full text-[9px] font-black ${isSidebarCollapsed ? 'md:hidden' : 'inline-block'}`}>
                       MASTER
                     </span>
                   </button>
@@ -2219,19 +2316,22 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
 
                 <button
                   type="button"
+                  title={isSidebarCollapsed ? 'Platform Settings' : undefined}
                   onClick={() => {
                     setActiveTab('settings');
                     setSidebarOpen(false);
                   }}
-                  className={`w-full px-3 py-2.5 rounded-xl font-headline text-xs font-bold transition-all flex items-center justify-between group cursor-pointer ${
+                  className={`w-full px-3 py-2.5 rounded-xl font-headline text-xs font-bold transition-all flex items-center group cursor-pointer relative ${
+                    isSidebarCollapsed ? 'md:justify-center md:px-0' : 'justify-between'
+                  } ${
                     activeTab === 'settings'
                       ? 'bg-[#fa8221] text-white shadow-sm'
                       : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
                   }`}
                 >
-                  <div className="flex items-center gap-2.5">
-                    <SlidersHorizontal className={`w-4 h-4 ${activeTab === 'settings' ? 'text-white' : 'text-slate-400 group-hover:text-slate-200'}`} />
-                    <span>Platform Settings</span>
+                  <div className={`flex items-center ${isSidebarCollapsed ? 'md:justify-center' : 'gap-2.5'}`}>
+                    <SlidersHorizontal className={`w-4 h-4 shrink-0 ${activeTab === 'settings' ? 'text-white' : 'text-slate-400 group-hover:text-slate-200'}`} />
+                    <span className={isSidebarCollapsed ? 'md:hidden' : 'inline'}>Platform Settings</span>
                   </div>
                 </button>
               </div>
@@ -2239,21 +2339,29 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
           </div>
 
           {/* Sidebar Footer Card: Connectivity & Info */}
-          <div className="p-3.5 border-t border-slate-800/80 bg-slate-900/40">
-            <div className="p-3 rounded-xl bg-slate-800/60 border border-slate-700/60 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                <span className="text-[11px] font-headline font-bold text-slate-300">
-                  Supabase Live
-                </span>
+          <div className={`p-3.5 border-t border-slate-800/80 bg-slate-900/40 ${isSidebarCollapsed ? 'md:p-2' : ''}`}>
+            {!isSidebarCollapsed ? (
+              <>
+                <div className="p-3 rounded-xl bg-slate-800/60 border border-slate-700/60 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                    <span className="text-[11px] font-headline font-bold text-slate-300">
+                      Supabase Live
+                    </span>
+                  </div>
+                  <span className="text-[10px] font-mono text-slate-400">v2.4</span>
+                </div>
+                <div className="text-center mt-2">
+                  <p className="font-body text-[10px] text-slate-500">
+                    AbtalQuest Enterprise Portal
+                  </p>
+                </div>
+              </>
+            ) : (
+              <div className="flex items-center justify-center p-2.5 rounded-xl bg-slate-800/60 border border-slate-700/60" title="Supabase Live v2.4 • AbtalQuest Enterprise Portal">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
               </div>
-              <span className="text-[10px] font-mono text-slate-400">v2.4</span>
-            </div>
-            <div className="text-center mt-2">
-              <p className="font-body text-[10px] text-slate-500">
-                AbtalQuest Enterprise Portal
-              </p>
-            </div>
+            )}
           </div>
         </aside>
 
@@ -2271,6 +2379,21 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
                   className="md:hidden p-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/80 transition-colors focus:outline-none focus:ring-2 focus:ring-[#fa8221] cursor-pointer"
                 >
                   <Menu className="w-5 h-5" />
+                </button>
+
+                {/* Desktop Sidebar Collapse / Expand Toggle in Top Bar */}
+                <button
+                  type="button"
+                  onClick={toggleSidebarCollapse}
+                  aria-label={isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+                  title={isSidebarCollapsed ? 'Expand sidebar (Ctrl+B)' : 'Collapse sidebar (Ctrl+B)'}
+                  className="hidden md:inline-flex items-center justify-center p-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/80 border border-slate-700/60 transition-colors focus:outline-none focus:ring-2 focus:ring-[#fa8221] cursor-pointer"
+                >
+                  {isSidebarCollapsed ? (
+                    <ChevronRight className="w-4 h-4 text-[#fa8221]" />
+                  ) : (
+                    <ChevronLeft className="w-4 h-4" />
+                  )}
                 </button>
 
                 {/* Mobile Brand Emblem */}
