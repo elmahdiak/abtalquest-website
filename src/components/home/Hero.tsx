@@ -29,7 +29,7 @@ export const Hero: React.FC<HeroProps> = ({
     if (onExploreClick) {
       onExploreClick();
     } else {
-      const el = document.getElementById('planet-worlds') || document.getElementById('planets');
+      const el = document.getElementById('vision-mission') || document.getElementById('planet-worlds');
       if (el) el.scrollIntoView({ behavior: 'smooth' });
     }
   };

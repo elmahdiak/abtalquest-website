@@ -27,8 +27,8 @@ export interface NavItem {
 }
 
 export interface NavbarProps {
-  currentView?: 'home' | 'marketplace' | 'admin' | 'safety-standards' | 'about';
-  onViewChange?: (view: 'home' | 'marketplace' | 'about') => void;
+  currentView?: 'home' | 'marketplace' | 'admin' | 'safety-standards' | 'about' | 'blog';
+  onViewChange?: (view: 'home' | 'marketplace' | 'about' | 'blog') => void;
   user?: SupabaseUser | null;
   onOpenAuth?: () => void;
   onOpenProfile?: () => void;
@@ -55,13 +55,13 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   const navItems: NavItem[] = [
     { id: 'home', label: t('nav.home'), href: '#universe' },
-    { id: 'blog', label: t('nav.blog'), href: '#parenting-resources' },
+    { id: 'blog', label: t('nav.blog'), href: '#blog' },
     { id: 'marketplace', label: t('nav.marketplace'), href: '#marketplace', badge: t('nav.badge_kits') },
     { id: 'about', label: t('nav.about'), href: '#about' },
   ];
 
   // Sync active navigation tab with current view
-  const activeTab = currentView === 'marketplace' ? 'marketplace' : currentView === 'about' ? 'about' : selectedNavTab;
+  const activeTab = currentView === 'marketplace' ? 'marketplace' : currentView === 'about' ? 'about' : currentView === 'blog' ? 'blog' : selectedNavTab;
 
   // Handle scroll detection for frosted glass transition
   useEffect(() => {
@@ -96,19 +96,14 @@ export const Navbar: React.FC<NavbarProps> = ({
       e.preventDefault();
       onViewChange?.('about');
       window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else if (item.id === 'blog') {
+      e.preventDefault();
+      onViewChange?.('blog');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
       onViewChange?.('home');
-      if (item.id === 'home') {
-        e.preventDefault();
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      } else {
-        // Let anchor scroll to section on home page
-        const targetId = item.href.replace('#', '');
-        setTimeout(() => {
-          const el = document.getElementById(targetId);
-          el?.scrollIntoView({ behavior: 'smooth' });
-        }, 50);
-      }
+      e.preventDefault();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
