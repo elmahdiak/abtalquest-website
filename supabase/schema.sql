@@ -801,10 +801,12 @@ CREATE TABLE IF NOT EXISTS public.blogs (
   category TEXT NOT NULL DEFAULT 'Parenting & Values',
   tags TEXT[] DEFAULT '{}',
   image_url TEXT,
+  author TEXT,
   author_name TEXT NOT NULL DEFAULT 'AbtalQuest Editorial Team',
   author_role TEXT DEFAULT 'Child Development Specialist',
   author_avatar TEXT,
   read_time TEXT DEFAULT '5 min read',
+  published_at TIMESTAMPTZ DEFAULT NOW(),
   is_published BOOLEAN DEFAULT true,
   featured BOOLEAN DEFAULT false,
   views_count INTEGER DEFAULT 0,
@@ -812,9 +814,15 @@ CREATE TABLE IF NOT EXISTS public.blogs (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Ensure updated_at triggers or columns exist
+-- Ensure all columns exist for existing installations
 DO $$
 BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'blogs' AND column_name = 'author') THEN
+    ALTER TABLE public.blogs ADD COLUMN author TEXT;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'blogs' AND column_name = 'published_at') THEN
+    ALTER TABLE public.blogs ADD COLUMN published_at TIMESTAMPTZ DEFAULT NOW();
+  END IF;
   IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'blogs' AND column_name = 'views_count') THEN
     ALTER TABLE public.blogs ADD COLUMN views_count INTEGER DEFAULT 0;
   END IF;
@@ -825,6 +833,9 @@ END $$;
 
 -- Enable Row Level Security
 ALTER TABLE public.blogs ENABLE ROW LEVEL SECURITY;
+
+-- Enable Full Replica Identity for Realtime UPDATE/DELETE payloads
+ALTER TABLE public.blogs REPLICA IDENTITY FULL;
 
 -- Drop prior policies to avoid duplicate name collisions
 DROP POLICY IF EXISTS "Allow public read on published blogs" ON public.blogs;
@@ -859,9 +870,37 @@ CREATE POLICY "Allow admin delete on blogs"
   USING (true);
 
 -- Indexing for fast query lookups
-CREATE INDEX IF NOT EXISTS idx_blogs_slug ON public.blogs(slug);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_blogs_slug ON public.blogs(slug);
 CREATE INDEX IF NOT EXISTS idx_blogs_published_created ON public.blogs(is_published, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_blogs_category ON public.blogs(category);
+CREATE INDEX IF NOT EXISTS idx_blogs_is_published ON public.blogs(is_published);
+
+-- Realtime publication for instant cross-device broadcast
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables 
+    WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'blogs'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.blogs;
+  END IF;
+EXCEPTION
+  WHEN OTHERS THEN
+    NULL;
+END $$;
+
+-- RPC to increment views counter safely
+CREATE OR REPLACE FUNCTION public.increment_blog_views(blog_id TEXT)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+  UPDATE public.blogs
+  SET views_count = COALESCE(views_count, 0) + 1
+  WHERE id = blog_id;
+END;
+$$;
 
 -- Seed Initial Blog Posts
 INSERT INTO public.blogs (id, title, slug, excerpt, content, category, tags, image_url, author_name, author_role, read_time, is_published, featured)
@@ -1039,219 +1078,7 @@ CREATE POLICY "Allow admin update on subscribers"
 GRANT ALL ON public.subscribers TO anon, authenticated, service_role;
 
 -- ==============================================================================
--- 11. BLOGS TABLE (Parenting Resources, Articles, Digital Safety Guides)
--- ==============================================================================
-CREATE TABLE IF NOT EXISTS public.blogs (
-  id TEXT PRIMARY KEY,
-  title TEXT NOT NULL,
-  slug TEXT UNIQUE NOT NULL,
-  excerpt TEXT NOT NULL,
-  content TEXT NOT NULL,
-  category TEXT NOT NULL DEFAULT 'Parenting & Values',
-  tags TEXT[] DEFAULT '{}',
-  image_url TEXT,
-  author_name TEXT NOT NULL DEFAULT 'AbtalQuest Editorial Team',
-  author_role TEXT DEFAULT 'Child Development Specialist',
-  author_avatar TEXT,
-  read_time TEXT DEFAULT '5 min read',
-  is_published BOOLEAN DEFAULT true,
-  featured BOOLEAN DEFAULT false,
-  views_count INTEGER DEFAULT 0,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Indices for rapid slug lookups, category filtering, and chronological sorting
-CREATE UNIQUE INDEX IF NOT EXISTS idx_blogs_slug ON public.blogs(slug);
-CREATE INDEX IF NOT EXISTS idx_blogs_created_at ON public.blogs(created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_blogs_category ON public.blogs(category);
-CREATE INDEX IF NOT EXISTS idx_blogs_is_published ON public.blogs(is_published);
-
--- Enable RLS
-ALTER TABLE public.blogs ENABLE ROW LEVEL SECURITY;
-
--- Clean existing policies
-DROP POLICY IF EXISTS "Allow public read on blogs" ON public.blogs;
-DROP POLICY IF EXISTS "Allow admin insert on blogs" ON public.blogs;
-DROP POLICY IF EXISTS "Allow admin update on blogs" ON public.blogs;
-DROP POLICY IF EXISTS "Allow admin delete on blogs" ON public.blogs;
-
--- 1. Public read for everyone
-CREATE POLICY "Allow public read on blogs"
-  ON public.blogs
-  FOR SELECT
-  TO anon, authenticated
-  USING (true);
-
--- 2. Admin insert
-CREATE POLICY "Allow admin insert on blogs"
-  ON public.blogs
-  FOR INSERT
-  TO anon, authenticated
-  WITH CHECK (true);
-
--- 3. Admin update
-CREATE POLICY "Allow admin update on blogs"
-  ON public.blogs
-  FOR UPDATE
-  TO anon, authenticated
-  USING (true)
-  WITH CHECK (true);
-
--- 4. Admin delete
-CREATE POLICY "Allow admin delete on blogs"
-  ON public.blogs
-  FOR DELETE
-  TO anon, authenticated
-  USING (true);
-
--- Realtime publication for instant cross-device broadcast
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_publication_tables 
-    WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'blogs'
-  ) THEN
-    ALTER PUBLICATION supabase_realtime ADD TABLE public.blogs;
-  END IF;
-EXCEPTION
-  WHEN OTHERS THEN
-    NULL;
-END $$;
-
--- 12. STORAGE BUCKET FOR BLOG COVERS ('blog-images')
-INSERT INTO storage.buckets (id, name, public) 
-VALUES ('blog-images', 'blog-images', true) 
-ON CONFLICT (id) DO UPDATE SET public = true;
-
-DROP POLICY IF EXISTS "Allow public read on blog images" ON storage.objects;
-DROP POLICY IF EXISTS "Allow upload on blog images" ON storage.objects;
-DROP POLICY IF EXISTS "Allow update on blog images" ON storage.objects;
-DROP POLICY IF EXISTS "Allow delete on blog images" ON storage.objects;
-
-CREATE POLICY "Allow public read on blog images"
-  ON storage.objects
-  FOR SELECT
-  TO anon, authenticated
-  USING (bucket_id = 'blog-images');
-
-CREATE POLICY "Allow upload on blog images"
-  ON storage.objects
-  FOR INSERT
-  TO anon, authenticated
-  WITH CHECK (bucket_id = 'blog-images');
-
-CREATE POLICY "Allow update on blog images"
-  ON storage.objects
-  FOR UPDATE
-  TO anon, authenticated
-  USING (bucket_id = 'blog-images');
-
-CREATE POLICY "Allow delete on blog images"
-  ON storage.objects
-  FOR DELETE
-  TO anon, authenticated
-  USING (bucket_id = 'blog-images');
-
--- RPC to increment views counter safely
-CREATE OR REPLACE FUNCTION public.increment_blog_views(blog_id TEXT)
-RETURNS void
-LANGUAGE plpgsql
-SECURITY DEFINER
-AS $$
-BEGIN
-  UPDATE public.blogs
-  SET views_count = COALESCE(views_count, 0) + 1
-  WHERE id = blog_id;
-END;
-$$;
-
--- Seed Default Official Blog Posts
-INSERT INTO public.blogs (
-  id, title, slug, excerpt, content, category, tags, image_url, author_name, author_role, read_time, is_published, featured, views_count
-) VALUES
-(
-  'blog-resilient-kids',
-  'Raising Resilient Kids in the Digital Age',
-  'raising-resilient-kids-digital-age',
-  'Discover actionable emotional wellness strategies from child psychologists to help your children thrive amidst digital overload and constant stimulation.',
-  'In today''s hyper-connected environment, children are exposed to unprecedented cognitive stimuli. As parents and educators, nurturing emotional resilience is no longer an optional skill—it is foundational.
-
-### 1. Fostering a Growth Mindset
-Children who view challenges as learning opportunities develop psychological fortitude. Instead of praising innate abilities like "you are so smart," praise perseverance: "I noticed how hard you worked to solve that riddle."
-
-### 2. Digital Boundaries & Unplugged Reflection
-Set designated screen-free sanctuaries in your home. Replace passive scrolling with tactile problem-solving, board games, or mindful storytelling.
-
-### 3. Emotional Literacy
-Give children the vocabulary to name complex feelings. Whether it is frustration, anxiety, or excitement, acknowledging emotions without judgment builds lasting self-regulation.
-
-### 4. Co-Regulation Over Correction
-When emotional storms erupt, children mirror their parents'' emotional regulation. Taking deep, audible breaths and offering a calm physical presence helps regulate their nervous system before engaging in problem-solving dialogue.',
-  'Emotional Wellness',
-  ARRAY['parenting', 'resilience', 'screen-free', 'mental-health'],
-  'https://images.unsplash.com/photo-1491438590914-bc09fcaaf77a?auto=format&fit=crop&w=1200&q=80',
-  'Dr. Amina Mansour',
-  'Child Psychologist',
-  '5 min read',
-  true,
-  true,
-  1420
-),
-(
-  'blog-digital-safety',
-  'Navigating Screen Time & Online Safety with Confidence',
-  'navigating-screen-time-online-safety',
-  'Practical insights and family agreements to safeguard young minds against digital vulnerabilities while empowering healthy curiosity.',
-  'Digital safety begins with proactive dialogue rather than restrictive punishment. When children understand the reasons behind boundaries, they become active guardians of their own wellbeing.
-
-### 1. The Power of Family Technology Agreements
-Create a shared pact outlining screen time limits, approved platforms, and guidelines for asking permission before downloading new applications. Involve children in setting these agreements so they feel ownership and agency.
-
-### 2. Identifying Dark Patterns & Manipulative Algorithms
-Teach older children to recognize app design tricks engineered to induce addictive loops. Discuss why commercial games push instant gratification and how deliberate mindfulness preserves personal autonomy.
-
-### 3. Cultivating Safe Online Spaces
-Prioritize educational, violence-free, and ad-free ecosystems where young minds can explore STEM, art, and values without predatory targeted advertisements.',
-  'Digital Safety',
-  ARRAY['cyber-safety', 'parenting', 'digital-literacy'],
-  'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1200&q=80',
-  'Tariq Al-Farooq',
-  'Cybersecurity Researcher',
-  '7 min read',
-  true,
-  false,
-  980
-),
-(
-  'blog-family-bonding',
-  'The Power of Play: Building Unbreakable Family Bonds',
-  'power-of-play-building-family-bonds',
-  'Why unplugged cooperative games and imaginative family challenges foster lifelong empathy, teamwork, and mutual trust.',
-  'Play is the universal language through which children decipher relationships, ethics, and emotional bonds. Cooperative family play bridges generational divides and reinforces mutual trust.
-
-### 1. Screen-Free Tabletop Adventures
-Engaging in tactile quests and collaborative challenges teaches children to communicate effectively under low-stakes pressure. Unlike competitive games where one winner leaves others frustrated, cooperative games celebrate collective triumphs.
-
-### 2. Active Listening Through Storytelling
-Shared family reading rituals cultivate profound empathy. Prompting children to evaluate character decisions in moral chronicles develops their innate ethical compass and critical judgment.
-
-### 3. Celebrating Effort Over Perfection
-When parents participate alongside children—embracing mistakes with humor and curiosity—children internalize the confidence to tackle real-world challenges without the crippling fear of failure.',
-  'Family Bonding',
-  ARRAY['family-time', 'cooperative-play', 'empathy', 'values'],
-  'https://images.unsplash.com/photo-1543269865-cbf427effbad?auto=format&fit=crop&w=1200&q=80',
-  'Fatima Zohra',
-  'Family Life Coach',
-  '4 min read',
-  true,
-  false,
-  1120
-)
-ON CONFLICT (id) DO NOTHING;
-
--- ==============================================================================
--- 12. ADMIN NOTIFICATIONS TABLE (Live Admin Center & Realtime Event Feed)
+-- 11. ADMIN NOTIFICATIONS TABLE (Live Admin Center & Realtime Event Feed)
 -- ==============================================================================
 CREATE TABLE IF NOT EXISTS public.admin_notifications (
   id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
@@ -1303,7 +1130,7 @@ EXCEPTION
 END $$;
 
 -- ==============================================================================
--- 13. COUPONS & PROMO CODES TABLE (Discount Engine)
+-- 12. COUPONS & PROMO CODES TABLE (Discount Engine)
 -- ==============================================================================
 CREATE TABLE IF NOT EXISTS public.coupons (
   id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
@@ -1366,7 +1193,7 @@ VALUES
 ON CONFLICT (code) DO NOTHING;
 
 -- ==============================================================================
--- 14. GRANT PERMISSIONS & RELOAD SCHEMA CACHE
+-- 13. GRANT PERMISSIONS & RELOAD SCHEMA CACHE
 -- ==============================================================================
 GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated, service_role;
 GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated, service_role;

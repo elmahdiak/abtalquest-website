@@ -195,14 +195,24 @@ export const ParentingResources: React.FC = () => {
         if (isMounted) {
           setBlogs(data);
           setLoading(false);
-          const hash = window.location.hash;
-          if (hash.startsWith('#article-') || hash.startsWith('#blog-')) {
-            const rawSlug = hash.replace(/^#(article|blog)-/, '');
-            const found = data.find((b) => b.slug === rawSlug || b.id === rawSlug);
-            if (found) {
-              setSelectedBlog(found);
+
+          // Synchronize active reading view if open, or resolve deep-link from URL hash
+          setSelectedBlog((currentSelected) => {
+            if (!currentSelected) {
+              const hash = window.location.hash;
+              if (hash.startsWith('#article-') || hash.startsWith('#blog-')) {
+                const rawSlug = hash.replace(/^#(article|blog)-/, '');
+                const found = data.find((b) => b.slug === rawSlug || b.id === rawSlug);
+                return found || null;
+              }
+              return null;
             }
-          }
+            // Keep the reader updated with newest content, or return null if unpublished/deleted
+            const updated = data.find(
+              (b) => b.id === currentSelected.id || b.slug === currentSelected.slug
+            );
+            return updated || null;
+          });
         }
       } catch (err) {
         console.warn('Failed to load published blogs:', err);
@@ -212,7 +222,7 @@ export const ParentingResources: React.FC = () => {
 
     void loadData();
 
-    // Subscribe to both Supabase Realtime (postgres_changes) and local event dispatcher
+    // Subscribe to both Supabase Realtime (postgres_changes) and multi-channel dispatcher
     const unsubscribe = subscribeToBlogChanges(() => {
       if (isMounted) {
         void loadData();
