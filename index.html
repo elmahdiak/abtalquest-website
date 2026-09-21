@@ -31,10 +31,33 @@
             document.documentElement.style.colorScheme = 'light';
           }
 
-          // Language & RTL initialization
-          var savedLang = localStorage.getItem('abtalquest_lang') || 'en';
-          document.documentElement.lang = savedLang;
-          document.documentElement.dir = savedLang === 'ar' ? 'rtl' : 'ltr';
+          // Language & RTL initialization with automatic device detection (French fallback)
+          var savedLang = localStorage.getItem('abtalquest_lang');
+          var resolvedLang = 'fr';
+          if (savedLang === 'en' || savedLang === 'ar' || savedLang === 'fr') {
+            resolvedLang = savedLang;
+          } else {
+            var nav = window.navigator;
+            var candidates = [];
+            if (nav) {
+              if (Array.isArray(nav.languages)) {
+                for (var i = 0; i < nav.languages.length; i++) {
+                  candidates.push(nav.languages[i]);
+                }
+              }
+              if (nav.language) candidates.push(nav.language);
+              if (nav.userLanguage) candidates.push(nav.userLanguage);
+            }
+            for (var j = 0; j < candidates.length; j++) {
+              var tag = (candidates[j] || '').toLowerCase().trim().split(/[-_]/)[0];
+              if (tag === 'fr' || tag === 'ar' || tag === 'en') {
+                resolvedLang = tag;
+                break;
+              }
+            }
+          }
+          document.documentElement.lang = resolvedLang;
+          document.documentElement.dir = resolvedLang === 'ar' ? 'rtl' : 'ltr';
         } catch (e) {}
       })();
     </script>

@@ -1,9 +1,12 @@
+/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { 
   type Language, 
   type Direction, 
   LANGUAGES, 
-  dictionaries 
+  dictionaries,
+  STORAGE_KEY,
+  getInitialLanguage
 } from '../locales';
 
 export interface LanguageContextType {
@@ -15,20 +18,6 @@ export interface LanguageContextType {
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
-const STORAGE_KEY = 'abtalquest_lang';
-
-function getInitialLanguage(): Language {
-  if (typeof window === 'undefined') return 'en';
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY) as Language | null;
-    if (saved && (saved === 'en' || saved === 'ar' || saved === 'fr')) {
-      return saved;
-    }
-  } catch (e) {
-    console.warn('Failed to read language preference from localStorage:', e);
-  }
-  return 'en';
-}
 
 export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [language, setLanguageState] = useState<Language>(getInitialLanguage);
@@ -65,25 +54,39 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }
     }
 
-    // 2. Fallback to English if missing
+    // 2. Fallback to French if missing
     if (typeof current !== 'string') {
-      let fallback: unknown = dictionaries.en;
+      let fallbackFr: unknown = dictionaries.fr;
       for (const k of keys) {
-        if (fallback && typeof fallback === 'object' && k in fallback) {
-          fallback = (fallback as Record<string, unknown>)[k];
+        if (fallbackFr && typeof fallbackFr === 'object' && k in fallbackFr) {
+          fallbackFr = (fallbackFr as Record<string, unknown>)[k];
         } else {
-          fallback = undefined;
+          fallbackFr = undefined;
           break;
         }
       }
-      current = fallback;
+      current = fallbackFr;
+    }
+
+    // 3. Fallback to English if also missing in French
+    if (typeof current !== 'string') {
+      let fallbackEn: unknown = dictionaries.en;
+      for (const k of keys) {
+        if (fallbackEn && typeof fallbackEn === 'object' && k in fallbackEn) {
+          fallbackEn = (fallbackEn as Record<string, unknown>)[k];
+        } else {
+          fallbackEn = undefined;
+          break;
+        }
+      }
+      current = fallbackEn;
     }
 
     if (typeof current !== 'string') {
       return key; // return key if completely not found
     }
 
-    // 3. Interpolate parameters if any
+    // 4. Interpolate parameters if any
     let result = current;
     if (params) {
       Object.entries(params).forEach(([paramKey, paramVal]) => {
