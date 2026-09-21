@@ -1712,96 +1712,50 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
 
   // View 2: Full Admin Dashboard
   return (
-    <div className="min-h-screen bg-slate-100 text-slate-800 flex flex-col w-full max-w-full overflow-x-hidden">
-      {/* Admin Top Navigation Bar */}
-      <header className="bg-[#0A2540] text-white border-b border-slate-800 sticky top-0 z-40 w-full shrink-0">
-        <div className="w-full px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3 sm:gap-4">
-            {/* Mobile Sidebar Hamburger Toggle */}
-            <button
-              type="button"
-              onClick={() => setSidebarOpen((prev) => !prev)}
-              aria-label="Toggle navigation menu"
-              className="md:hidden p-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/80 transition-colors focus:outline-none focus:ring-2 focus:ring-[#fa8221] cursor-pointer"
-            >
-              {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-            </button>
+    <div className="h-screen max-h-screen w-full bg-slate-100 text-slate-800 flex overflow-hidden">
+      {/* Mobile Backdrop */}
+      {sidebarOpen && (
+        <div
+          onClick={() => setSidebarOpen(false)}
+          aria-hidden="true"
+          className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs z-40 md:hidden transition-opacity cursor-pointer"
+        />
+      )}
 
-            <AbtalQuestLogo 
-              variant="dark" 
-              size="sm" 
-              showText={true} 
-              clickable={true} 
-              href="#universe" 
-              onClick={handleExitAdmin}
-            />
-
-            <div className="hidden sm:flex items-center gap-2.5 pl-4 border-l border-slate-700/80">
-              {isSuperAdmin(currentUser) ? (
-                <span className="font-headline text-xs font-black uppercase tracking-wider text-purple-300 bg-purple-500/20 border border-purple-500/30 px-2.5 py-1 rounded-full flex items-center gap-1.5 shadow-sm">
-                  <Crown className="w-3.5 h-3.5 text-amber-400" /> Super Admin
-                </span>
-              ) : currentUser?.user_metadata?.role === 'manager' ? (
-                <span className="font-headline text-xs font-bold uppercase tracking-wider text-indigo-300 bg-indigo-500/20 border border-indigo-500/30 px-2.5 py-1 rounded-full flex items-center gap-1.5 shadow-sm">
-                  <ShieldCheck className="w-3.5 h-3.5 text-indigo-400" /> Manager
-                </span>
-              ) : (
-                <span className="font-headline text-xs font-bold uppercase tracking-wider text-amber-400 bg-amber-400/10 px-2.5 py-1 rounded-full flex items-center gap-1.5">
-                  <Shield className="w-3.5 h-3.5" /> Administrator
-                </span>
-              )}
-              <span className="font-body text-xs text-slate-400 hidden lg:inline">
-                Logged in as <strong className="text-slate-200">{currentUser?.email}</strong>
-              </span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 sm:gap-3">
-            <button
-              type="button"
-              onClick={handleExitAdmin}
-              className="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-headline font-semibold text-slate-300 hover:text-white transition-colors flex items-center gap-1.5 cursor-pointer"
-            >
-              <span>Live Site</span>
-              <ExternalLink className="w-3.5 h-3.5" />
-            </button>
-
-            <button
-              type="button"
-              onClick={handleSignOut}
-              className="px-3.5 py-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-300 text-xs font-headline font-semibold transition-colors flex items-center gap-1.5 cursor-pointer"
-            >
-              <LogOut className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Sign Out</span>
-            </button>
-          </div>
-        </div>
-      </header>
-
-      {/* Main Container Layout: Left Vertical Sidebar + Right Content Area */}
-      <div className="flex flex-1 w-full min-h-[calc(100vh-57px)] relative overflow-x-hidden">
-        {/* Mobile Backdrop */}
-        {sidebarOpen && (
-          <div
-            onClick={() => setSidebarOpen(false)}
-            aria-hidden="true"
-            className="fixed inset-0 top-[57px] bg-slate-950/70 backdrop-blur-xs z-30 md:hidden transition-opacity cursor-pointer"
+      {/* Left Vertical Sidebar (Sticky / Fixed h-screen) */}
+      <aside
+        className={`fixed md:sticky top-0 left-0 z-50 h-screen w-64 lg:w-72 bg-[#0A2540] border-r border-slate-800/80 flex flex-col justify-between shrink-0 transition-transform duration-300 ease-in-out ${
+          sidebarOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full md:translate-x-0'
+        }`}
+      >
+        {/* Brand Header at top of Sidebar */}
+        <div className="p-4 border-b border-slate-800/80 flex items-center justify-between shrink-0">
+          <AbtalQuestLogo 
+            variant="dark" 
+            size="sm" 
+            showText={true} 
+            clickable={true} 
+            href="#universe" 
+            onClick={handleExitAdmin}
           />
-        )}
+          {/* Mobile Sidebar Close Toggle */}
+          <button
+            type="button"
+            onClick={() => setSidebarOpen(false)}
+            aria-label="Close navigation menu"
+            className="md:hidden p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
 
-        {/* Vertical Sidebar */}
-        <aside
-          className={`fixed md:sticky top-[57px] left-0 z-30 h-[calc(100vh-57px)] w-64 lg:w-72 bg-[#0A2540] border-r border-slate-800/80 flex flex-col justify-between shrink-0 transition-transform duration-300 ease-in-out overflow-y-auto ${
-            sidebarOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full md:translate-x-0'
-          }`}
-        >
-          {/* Navigation Links Grouped Vertically */}
-          <div className="p-3.5 space-y-5">
-            {/* Section 1: Commerce & Inventory */}
-            <div>
-              <div className="px-3 pb-2 text-[10px] font-headline font-black uppercase tracking-wider text-slate-400/80 flex items-center justify-between">
-                <span>Commerce & Inventory</span>
-              </div>
+        {/* Scrollable Navigation Links Grouped Vertically */}
+        <div className="flex-1 p-3.5 space-y-5 overflow-y-auto">
+          {/* Section 1: Commerce & Inventory */}
+          <div>
+            <div className="px-3 pb-2 text-[10px] font-headline font-black uppercase tracking-wider text-slate-400/80 flex items-center justify-between">
+              <span>Commerce & Inventory</span>
+            </div>
               <div className="space-y-1">
                 <button
                   type="button"
@@ -2046,9 +2000,79 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
           </div>
         </aside>
 
-        {/* Main Content Area beside Sidebar */}
-        <main className="flex-1 min-w-0 bg-slate-100 p-4 sm:p-6 lg:p-8 overflow-y-auto">
-          <div className="w-full max-w-7xl mx-auto space-y-6">
+        {/* Right Content Workspace Column */}
+        <div className="flex-1 min-w-0 flex flex-col h-screen overflow-hidden">
+          {/* Top Bar Navigation Header */}
+          <header className="bg-[#0A2540] text-white border-b border-slate-800 h-14 sm:h-16 shrink-0 z-30 w-full flex items-center">
+            <div className="w-full px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3 sm:gap-4">
+                {/* Mobile Sidebar Hamburger Toggle */}
+                <button
+                  type="button"
+                  onClick={() => setSidebarOpen(true)}
+                  aria-label="Open navigation menu"
+                  className="md:hidden p-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/80 transition-colors focus:outline-none focus:ring-2 focus:ring-[#fa8221] cursor-pointer"
+                >
+                  <Menu className="w-5 h-5" />
+                </button>
+
+                {/* Mobile Brand Emblem */}
+                <div className="md:hidden">
+                  <AbtalQuestLogo 
+                    variant="dark" 
+                    size="sm" 
+                    showText={false} 
+                    clickable={true} 
+                    href="#universe" 
+                    onClick={handleExitAdmin}
+                  />
+                </div>
+
+                <div className="flex items-center gap-2.5">
+                  {isSuperAdmin(currentUser) ? (
+                    <span className="font-headline text-xs font-black uppercase tracking-wider text-purple-300 bg-purple-500/20 border border-purple-500/30 px-2.5 py-1 rounded-full flex items-center gap-1.5 shadow-sm">
+                      <Crown className="w-3.5 h-3.5 text-amber-400" /> Super Admin
+                    </span>
+                  ) : currentUser?.user_metadata?.role === 'manager' ? (
+                    <span className="font-headline text-xs font-bold uppercase tracking-wider text-indigo-300 bg-indigo-500/20 border border-indigo-500/30 px-2.5 py-1 rounded-full flex items-center gap-1.5 shadow-sm">
+                      <ShieldCheck className="w-3.5 h-3.5 text-indigo-400" /> Manager
+                    </span>
+                  ) : (
+                    <span className="font-headline text-xs font-bold uppercase tracking-wider text-amber-400 bg-amber-400/10 px-2.5 py-1 rounded-full flex items-center gap-1.5">
+                      <Shield className="w-3.5 h-3.5" /> Administrator
+                    </span>
+                  )}
+                  <span className="font-body text-xs text-slate-400 hidden sm:inline">
+                    Logged in as <strong className="text-slate-200">{currentUser?.email}</strong>
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 sm:gap-3">
+                <button
+                  type="button"
+                  onClick={handleExitAdmin}
+                  className="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-headline font-semibold text-slate-300 hover:text-white transition-colors flex items-center gap-1.5 cursor-pointer"
+                >
+                  <span>Live Site</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleSignOut}
+                  className="px-3.5 py-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-300 text-xs font-headline font-semibold transition-colors flex items-center gap-1.5 cursor-pointer"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Sign Out</span>
+                </button>
+              </div>
+            </div>
+          </header>
+
+          {/* Main Content Area beside Sidebar - INDEPENDENT INTERNAL SCROLL */}
+          <main className="flex-1 min-w-0 bg-slate-100 p-4 sm:p-6 lg:p-8 overflow-y-auto">
+            <div className="w-full max-w-7xl mx-auto space-y-6">
             {loadingData ? (
               <div className="py-24 text-center">
                 <Loader2 className="w-10 h-10 text-[#016ba5] animate-spin mx-auto mb-3" />
