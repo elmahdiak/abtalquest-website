@@ -97,6 +97,8 @@ import {
   syncUnsavedOrdersToSupabase,
   checkOrdersDatabaseHealth,
   ORDERS_SCHEMA_SQL,
+  STORAGE_SCHEMA_SQL,
+  ensureProductImagesBucket,
   type DatabaseHealth,
   getContactMessagesForAdmin, 
   updateContactMessageStatus, 
@@ -403,6 +405,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
   const [dbHealth, setDbHealth] = useState<DatabaseHealth | null>(null);
   const [copiedSql, setCopiedSql] = useState<boolean>(false);
   const [showSqlModal, setShowSqlModal] = useState<boolean>(false);
+  const [sqlModalType, setSqlModalType] = useState<'orders' | 'storage'>('orders');
 
   // Messages filters
   const [messageFilter, setMessageFilter] = useState<'all' | 'unread' | 'read'>('all');
@@ -666,9 +669,12 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
     }
   };
 
-  const handleCopySql = async () => {
+  const handleCopySql = async (overrideSql?: string | React.MouseEvent) => {
     try {
-      await navigator.clipboard.writeText(ORDERS_SCHEMA_SQL);
+      const sqlToCopy = (typeof overrideSql === 'string' && overrideSql)
+        ? overrideSql 
+        : (sqlModalType === 'storage' ? STORAGE_SCHEMA_SQL : ORDERS_SCHEMA_SQL);
+      await navigator.clipboard.writeText(sqlToCopy);
       setCopiedSql(true);
       setTimeout(() => setCopiedSql(false), 3000);
     } catch {
@@ -678,6 +684,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
 
   // Product CRUD Action Handlers
   const handleOpenAddProduct = () => {
+    ensureProductImagesBucket().catch((err) => console.warn('[AdminPortal] Storage bucket check:', err));
     setEditingProduct(null);
     setProdTitle('');
     setProdSku(`AQ-${(categoriesList[0]?.slug || 'THK').toUpperCase().slice(0, 3)}-${Math.floor(100 + Math.random() * 900)}`);
@@ -705,6 +712,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
   };
 
   const handleOpenEditProduct = (prod: Product) => {
+    ensureProductImagesBucket().catch((err) => console.warn('[AdminPortal] Storage bucket check:', err));
     setEditingProduct(prod);
     setProdTitle(prod.title);
     setProdSku(prod.sku || '');
@@ -6234,9 +6242,36 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
             </p>
 
             {prodModalError && (
-              <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 flex items-start gap-2.5 text-xs font-body text-red-600 mb-5">
-                <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
-                <span>{prodModalError}</span>
+              <div className="p-4 rounded-2xl bg-red-50/90 border border-red-200 text-xs font-body text-red-700 mb-5 shadow-sm">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
+                  <div className="flex-1 space-y-2">
+                    <p className="font-medium leading-relaxed">{prodModalError}</p>
+                    {(prodModalError.toLowerCase().includes('storage') || prodModalError.toLowerCase().includes('bucket')) && (
+                      <div className="flex flex-wrap items-center gap-2 pt-1">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSqlModalType('storage');
+                            setShowSqlModal(true);
+                          }}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-headline font-bold transition-all shadow-sm cursor-pointer text-xs active:scale-95"
+                        >
+                          <Database className="w-3.5 h-3.5" />
+                          <span>View Storage Setup Script</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleCopySql(STORAGE_SCHEMA_SQL)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-red-50 border border-red-300 text-red-700 font-headline font-bold transition-all cursor-pointer text-xs active:scale-95"
+                        >
+                          {copiedSql ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                          <span>{copiedSql ? 'Copied Storage SQL!' : 'Copy Storage SQL'}</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             )}
 
@@ -8068,19 +8103,49 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
               <X className="w-5 h-5" />
             </button>
 
-            <div className="flex items-center gap-2 mb-2">
+            <div className="flex items-center gap-2 mb-3">
               <Badge variant="secondary" size="sm">Supabase Database Setup</Badge>
+              <div className="flex items-center gap-1.5 ml-auto p-1 bg-slate-100 rounded-xl">
+                <button
+                  type="button"
+                  onClick={() => setSqlModalType('storage')}
+                  className={`px-3 py-1 rounded-lg text-xs font-headline font-bold transition-all cursor-pointer ${
+                    sqlModalType === 'storage'
+                      ? 'bg-white text-[#016ba5] shadow-xs'
+                      : 'text-slate-500 hover:text-slate-900'
+                  }`}
+                >
+                  Storage (Product Images)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSqlModalType('orders')}
+                  className={`px-3 py-1 rounded-lg text-xs font-headline font-bold transition-all cursor-pointer ${
+                    sqlModalType === 'orders'
+                      ? 'bg-white text-[#016ba5] shadow-xs'
+                      : 'text-slate-500 hover:text-slate-900'
+                  }`}
+                >
+                  Orders Schema
+                </button>
+              </div>
             </div>
 
             <h3 className="font-headline text-xl font-black text-slate-900 mb-1">
-              Orders & Line Items SQL Migration
+              {sqlModalType === 'storage'
+                ? 'Supabase Storage Provisioning Migration (product-images)'
+                : 'Orders & Line Items SQL Migration'}
             </h3>
             <p className="font-body text-xs text-slate-500 mb-4">
-              Copy and execute this script in your Supabase project SQL Editor to enable full multi-device database persistence and Row-Level Security for orders.
+              {sqlModalType === 'storage'
+                ? 'Execute this script in your Supabase project SQL Editor to provision the public "product-images" and "blog-images" buckets with full Row-Level Security policies.'
+                : 'Copy and execute this script in your Supabase project SQL Editor to enable full multi-device database persistence and Row-Level Security for orders.'}
             </p>
 
             <div className="relative flex-1 bg-slate-900 rounded-2xl p-4 overflow-y-auto font-mono text-xs text-emerald-400 max-h-[50vh] border border-slate-800">
-              <pre className="whitespace-pre-wrap">{ORDERS_SCHEMA_SQL}</pre>
+              <pre className="whitespace-pre-wrap">
+                {sqlModalType === 'storage' ? STORAGE_SCHEMA_SQL : ORDERS_SCHEMA_SQL}
+              </pre>
             </div>
 
             <div className="flex items-center justify-between pt-4 mt-4 border-t border-slate-200">
@@ -8098,7 +8163,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
                 <Button
                   variant="cta"
                   size="sm"
-                  onClick={handleCopySql}
+                  onClick={() => handleCopySql(sqlModalType === 'storage' ? STORAGE_SCHEMA_SQL : ORDERS_SCHEMA_SQL)}
                   icon={copiedSql ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                   iconPosition="left"
                 >

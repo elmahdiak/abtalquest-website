@@ -763,10 +763,47 @@ ON CONFLICT (id) DO UPDATE SET
 -- ==============================================================================
 -- 7. SUPABASE STORAGE: Product Images Bucket & Access Policies
 -- ==============================================================================
--- Create the public bucket for storing uploaded product media
-INSERT INTO storage.buckets (id, name, public)
-VALUES ('product-images', 'product-images', true)
-ON CONFLICT (id) DO UPDATE SET public = true;
+-- 7.1 Enable Row Level Security & Grants on Storage
+ALTER TABLE storage.buckets ENABLE ROW LEVEL SECURITY;
+ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
+
+GRANT USAGE ON SCHEMA storage TO anon, authenticated, service_role;
+GRANT ALL ON TABLE storage.buckets TO anon, authenticated, service_role;
+GRANT ALL ON TABLE storage.objects TO anon, authenticated, service_role;
+
+-- 7.2 Storage Buckets Metadata & Discovery Policies
+DROP POLICY IF EXISTS "Allow public read on storage buckets" ON storage.buckets;
+DROP POLICY IF EXISTS "Allow public insert on storage buckets" ON storage.buckets;
+DROP POLICY IF EXISTS "Allow public update on storage buckets" ON storage.buckets;
+
+CREATE POLICY "Allow public read on storage buckets"
+  ON storage.buckets FOR SELECT
+  TO anon, authenticated
+  USING (true);
+
+CREATE POLICY "Allow public insert on storage buckets"
+  ON storage.buckets FOR INSERT
+  TO anon, authenticated
+  WITH CHECK (true);
+
+CREATE POLICY "Allow public update on storage buckets"
+  ON storage.buckets FOR UPDATE
+  TO anon, authenticated
+  USING (true);
+
+-- 7.3 Create or update the public bucket for storing uploaded product media
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+  'product-images',
+  'product-images',
+  true,
+  10485760, -- 10MB limit
+  ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml', 'image/avif']
+)
+ON CONFLICT (id) DO UPDATE SET
+  public = true,
+  file_size_limit = 10485760,
+  allowed_mime_types = ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml', 'image/avif'];
 
 -- Remove older policies on storage.objects to avoid duplicate naming conflicts
 DROP POLICY IF EXISTS "Allow public read on product images" ON storage.objects;
@@ -790,7 +827,8 @@ CREATE POLICY "Allow upload on product images"
 CREATE POLICY "Allow update on product images"
   ON storage.objects FOR UPDATE
   TO anon, authenticated
-  USING (bucket_id = 'product-images');
+  USING (bucket_id = 'product-images')
+  WITH CHECK (bucket_id = 'product-images');
 
 -- Allow deleting product images
 CREATE POLICY "Allow delete on product images"
@@ -999,9 +1037,18 @@ ON CONFLICT (id) DO UPDATE SET
 -- ==============================================================================
 -- 9. SUPABASE STORAGE: Blog Images Bucket & Access Policies
 -- ==============================================================================
-INSERT INTO storage.buckets (id, name, public)
-VALUES ('blog-images', 'blog-images', true)
-ON CONFLICT (id) DO UPDATE SET public = true;
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+  'blog-images',
+  'blog-images',
+  true,
+  10485760, -- 10MB limit
+  ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml', 'image/avif']
+)
+ON CONFLICT (id) DO UPDATE SET
+  public = true,
+  file_size_limit = 10485760,
+  allowed_mime_types = ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml', 'image/avif'];
 
 DROP POLICY IF EXISTS "Allow public read on blog images" ON storage.objects;
 DROP POLICY IF EXISTS "Allow upload on blog images" ON storage.objects;
@@ -1021,7 +1068,8 @@ CREATE POLICY "Allow upload on blog images"
 CREATE POLICY "Allow update on blog images"
   ON storage.objects FOR UPDATE
   TO anon, authenticated
-  USING (bucket_id = 'blog-images');
+  USING (bucket_id = 'blog-images')
+  WITH CHECK (bucket_id = 'blog-images');
 
 CREATE POLICY "Allow delete on blog images"
   ON storage.objects FOR DELETE

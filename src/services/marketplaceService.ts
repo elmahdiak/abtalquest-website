@@ -1428,6 +1428,40 @@ export const batchToggleProductVisibility = async (
   return batchUpdateProducts(ids, { isActive });
 };
 
+/**
+ * Proactively verifies and provisions the 'product-images' public bucket if missing
+ */
+export const ensureProductImagesBucket = async (): Promise<{ exists: boolean; provisioned: boolean; error?: string }> => {
+  if (!isSupabaseConfigured()) {
+    return { exists: false, provisioned: false, error: 'Supabase is not configured' };
+  }
+
+  try {
+    const { data: buckets, error: listErr } = await supabase.storage.listBuckets();
+    if (!listErr && buckets) {
+      const found = buckets.some(b => b.name === 'product-images' || b.id === 'product-images');
+      if (found) {
+        return { exists: true, provisioned: false };
+      }
+    }
+
+    // Bucket not found or list is restricted, attempt automatic creation
+    const { error: createErr } = await supabase.storage.createBucket('product-images', {
+      public: true,
+      fileSizeLimit: 10485760,
+      allowedMimeTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml', 'image/avif'],
+    });
+
+    if (!createErr || createErr.message?.toLowerCase().includes('already exists')) {
+      return { exists: true, provisioned: true };
+    }
+
+    return { exists: false, provisioned: false, error: createErr.message };
+  } catch (err: any) {
+    return { exists: false, provisioned: false, error: err?.message || 'Storage verification failed' };
+  }
+};
+
 export const uploadProductImage = async (file: File): Promise<string> => {
   if (!isSupabaseConfigured()) {
     throw new Error('Supabase Storage is not configured. Please paste a public image URL instead of uploading local files.');
@@ -1437,20 +1471,55 @@ export const uploadProductImage = async (file: File): Promise<string> => {
   const fileName = `product_${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${ext}`;
   const filePath = `products/${fileName}`;
 
-  const { error: uploadError } = await supabase.storage
+  // 1. First attempt direct upload
+  let { error: uploadError } = await supabase.storage
     .from('product-images')
     .upload(filePath, file, {
       cacheControl: '3600',
       upsert: false,
     });
 
+  // 2. If upload failed because the bucket is missing, attempt self-healing automatic bucket provisioning
+  const isMissingBucket = uploadError && (
+    uploadError.message?.toLowerCase().includes('bucket not found') ||
+    uploadError.message?.toLowerCase().includes('not found') ||
+    (uploadError as any)?.statusCode === '404' ||
+    (uploadError as any)?.error === 'Bucket not found'
+  );
+
+  if (isMissingBucket) {
+    console.warn('[AbtalQuest Storage] Bucket "product-images" missing. Attempting automatic self-healing creation...');
+    try {
+      const { error: createErr } = await supabase.storage.createBucket('product-images', {
+        public: true,
+        fileSizeLimit: 10485760,
+        allowedMimeTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml', 'image/avif'],
+      });
+
+      if (!createErr || createErr.message?.toLowerCase().includes('already exists')) {
+        console.info('[AbtalQuest Storage] Successfully auto-provisioned "product-images" bucket! Retrying upload...');
+        const retryResult = await supabase.storage
+          .from('product-images')
+          .upload(filePath, file, {
+            cacheControl: '3600',
+            upsert: false,
+          });
+        uploadError = retryResult.error;
+      } else {
+        console.warn('[AbtalQuest Storage] Auto-provision createBucket returned:', createErr);
+      }
+    } catch (createEx) {
+      console.warn('[AbtalQuest Storage] Exception during createBucket:', createEx);
+    }
+  }
+
   if (uploadError) {
     console.error('[AbtalQuest Supabase Storage] Image upload error:', uploadError);
     if (uploadError.message?.toLowerCase().includes('bucket not found') || (uploadError as any)?.statusCode === '404') {
-      throw new Error('Storage Bucket Missing: The "product-images" bucket does not exist in Supabase. Please execute the schema.sql script in your Supabase SQL editor to create the public bucket.');
+      throw new Error('Storage Bucket Missing: The "product-images" bucket does not exist in Supabase. Please execute the supabase/storage_setup.sql script in your Supabase SQL editor to create the public bucket with RLS policies.');
     }
     if ((uploadError as any)?.statusCode === '403' || uploadError.message?.toLowerCase().includes('row-level security') || uploadError.message?.toLowerCase().includes('policy')) {
-      throw new Error('Storage Permission Denied: Row Level Security (RLS) on "product-images" bucket blocked image upload. Please check bucket policies in Supabase.');
+      throw new Error('Storage Permission Denied: Row Level Security (RLS) on "product-images" bucket blocked image upload. Please execute the supabase/storage_setup.sql script in your Supabase SQL editor to grant upload permissions.');
     }
     throw new Error(`Failed to upload product image: ${uploadError.message}`);
   }
@@ -2173,16 +2242,164 @@ CREATE POLICY "Allow public read on order_items" ON public.order_items FOR SELEC
 CREATE POLICY "Allow admin update on order_items" ON public.order_items FOR UPDATE TO anon, authenticated USING (true) WITH CHECK (true);
 CREATE POLICY "Allow admin delete on order_items" ON public.order_items FOR DELETE TO anon, authenticated USING (true);
 
--- 5. STORAGE BUCKET FOR PRODUCT IMAGES
-INSERT INTO storage.buckets (id, name, public) VALUES ('product-images', 'product-images', true) ON CONFLICT (id) DO UPDATE SET public = true;
+-- 5. STORAGE BUCKET FOR PRODUCT IMAGES & POLICIES
+ALTER TABLE storage.buckets ENABLE ROW LEVEL SECURITY;
+ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
+GRANT USAGE ON SCHEMA storage TO anon, authenticated, service_role;
+GRANT ALL ON TABLE storage.buckets TO anon, authenticated, service_role;
+GRANT ALL ON TABLE storage.objects TO anon, authenticated, service_role;
+
+DROP POLICY IF EXISTS "Allow public read on storage buckets" ON storage.buckets;
+DROP POLICY IF EXISTS "Allow public insert on storage buckets" ON storage.buckets;
+CREATE POLICY "Allow public read on storage buckets" ON storage.buckets FOR SELECT TO anon, authenticated USING (true);
+CREATE POLICY "Allow public insert on storage buckets" ON storage.buckets FOR INSERT TO anon, authenticated WITH CHECK (true);
+
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+  'product-images',
+  'product-images',
+  true,
+  10485760,
+  ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml', 'image/avif']
+)
+ON CONFLICT (id) DO UPDATE SET
+  public = true,
+  file_size_limit = 10485760,
+  allowed_mime_types = ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml', 'image/avif'];
+
 DROP POLICY IF EXISTS "Allow public read on product images" ON storage.objects;
 DROP POLICY IF EXISTS "Allow upload on product images" ON storage.objects;
+DROP POLICY IF EXISTS "Allow update on product images" ON storage.objects;
+DROP POLICY IF EXISTS "Allow delete on product images" ON storage.objects;
 CREATE POLICY "Allow public read on product images" ON storage.objects FOR SELECT TO anon, authenticated USING (bucket_id = 'product-images');
 CREATE POLICY "Allow upload on product images" ON storage.objects FOR INSERT TO anon, authenticated WITH CHECK (bucket_id = 'product-images');
+CREATE POLICY "Allow update on product images" ON storage.objects FOR UPDATE TO anon, authenticated USING (bucket_id = 'product-images') WITH CHECK (bucket_id = 'product-images');
+CREATE POLICY "Allow delete on product images" ON storage.objects FOR DELETE TO anon, authenticated USING (bucket_id = 'product-images');
 
 -- 6. GRANT PERMISSIONS & RELOAD SCHEMA CACHE
 GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated, service_role;
 GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated, service_role;
+NOTIFY pgrst, 'reload schema';
+`;
+
+/**
+ * Standalone SQL migration to provision Supabase Storage buckets & policies for products and blogs
+ */
+export const STORAGE_SCHEMA_SQL = `-- ==============================================================================
+-- AbtalQuest: Supabase Storage Automatic Provisioning & Access Policies
+-- Run this in Supabase SQL Editor: https://supabase.com/dashboard/project/sdatbzgyqwxburnsjbax/sql/new
+-- ==============================================================================
+
+-- 1. Create or update the 'product-images' and 'blog-images' storage buckets
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+  'product-images',
+  'product-images',
+  true,
+  10485760, -- 10MB limit
+  ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml', 'image/avif']
+)
+ON CONFLICT (id) DO UPDATE SET
+  public = true,
+  file_size_limit = 10485760,
+  allowed_mime_types = ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml', 'image/avif'];
+
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+  'blog-images',
+  'blog-images',
+  true,
+  10485760, -- 10MB limit
+  ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml', 'image/avif']
+)
+ON CONFLICT (id) DO UPDATE SET
+  public = true,
+  file_size_limit = 10485760,
+  allowed_mime_types = ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml', 'image/avif'];
+
+-- 2. Enable Row Level Security
+ALTER TABLE storage.buckets ENABLE ROW LEVEL SECURITY;
+ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
+
+-- 3. Grant schema & table permissions
+GRANT USAGE ON SCHEMA storage TO anon, authenticated, service_role;
+GRANT ALL ON TABLE storage.buckets TO anon, authenticated, service_role;
+GRANT ALL ON TABLE storage.objects TO anon, authenticated, service_role;
+
+-- 4. Bucket Discovery Policies
+DROP POLICY IF EXISTS "Allow public read on storage buckets" ON storage.buckets;
+DROP POLICY IF EXISTS "Allow public insert on storage buckets" ON storage.buckets;
+DROP POLICY IF EXISTS "Allow public update on storage buckets" ON storage.buckets;
+
+CREATE POLICY "Allow public read on storage buckets"
+  ON storage.buckets FOR SELECT
+  TO anon, authenticated
+  USING (true);
+
+CREATE POLICY "Allow public insert on storage buckets"
+  ON storage.buckets FOR INSERT
+  TO anon, authenticated
+  WITH CHECK (true);
+
+CREATE POLICY "Allow public update on storage buckets"
+  ON storage.buckets FOR UPDATE
+  TO anon, authenticated
+  USING (true);
+
+-- 5. Product Images Policies
+DROP POLICY IF EXISTS "Allow public read on product images" ON storage.objects;
+DROP POLICY IF EXISTS "Allow upload on product images" ON storage.objects;
+DROP POLICY IF EXISTS "Allow update on product images" ON storage.objects;
+DROP POLICY IF EXISTS "Allow delete on product images" ON storage.objects;
+
+CREATE POLICY "Allow public read on product images"
+  ON storage.objects FOR SELECT
+  TO anon, authenticated
+  USING (bucket_id = 'product-images');
+
+CREATE POLICY "Allow upload on product images"
+  ON storage.objects FOR INSERT
+  TO anon, authenticated
+  WITH CHECK (bucket_id = 'product-images');
+
+CREATE POLICY "Allow update on product images"
+  ON storage.objects FOR UPDATE
+  TO anon, authenticated
+  USING (bucket_id = 'product-images')
+  WITH CHECK (bucket_id = 'product-images');
+
+CREATE POLICY "Allow delete on product images"
+  ON storage.objects FOR DELETE
+  TO anon, authenticated
+  USING (bucket_id = 'product-images');
+
+-- 6. Blog Images Policies
+DROP POLICY IF EXISTS "Allow public read on blog images" ON storage.objects;
+DROP POLICY IF EXISTS "Allow upload on blog images" ON storage.objects;
+DROP POLICY IF EXISTS "Allow update on blog images" ON storage.objects;
+DROP POLICY IF EXISTS "Allow delete on blog images" ON storage.objects;
+
+CREATE POLICY "Allow public read on blog images"
+  ON storage.objects FOR SELECT
+  TO anon, authenticated
+  USING (bucket_id = 'blog-images');
+
+CREATE POLICY "Allow upload on blog images"
+  ON storage.objects FOR INSERT
+  TO anon, authenticated
+  WITH CHECK (bucket_id = 'blog-images');
+
+CREATE POLICY "Allow update on blog images"
+  ON storage.objects FOR UPDATE
+  TO anon, authenticated
+  USING (bucket_id = 'blog-images')
+  WITH CHECK (bucket_id = 'blog-images');
+
+CREATE POLICY "Allow delete on blog images"
+  ON storage.objects FOR DELETE
+  TO anon, authenticated
+  USING (bucket_id = 'blog-images');
+
 NOTIFY pgrst, 'reload schema';
 `;
 
