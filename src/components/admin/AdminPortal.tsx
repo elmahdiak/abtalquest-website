@@ -53,12 +53,18 @@ import {
   ShoppingBag,
   Calendar,
   Percent,
-  Ticket
+  Ticket,
+  EyeOff,
+  CheckSquare,
+  Square,
+  MinusSquare
 } from 'lucide-react';
 import Badge from '../common/Badge';
 import Button from '../common/Button';
 import AbtalQuestLogo from '../common/AbtalQuestLogo';
 import { useTheme } from '../../context/ThemeContext';
+import { useLanguage } from '../../context/LanguageContext';
+import { LANGUAGES, type Language } from '../../locales';
 import { 
   getStoredWhatsAppPosition, 
   setStoredWhatsAppPosition, 
@@ -101,6 +107,10 @@ import {
   createProduct,
   updateProduct,
   deleteProduct,
+  batchUpdateProducts,
+  batchDeleteProducts,
+  batchToggleProductVisibility,
+  toggleProductVisibility,
   uploadProductImage,
   fetchCategories,
   createCategory,
@@ -184,6 +194,8 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
 
   // Dashboard state
   const { theme, toggleTheme } = useTheme();
+  const { language, direction, setLanguage, t } = useLanguage();
+  const [adminLangMenuOpen, setAdminLangMenuOpen] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<'orders' | 'products' | 'categories' | 'coupons' | 'blogs' | 'subscribers' | 'messages' | 'analytics' | 'team' | 'settings'>('orders');
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(() => {
@@ -266,6 +278,24 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
   const [deletingProductError, setDeletingProductError] = useState<string | null>(null);
   const [productActionSuccess, setProductActionSuccess] = useState<string | null>(null);
 
+  // Multi-Product Bulk Selection & Visibility state
+  const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
+  const [batchEditModalOpen, setBatchEditModalOpen] = useState<boolean>(false);
+  const [batchDeleteModalOpen, setBatchDeleteModalOpen] = useState<boolean>(false);
+  const [batchSubmitting, setBatchSubmitting] = useState<boolean>(false);
+  const [batchError, setBatchError] = useState<string | null>(null);
+
+  // Batch Edit Form state
+  const [batchCategory, setBatchCategory] = useState<string>('');
+  const [batchStockMode, setBatchStockMode] = useState<'keep' | 'set'>('keep');
+  const [batchStockValue, setBatchStockValue] = useState<string>('15');
+  const [batchDiscountMode, setBatchDiscountMode] = useState<'keep' | 'set'>('keep');
+  const [batchDiscountValue, setBatchDiscountValue] = useState<string>('0');
+  const [batchVisibilityMode, setBatchVisibilityMode] = useState<'keep' | 'online' | 'offline'>('keep');
+
+  // Single product visibility updating tracker
+  const [updatingVisibilityId, setUpdatingVisibilityId] = useState<string | null>(null);
+
   // Product Form state
   const [prodTitle, setProdTitle] = useState<string>('');
   const [prodSku, setProdSku] = useState<string>('');
@@ -279,6 +309,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
   const [prodDiscountPercent, setProdDiscountPercent] = useState<string>('0');
   const [prodStockCount, setProdStockCount] = useState<string>('15');
   const [prodInStock, setProdInStock] = useState<boolean>(true);
+  const [prodIsActive, setProdIsActive] = useState<boolean>(true);
   const [prodIsBestSeller, setProdIsBestSeller] = useState<boolean>(false);
   const [prodIsNew, setProdIsNew] = useState<boolean>(false);
   const [prodXpBonus, setProdXpBonus] = useState<string>('300');
@@ -660,6 +691,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
     setProdDiscountPercent('25');
     setProdStockCount('15');
     setProdInStock(true);
+    setProdIsActive(true);
     setProdIsBestSeller(false);
     setProdIsNew(true);
     setProdXpBonus('350');
@@ -686,6 +718,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
     setProdDiscountPercent(String(prod.discountPercent || 0));
     setProdStockCount(String(prod.stockCount !== undefined ? prod.stockCount : 15));
     setProdInStock(prod.inStock !== false);
+    setProdIsActive(prod.isActive !== false);
     setProdIsBestSeller(Boolean(prod.isBestSeller));
     setProdIsNew(Boolean(prod.isNew));
     setProdXpBonus(String(prod.xpBonus || 0));
@@ -771,6 +804,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
         discountPercent: numDiscount,
         stockCount: numStock,
         inStock: prodInStock && numStock > 0,
+        isActive: prodIsActive,
         isBestSeller: prodIsBestSeller,
         isNew: prodIsNew,
         xpBonus: numXp,
@@ -824,6 +858,185 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
       setDeletingProductError(err?.message || 'Failed to delete product from Supabase. Check database permissions.');
     } finally {
       setDeletingProductSubmitting(false);
+    }
+  };
+
+  // Single Product Visibility Toggle Handler
+  const handleToggleProductVisibility = async (prod: Product) => {
+    const nextState = prod.isActive === false ? true : false;
+    setUpdatingVisibilityId(prod.id);
+    try {
+      const res = await toggleProductVisibility(prod.id, nextState);
+      if (res.success) {
+        setProductsList((prev) =>
+          prev.map((p) => (p.id === prod.id ? { ...p, isActive: nextState } : p))
+        );
+        setProductActionSuccess(
+          nextState
+            ? `Product "${prod.title}" is now published online.`
+            : `Product "${prod.title}" is now hidden offline.`
+        );
+        setTimeout(() => setProductActionSuccess(null), 4000);
+      } else {
+        alert(`Failed to update visibility: ${res.error || 'Unknown error'}`);
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Unknown error';
+      alert(`Error toggling visibility: ${msg}`);
+    } finally {
+      setUpdatingVisibilityId(null);
+    }
+  };
+
+  // Bulk Product Selection Handlers
+  const handleToggleSelectProduct = (id: string) => {
+    setSelectedProductIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleSelectAllVisibleProducts = (visibleIds: string[]) => {
+    if (visibleIds.length === 0) return;
+    const allSelected = visibleIds.every((id) => selectedProductIds.includes(id));
+    if (allSelected) {
+      setSelectedProductIds((prev) => prev.filter((id) => !visibleIds.includes(id)));
+    } else {
+      setSelectedProductIds((prev) => Array.from(new Set([...prev, ...visibleIds])));
+    }
+  };
+
+  const handleDeselectAllProducts = () => {
+    setSelectedProductIds([]);
+  };
+
+  // Bulk Visibility Toggle Handler
+  const handleBatchSetVisibility = async (isActive: boolean) => {
+    if (selectedProductIds.length === 0) return;
+    setBatchSubmitting(true);
+    try {
+      const res = await batchToggleProductVisibility(selectedProductIds, isActive);
+      if (res.success) {
+        setProductsList((prev) =>
+          prev.map((p) => (selectedProductIds.includes(p.id) ? { ...p, isActive } : p))
+        );
+        const count = selectedProductIds.length;
+        setProductActionSuccess(
+          isActive
+            ? `${count} product(s) published online successfully!`
+            : `${count} product(s) hidden offline successfully!`
+        );
+        setTimeout(() => setProductActionSuccess(null), 5000);
+      } else {
+        alert(`Failed to update products visibility: ${res.error}`);
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Unknown error';
+      alert(`Error updating visibility: ${msg}`);
+    } finally {
+      setBatchSubmitting(false);
+    }
+  };
+
+  // Bulk Delete Handler
+  const handleConfirmBatchDelete = async () => {
+    if (selectedProductIds.length === 0) return;
+    setBatchSubmitting(true);
+    setBatchError(null);
+    try {
+      const count = selectedProductIds.length;
+      const res = await batchDeleteProducts(selectedProductIds);
+      if (res.success) {
+        setProductsList((prev) => prev.filter((p) => !selectedProductIds.includes(p.id)));
+        setSelectedProductIds([]);
+        setBatchDeleteModalOpen(false);
+        setProductActionSuccess(`${count} products permanently deleted from database.`);
+        setTimeout(() => setProductActionSuccess(null), 5000);
+      } else {
+        setBatchError(res.error || 'Failed to delete selected products.');
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Unknown error';
+      setBatchError(msg);
+    } finally {
+      setBatchSubmitting(false);
+    }
+  };
+
+  // Bulk Edit Handler
+  const handleOpenBatchEditModal = () => {
+    setBatchCategory('');
+    setBatchStockMode('keep');
+    setBatchStockValue('15');
+    setBatchDiscountMode('keep');
+    setBatchDiscountValue('0');
+    setBatchVisibilityMode('keep');
+    setBatchError(null);
+    setBatchEditModalOpen(true);
+  };
+
+  const handleSaveBatchEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (selectedProductIds.length === 0) return;
+
+    const updates: Partial<Product> = {};
+    if (batchCategory.trim()) {
+      updates.category = batchCategory.trim();
+      const matchedCat = categoriesList.find(
+        (c) => c.id === batchCategory.trim() || c.slug === batchCategory.trim()
+      );
+      if (matchedCat?.planetName) {
+        updates.planetName = matchedCat.planetName;
+      }
+    }
+    if (batchStockMode === 'set') {
+      const parsedStock = parseInt(batchStockValue, 10);
+      if (!isNaN(parsedStock) && parsedStock >= 0) {
+        updates.stockCount = parsedStock;
+        updates.inStock = parsedStock > 0;
+      }
+    }
+    if (batchDiscountMode === 'set') {
+      const parsedDiscount = parseInt(batchDiscountValue, 10);
+      if (!isNaN(parsedDiscount) && parsedDiscount >= 0 && parsedDiscount <= 100) {
+        updates.discountPercent = parsedDiscount;
+      }
+    }
+    if (batchVisibilityMode === 'online') {
+      updates.isActive = true;
+    } else if (batchVisibilityMode === 'offline') {
+      updates.isActive = false;
+    }
+
+    if (Object.keys(updates).length === 0) {
+      setBatchError('Please choose at least one property to change, or cancel.');
+      return;
+    }
+
+    setBatchSubmitting(true);
+    setBatchError(null);
+    try {
+      const res = await batchUpdateProducts(selectedProductIds, updates);
+      if (res.success) {
+        setProductsList((prev) =>
+          prev.map((p) => {
+            if (selectedProductIds.includes(p.id)) {
+              return { ...p, ...updates };
+            }
+            return p;
+          })
+        );
+        const count = selectedProductIds.length;
+        setBatchEditModalOpen(false);
+        setProductActionSuccess(`Batch updated ${count} products successfully!`);
+        setTimeout(() => setProductActionSuccess(null), 5000);
+      } else {
+        setBatchError(res.error || 'Failed to update selected products.');
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Unknown error';
+      setBatchError(msg);
+    } finally {
+      setBatchSubmitting(false);
     }
   };
 
@@ -2085,7 +2298,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
 
   // View 2: Full Admin Dashboard
   return (
-    <div className="h-screen max-h-screen w-full bg-slate-100 text-slate-800 flex overflow-hidden">
+    <div className="h-screen max-h-screen w-full bg-slate-100 text-slate-800 flex overflow-hidden" dir={direction}>
       {/* Mobile Backdrop */}
       {sidebarOpen && (
         <div
@@ -2097,8 +2310,8 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
 
       {/* Left Vertical Sidebar (Sticky / Fixed h-screen) */}
       <aside
-        className={`fixed md:sticky top-0 left-0 z-50 h-screen bg-[#0A2540] border-r border-slate-800/80 flex flex-col justify-between shrink-0 transition-all duration-300 ease-in-out ${
-          sidebarOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full md:translate-x-0'
+        className={`fixed md:sticky top-0 start-0 z-50 h-screen bg-[#0A2540] border-r rtl:border-r-0 rtl:border-l border-slate-800/80 flex flex-col justify-between shrink-0 transition-all duration-300 ease-in-out ${
+          sidebarOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full md:translate-x-0 rtl:translate-x-full rtl:md:translate-x-0'
         } ${
           isSidebarCollapsed ? 'md:w-20' : 'md:w-64 lg:w-72'
         } w-64`}
@@ -2157,7 +2370,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
                 {canAccess('orders') && (
                   <button
                     type="button"
-                    title={isSidebarCollapsed ? 'Orders' : undefined}
+                    title={isSidebarCollapsed ? (t('admin.tabs.orders') || 'Orders') : undefined}
                     onClick={() => {
                       setActiveTab('orders');
                       setSidebarOpen(false);
@@ -2172,7 +2385,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
                   >
                     <div className={`flex items-center ${isSidebarCollapsed ? 'md:justify-center' : 'gap-2.5'}`}>
                       <Package className={`w-4 h-4 shrink-0 ${activeTab === 'orders' ? 'text-white' : 'text-slate-400 group-hover:text-slate-200'}`} />
-                      <span className={isSidebarCollapsed ? 'md:hidden' : 'inline'}>Orders</span>
+                      <span className={isSidebarCollapsed ? 'md:hidden' : 'inline'}>{t('admin.tabs.orders') || 'Orders'}</span>
                     </div>
                     <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${isSidebarCollapsed ? 'md:hidden' : 'inline-block'} ${
                       activeTab === 'orders' ? 'bg-white/20 text-white' : 'bg-slate-800 text-slate-300 group-hover:bg-slate-700'
@@ -2185,7 +2398,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
                 {canAccess('products') && (
                   <button
                     type="button"
-                    title={isSidebarCollapsed ? 'Products Inventory' : undefined}
+                    title={isSidebarCollapsed ? (t('admin.tabs.products') || 'Products Inventory') : undefined}
                     onClick={() => {
                       setActiveTab('products');
                       setSidebarOpen(false);
@@ -2200,7 +2413,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
                   >
                     <div className={`flex items-center ${isSidebarCollapsed ? 'md:justify-center' : 'gap-2.5'}`}>
                       <Layers className={`w-4 h-4 shrink-0 ${activeTab === 'products' ? 'text-white' : 'text-slate-400 group-hover:text-slate-200'}`} />
-                      <span className={isSidebarCollapsed ? 'md:hidden' : 'inline'}>Products Inventory</span>
+                      <span className={isSidebarCollapsed ? 'md:hidden' : 'inline'}>{t('admin.tabs.products') || 'Products Inventory'}</span>
                     </div>
                     <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${isSidebarCollapsed ? 'md:hidden' : 'inline-block'} ${
                       activeTab === 'products' ? 'bg-white/20 text-white' : 'bg-slate-800 text-slate-300 group-hover:bg-slate-700'
@@ -2213,7 +2426,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
                 {canAccess('categories') && (
                   <button
                     type="button"
-                    title={isSidebarCollapsed ? 'Categories & Planets' : undefined}
+                    title={isSidebarCollapsed ? (t('admin.tabs.categories') || 'Categories & Planets') : undefined}
                     onClick={() => {
                       setActiveTab('categories');
                       setSidebarOpen(false);
@@ -2228,7 +2441,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
                   >
                     <div className={`flex items-center ${isSidebarCollapsed ? 'md:justify-center' : 'gap-2.5'}`}>
                       <Tag className={`w-4 h-4 shrink-0 ${activeTab === 'categories' ? 'text-white' : 'text-slate-400 group-hover:text-slate-200'}`} />
-                      <span className={isSidebarCollapsed ? 'md:hidden' : 'inline'}>Categories & Planets</span>
+                      <span className={isSidebarCollapsed ? 'md:hidden' : 'inline'}>{t('admin.tabs.categories') || 'Categories & Planets'}</span>
                     </div>
                     <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${isSidebarCollapsed ? 'md:hidden' : 'inline-block'} ${
                       activeTab === 'categories' ? 'bg-white/20 text-white' : 'bg-slate-800 text-slate-300 group-hover:bg-slate-700'
@@ -2241,7 +2454,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
                 {canAccess('coupons') && (
                   <button
                     type="button"
-                    title={isSidebarCollapsed ? 'Coupons & Codes Promo' : undefined}
+                    title={isSidebarCollapsed ? (t('admin.tabs.coupons') || 'Coupons') : undefined}
                     onClick={() => {
                       setActiveTab('coupons');
                       setSidebarOpen(false);
@@ -2256,7 +2469,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
                   >
                     <div className={`flex items-center ${isSidebarCollapsed ? 'md:justify-center' : 'gap-2.5'}`}>
                       <Ticket className={`w-4 h-4 shrink-0 ${activeTab === 'coupons' ? 'text-white' : 'text-slate-400 group-hover:text-slate-200'}`} />
-                      <span className={isSidebarCollapsed ? 'md:hidden' : 'inline'}>Coupons & Codes Promo</span>
+                      <span className={isSidebarCollapsed ? 'md:hidden' : 'inline'}>{t('admin.tabs.coupons') || 'Coupons'}</span>
                     </div>
                     <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${isSidebarCollapsed ? 'md:hidden' : 'inline-block'} ${
                       activeTab === 'coupons' ? 'bg-white/20 text-white' : 'bg-slate-800 text-slate-300 group-hover:bg-slate-700'
@@ -2283,7 +2496,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
                 {canAccess('blogs') && (
                   <button
                     type="button"
-                    title={isSidebarCollapsed ? 'Blogs & Articles' : undefined}
+                    title={isSidebarCollapsed ? (t('admin.tabs.blog') || 'Blogs & Articles') : undefined}
                     onClick={() => {
                       setActiveTab('blogs');
                       setSidebarOpen(false);
@@ -2298,7 +2511,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
                   >
                     <div className={`flex items-center ${isSidebarCollapsed ? 'md:justify-center' : 'gap-2.5'}`}>
                       <BookOpen className={`w-4 h-4 shrink-0 ${activeTab === 'blogs' ? 'text-white' : 'text-slate-400 group-hover:text-slate-200'}`} />
-                      <span className={isSidebarCollapsed ? 'md:hidden' : 'inline'}>Blogs & Articles</span>
+                      <span className={isSidebarCollapsed ? 'md:hidden' : 'inline'}>{t('admin.tabs.blog') || 'Blogs & Articles'}</span>
                     </div>
                     <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${isSidebarCollapsed ? 'md:hidden' : 'inline-block'} ${
                       activeTab === 'blogs' ? 'bg-white/20 text-white' : 'bg-slate-800 text-slate-300 group-hover:bg-slate-700'
@@ -2311,7 +2524,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
                 {canAccess('subscribers') && (
                   <button
                     type="button"
-                    title={isSidebarCollapsed ? 'Explorer Club' : undefined}
+                    title={isSidebarCollapsed ? (t('admin.tabs.subscribers') || 'Explorer Club') : undefined}
                     onClick={() => {
                       setActiveTab('subscribers');
                       loadSubscribers();
@@ -2327,7 +2540,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
                   >
                     <div className={`flex items-center ${isSidebarCollapsed ? 'md:justify-center' : 'gap-2.5'}`}>
                       <Mail className={`w-4 h-4 shrink-0 ${activeTab === 'subscribers' ? 'text-white' : 'text-slate-400 group-hover:text-slate-200'}`} />
-                      <span className={isSidebarCollapsed ? 'md:hidden' : 'inline'}>Explorer Club</span>
+                      <span className={isSidebarCollapsed ? 'md:hidden' : 'inline'}>{t('admin.tabs.subscribers') || 'Explorer Club'}</span>
                     </div>
                     <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${isSidebarCollapsed ? 'md:hidden' : 'inline-block'} ${
                       activeTab === 'subscribers' ? 'bg-white/20 text-white' : 'bg-slate-800 text-slate-300 group-hover:bg-slate-700'
@@ -2340,7 +2553,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
                 {canAccess('messages') && (
                   <button
                     type="button"
-                    title={isSidebarCollapsed ? 'Contact Messages' : undefined}
+                    title={isSidebarCollapsed ? (t('admin.tabs.messages') || 'Contact Messages') : undefined}
                     onClick={() => {
                       setActiveTab('messages');
                       setSidebarOpen(false);
@@ -2355,7 +2568,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
                   >
                     <div className={`flex items-center ${isSidebarCollapsed ? 'md:justify-center' : 'gap-2.5'}`}>
                       <MessageSquare className={`w-4 h-4 shrink-0 ${activeTab === 'messages' ? 'text-white' : 'text-slate-400 group-hover:text-slate-200'}`} />
-                      <span className={isSidebarCollapsed ? 'md:hidden' : 'inline'}>Contact Messages</span>
+                      <span className={isSidebarCollapsed ? 'md:hidden' : 'inline'}>{t('admin.tabs.messages') || 'Contact Messages'}</span>
                     </div>
                     {unreadCount > 0 ? (
                       <>
@@ -2393,7 +2606,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
                 {canAccess('analytics') && (
                   <button
                     type="button"
-                    title={isSidebarCollapsed ? 'Key Metrics' : undefined}
+                    title={isSidebarCollapsed ? (t('admin.tabs.analytics') || 'Key Metrics') : undefined}
                     onClick={() => {
                       setActiveTab('analytics');
                       setSidebarOpen(false);
@@ -2408,7 +2621,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
                   >
                     <div className={`flex items-center ${isSidebarCollapsed ? 'md:justify-center' : 'gap-2.5'}`}>
                       <BarChart3 className={`w-4 h-4 shrink-0 ${activeTab === 'analytics' ? 'text-white' : 'text-slate-400 group-hover:text-slate-200'}`} />
-                      <span className={isSidebarCollapsed ? 'md:hidden' : 'inline'}>Key Metrics</span>
+                      <span className={isSidebarCollapsed ? 'md:hidden' : 'inline'}>{t('admin.tabs.analytics') || 'Key Metrics'}</span>
                     </div>
                   </button>
                 )}
@@ -2416,7 +2629,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
                 {canAccess('team') && (
                   <button
                     type="button"
-                    title={isSidebarCollapsed ? 'Admin Team (MASTER)' : undefined}
+                    title={isSidebarCollapsed ? `${t('admin.tabs.team') || 'Admin Team'} (MASTER)` : undefined}
                     onClick={() => {
                       setActiveTab('team');
                       loadAdmins();
@@ -2432,7 +2645,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
                   >
                     <div className={`flex items-center ${isSidebarCollapsed ? 'md:justify-center' : 'gap-2.5'}`}>
                       <Crown className="w-4 h-4 shrink-0 text-amber-300" />
-                      <span className={isSidebarCollapsed ? 'md:hidden' : 'inline'}>Admin Team</span>
+                      <span className={isSidebarCollapsed ? 'md:hidden' : 'inline'}>{t('admin.tabs.team') || 'Admin Team'}</span>
                     </div>
                     <span className={`px-2 py-0.5 bg-amber-400 text-slate-900 rounded-full text-[9px] font-black ${isSidebarCollapsed ? 'md:hidden' : 'inline-block'}`}>
                       MASTER
@@ -2443,7 +2656,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
                 {canAccess('settings') && (
                   <button
                     type="button"
-                    title={isSidebarCollapsed ? 'Platform Settings' : undefined}
+                    title={isSidebarCollapsed ? (t('admin.tabs.settings') || 'Platform Settings') : undefined}
                     onClick={() => {
                       setActiveTab('settings');
                       setSidebarOpen(false);
@@ -2458,7 +2671,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
                   >
                     <div className={`flex items-center ${isSidebarCollapsed ? 'md:justify-center' : 'gap-2.5'}`}>
                       <SlidersHorizontal className={`w-4 h-4 shrink-0 ${activeTab === 'settings' ? 'text-white' : 'text-slate-400 group-hover:text-slate-200'}`} />
-                      <span className={isSidebarCollapsed ? 'md:hidden' : 'inline'}>Platform Settings</span>
+                      <span className={isSidebarCollapsed ? 'md:hidden' : 'inline'}>{t('admin.tabs.settings') || 'Platform Settings'}</span>
                     </div>
                   </button>
                 )}
@@ -2727,8 +2940,8 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
                 <button
                   type="button"
                   onClick={toggleTheme}
-                  aria-label={theme === 'dark' ? 'Passer en mode clair' : 'Passer en mode sombre'}
-                  title={theme === 'dark' ? 'Mode Clair' : 'Mode Sombre'}
+                  aria-label={theme === 'dark' ? (t('admin.lightMode') || 'Light Mode') : (t('admin.darkMode') || 'Dark Mode')}
+                  title={theme === 'dark' ? (t('admin.lightMode') || 'Light Mode') : (t('admin.darkMode') || 'Dark Mode')}
                   className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-amber-400 dark:hover:text-amber-300 transition-colors focus:outline-none focus:ring-2 focus:ring-[#fa8221] cursor-pointer"
                 >
                   {theme === 'dark' ? (
@@ -2738,12 +2951,60 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
                   )}
                 </button>
 
+                {/* 3. Multi-Language Switcher (EN, FR, AR with RTL) */}
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setAdminLangMenuOpen((prev) => !prev)}
+                    aria-label={t('admin.selectLanguage') || 'Language'}
+                    title={t('admin.selectLanguage') || 'Language'}
+                    className="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-[#fa8221] cursor-pointer flex items-center gap-1.5 text-xs font-headline font-bold"
+                  >
+                    <Globe className="w-4 h-4 text-sky-400" />
+                    <span className="uppercase">{language}</span>
+                    <span className="text-[11px]">{LANGUAGES[language].flag}</span>
+                  </button>
+
+                  {adminLangMenuOpen && (
+                    <div
+                      className={`absolute mt-2 w-48 rounded-2xl bg-[#0A2540] backdrop-blur-md shadow-2xl border border-slate-700 py-1.5 z-50 animate-fadeIn ${
+                        direction === 'rtl' ? 'left-0' : 'right-0'
+                      }`}
+                    >
+                      <div className="px-3 py-1 text-[10px] uppercase tracking-wider font-semibold text-slate-400 border-b border-slate-800">
+                        {t('admin.selectLanguage') || 'Select Language'}
+                      </div>
+                      {(['en', 'fr', 'ar'] as Language[]).map((lng) => (
+                        <button
+                          key={lng}
+                          type="button"
+                          onClick={() => {
+                            setLanguage(lng);
+                            setAdminLangMenuOpen(false);
+                          }}
+                          className={`w-full px-3 py-2 text-xs font-headline font-semibold flex items-center justify-between hover:bg-slate-800 transition-colors cursor-pointer ${
+                            language === lng
+                              ? 'text-sky-400 bg-sky-500/15'
+                              : 'text-slate-300'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <span>{LANGUAGES[lng].flag}</span>
+                            <span>{LANGUAGES[lng].nativeName}</span>
+                          </div>
+                          {language === lng && <Check className="w-3.5 h-3.5 text-sky-400" />}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
                 <button
                   type="button"
                   onClick={handleExitAdmin}
                   className="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-headline font-semibold text-slate-300 hover:text-white transition-colors flex items-center gap-1.5 cursor-pointer"
                 >
-                  <span>Live Site</span>
+                  <span>{t('admin.liveSite') || 'Live Site'}</span>
                   <ExternalLink className="w-3.5 h-3.5" />
                 </button>
 
@@ -2753,7 +3014,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
                   className="px-3.5 py-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-300 text-xs font-headline font-semibold transition-colors flex items-center gap-1.5 cursor-pointer"
                 >
                   <LogOut className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Sign Out</span>
+                  <span className="hidden sm:inline">{t('admin.signOut') || 'Sign Out'}</span>
                 </button>
               </div>
             </div>
@@ -3167,184 +3428,245 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
             {/* ========================================================
                 TAB: PRODUCTS INVENTORY (CRUD)
                ======================================================== */}
-            {activeTab === 'products' && (
-              <div className="space-y-6">
-                {/* Header & Controls */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div>
-                    <div className="flex items-center gap-3">
-                      <h2 className="font-headline text-2xl font-black text-slate-900">
-                        Products Inventory ({productsList.length})
-                      </h2>
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-blue-50 text-[#016ba5] border border-blue-200">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#016ba5] animate-pulse" />
-                        Live Supabase Sync
-                      </span>
-                    </div>
-                    <p className="font-body text-xs text-slate-500 mt-1">
-                      Manage official learning kits, storybooks, pricing, discounts, and real-time inventory counts across devices.
-                    </p>
-                  </div>
+            {activeTab === 'products' && (() => {
+              const filteredProductsList = productsList.filter((prod) => {
+                if (productSearch.trim()) {
+                  const q = productSearch.toLowerCase();
+                  const matchTitle = prod.title.toLowerCase().includes(q);
+                  const matchSku = prod.sku ? prod.sku.toLowerCase().includes(q) : false;
+                  const matchPlanet = prod.planetName.toLowerCase().includes(q);
+                  if (!matchTitle && !matchSku && !matchPlanet) return false;
+                }
+                if (productCategoryFilter !== 'all') {
+                  if (prod.category !== productCategoryFilter && prod.planetName !== productCategoryFilter) {
+                    return false;
+                  }
+                }
+                const stock = prod.stockCount !== undefined ? prod.stockCount : 15;
+                if (productStockFilter === 'in_stock' && (stock <= 10 || !prod.inStock)) return false;
+                if (productStockFilter === 'low_stock' && (stock > 10 || stock === 0)) return false;
+                if (productStockFilter === 'out_of_stock' && (stock > 0 && prod.inStock !== false)) return false;
+                return true;
+              });
 
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      onClick={() => void loadDashboardData(true)}
-                      icon={<RefreshCw className="w-3.5 h-3.5" />}
-                      iconPosition="left"
-                    >
-                      Refresh
-                    </Button>
-                    <Button
-                      variant="cta"
-                      size="sm"
-                      onClick={handleOpenAddProduct}
-                      icon={<Plus className="w-4 h-4" />}
-                      iconPosition="left"
-                    >
-                      Add New Product
-                    </Button>
-                  </div>
-                </div>
+              const visibleProductIds = filteredProductsList.map((p) => p.id);
+              const isAllSelected = visibleProductIds.length > 0 && visibleProductIds.every((id) => selectedProductIds.includes(id));
+              const isIndeterminate = visibleProductIds.length > 0 && !isAllSelected && visibleProductIds.some((id) => selectedProductIds.includes(id));
 
-                {/* Success Notification Banner */}
-                {productActionSuccess && (
-                  <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200/90 flex items-center justify-between text-xs font-headline font-bold text-emerald-800 shadow-sm animate-fadeIn">
-                    <div className="flex items-center gap-2.5">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                      <span>{productActionSuccess}</span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setProductActionSuccess(null)}
-                      className="p-1 text-emerald-500 hover:text-emerald-800 rounded-lg hover:bg-emerald-100 transition-colors cursor-pointer"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                )}
-
-                {/* Metric Summary Cards */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-                  <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs">
-                    <span className="font-body text-xs text-slate-500 block mb-1">Total Catalog</span>
-                    <span className="font-headline font-black text-2xl text-slate-900">{productsList.length}</span>
-                  </div>
-                  <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs">
-                    <span className="font-body text-xs text-slate-500 block mb-1">In Stock</span>
-                    <span className="font-headline font-black text-2xl text-emerald-600">
-                      {productsList.filter((p) => p.inStock !== false && (p.stockCount ?? 15) > 0).length}
-                    </span>
-                  </div>
-                  <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs">
-                    <span className="font-body text-xs text-slate-500 block mb-1">Low Stock (≤10)</span>
-                    <span className="font-headline font-black text-2xl text-amber-500">
-                      {productsList.filter((p) => (p.stockCount ?? 15) <= 10 && (p.stockCount ?? 15) > 0).length}
-                    </span>
-                  </div>
-                  <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs">
-                    <span className="font-body text-xs text-slate-500 block mb-1">Total Stock Units</span>
-                    <span className="font-headline font-black text-2xl text-[#016ba5]">
-                      {productsList.reduce((sum, p) => sum + (p.stockCount ?? 15), 0)}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Filter and Search Bar */}
-                <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div className="relative flex-1">
-                    <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="text"
-                      placeholder="Search products by title, SKU, or tags..."
-                      value={productSearch}
-                      onChange={(e) => setProductSearch(e.target.value)}
-                      className="w-full pl-9 pr-4 py-2 rounded-xl bg-slate-50 border border-slate-200 font-body text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#016ba5]"
-                    />
-                  </div>
-
-                  <div className="flex items-center gap-2 overflow-x-auto">
-                    <select
-                      value={productCategoryFilter}
-                      onChange={(e) => setProductCategoryFilter(e.target.value)}
-                      className="px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs font-headline font-bold text-slate-700 cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#016ba5]"
-                    >
-                      <option value="all">All Categories</option>
-                      {categoriesList.map((cat) => (
-                        <option key={cat.id} value={cat.id}>
-                          {cat.name}
-                        </option>
-                      ))}
-                    </select>
-
-                    <select
-                      value={productStockFilter}
-                      onChange={(e) => setProductStockFilter(e.target.value as any)}
-                      className="px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs font-headline font-bold text-slate-700 cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#016ba5]"
-                    >
-                      <option value="all">All Stock Statuses</option>
-                      <option value="in_stock">In Stock (&gt;10)</option>
-                      <option value="low_stock">Low Stock (1–10)</option>
-                      <option value="out_of_stock">Out of Stock (0)</option>
-                    </select>
-                  </div>
-                </div>
-
-                {/* Products Table */}
-                <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
-                  {productsList.length === 0 ? (
-                    <div className="py-16 text-center">
-                      <Layers className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-                      <h4 className="font-headline font-bold text-slate-700 mb-1">No Products Found</h4>
-                      <p className="font-body text-xs text-slate-400 mb-4">
-                        Your product catalog is empty or waiting for initial database sync.
+              return (
+                <div className="space-y-6 relative pb-16">
+                  {/* Header & Controls */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                      <div className="flex items-center gap-3">
+                        <h2 className="font-headline text-2xl font-black text-slate-900">
+                          {t('admin.products.title') || 'Products Inventory'} ({productsList.length})
+                        </h2>
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-blue-50 text-[#016ba5] border border-blue-200">
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#016ba5] animate-pulse" />
+                          {t('admin.products.liveSync') || 'Live Supabase Sync'}
+                        </span>
+                      </div>
+                      <p className="font-body text-xs text-slate-500 mt-1">
+                        {t('admin.products.description') || 'Manage official learning kits, storybooks, pricing, discounts, and real-time inventory counts across devices.'}
                       </p>
-                      <Button variant="cta" size="sm" onClick={handleOpenAddProduct}>
-                        Create First Product
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        onClick={() => void loadDashboardData(true)}
+                        icon={<RefreshCw className="w-3.5 h-3.5" />}
+                        iconPosition="left"
+                      >
+                        {t('admin.products.refresh') || 'Refresh'}
+                      </Button>
+                      <Button
+                        variant="cta"
+                        size="sm"
+                        onClick={handleOpenAddProduct}
+                        icon={<Plus className="w-4 h-4" />}
+                        iconPosition="left"
+                      >
+                        {t('admin.products.addNew') || 'Add New Product'}
                       </Button>
                     </div>
-                  ) : (
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left border-collapse">
-                        <thead>
-                          <tr className="border-b border-slate-200/80 bg-slate-50/50 text-[11px] font-headline font-bold text-slate-500 uppercase tracking-wider">
-                            <th className="py-3 px-4">Product</th>
-                            <th className="py-3 px-4">Category & Planet</th>
-                            <th className="py-3 px-4">Age / Type</th>
-                            <th className="py-3 px-4">Price / XP</th>
-                            <th className="py-3 px-4">Stock Level</th>
-                            <th className="py-3 px-4 text-right">Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100 text-xs">
-                          {productsList
-                            .filter((prod) => {
-                              if (productSearch.trim()) {
-                                const q = productSearch.toLowerCase();
-                                const matchTitle = prod.title.toLowerCase().includes(q);
-                                const matchSku = prod.sku ? prod.sku.toLowerCase().includes(q) : false;
-                                const matchPlanet = prod.planetName.toLowerCase().includes(q);
-                                if (!matchTitle && !matchSku && !matchPlanet) return false;
-                              }
-                              if (productCategoryFilter !== 'all') {
-                                if (prod.category !== productCategoryFilter && prod.planetName !== productCategoryFilter) {
-                                  return false;
-                                }
-                              }
-                              const stock = prod.stockCount !== undefined ? prod.stockCount : 15;
-                              if (productStockFilter === 'in_stock' && (stock <= 10 || !prod.inStock)) return false;
-                              if (productStockFilter === 'low_stock' && (stock > 10 || stock === 0)) return false;
-                              if (productStockFilter === 'out_of_stock' && (stock > 0 && prod.inStock !== false)) return false;
-                              return true;
-                            })
-                            .map((prod) => {
+                  </div>
+
+                  {/* Success Notification Banner */}
+                  {productActionSuccess && (
+                    <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200/90 flex items-center justify-between text-xs font-headline font-bold text-emerald-800 shadow-sm animate-fadeIn">
+                      <div className="flex items-center gap-2.5">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                        <span>{productActionSuccess}</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setProductActionSuccess(null)}
+                        className="p-1 text-emerald-500 hover:text-emerald-800 rounded-lg hover:bg-emerald-100 transition-colors cursor-pointer"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Metric Summary Cards (5-card grid) */}
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 sm:gap-4">
+                    <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs">
+                      <span className="font-body text-xs text-slate-500 block mb-1">
+                        {t('admin.products.totalCatalog') || 'Total Catalog'}
+                      </span>
+                      <span className="font-headline font-black text-2xl text-slate-900">{productsList.length}</span>
+                    </div>
+                    <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs">
+                      <span className="font-body text-xs text-slate-500 block mb-1">
+                        {t('admin.products.inStockCount') || 'In Stock'}
+                      </span>
+                      <span className="font-headline font-black text-2xl text-emerald-600">
+                        {productsList.filter((p) => p.inStock !== false && (p.stockCount ?? 15) > 0).length}
+                      </span>
+                    </div>
+                    <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs">
+                      <span className="font-body text-xs text-slate-500 block mb-1">
+                        {t('admin.products.lowStockCount') || 'Low Stock (≤10)'}
+                      </span>
+                      <span className="font-headline font-black text-2xl text-amber-500">
+                        {productsList.filter((p) => (p.stockCount ?? 15) <= 10 && (p.stockCount ?? 15) > 0).length}
+                      </span>
+                    </div>
+                    <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs">
+                      <span className="font-body text-xs text-slate-500 block mb-1">
+                        {t('admin.products.hiddenCount') || 'Offline (Hidden)'}
+                      </span>
+                      <span className="font-headline font-black text-2xl text-slate-500">
+                        {productsList.filter((p) => p.isActive === false).length}
+                      </span>
+                    </div>
+                    <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs col-span-2 sm:col-span-1">
+                      <span className="font-body text-xs text-slate-500 block mb-1">
+                        {t('admin.products.totalUnits') || 'Total Stock Units'}
+                      </span>
+                      <span className="font-headline font-black text-2xl text-[#016ba5]">
+                        {productsList.reduce((sum, p) => sum + (p.stockCount ?? 15), 0)}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Filter and Search Bar */}
+                  <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="relative flex-1">
+                      <Search className="w-4 h-4 text-slate-400 absolute left-3.5 rtl:left-auto rtl:right-3.5 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="text"
+                        placeholder={t('admin.products.searchPlaceholder') || 'Search products by title, SKU, or tags...'}
+                        value={productSearch}
+                        onChange={(e) => setProductSearch(e.target.value)}
+                        className="w-full pl-9 pr-4 rtl:pl-4 rtl:pr-9 py-2 rounded-xl bg-slate-50 border border-slate-200 font-body text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#016ba5]"
+                      />
+                    </div>
+
+                    <div className="flex items-center gap-2 overflow-x-auto">
+                      <select
+                        value={productCategoryFilter}
+                        onChange={(e) => setProductCategoryFilter(e.target.value)}
+                        className="px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs font-headline font-bold text-slate-700 cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#016ba5]"
+                      >
+                        <option value="all">{t('admin.products.allCategories') || 'All Categories'}</option>
+                        {categoriesList.map((cat) => (
+                          <option key={cat.id} value={cat.id}>
+                            {cat.name}
+                          </option>
+                        ))}
+                      </select>
+
+                      <select
+                        value={productStockFilter}
+                        onChange={(e) => setProductStockFilter(e.target.value as any)}
+                        className="px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs font-headline font-bold text-slate-700 cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#016ba5]"
+                      >
+                        <option value="all">{t('admin.products.allStockStatuses') || 'All Stock Statuses'}</option>
+                        <option value="in_stock">{t('admin.products.inStockOption') || 'In Stock (>10)'}</option>
+                        <option value="low_stock">{t('admin.products.lowStockOption') || 'Low Stock (1–10)'}</option>
+                        <option value="out_of_stock">{t('admin.products.outOfStockOption') || 'Out of Stock (0)'}</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Products Table */}
+                  <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+                    {filteredProductsList.length === 0 ? (
+                      <div className="py-16 text-center">
+                        <Layers className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                        <h4 className="font-headline font-bold text-slate-700 mb-1">
+                          {t('admin.products.noProductsFound') || 'No Products Found'}
+                        </h4>
+                        <p className="font-body text-xs text-slate-400 mb-4">
+                          {t('admin.products.noProductsDesc') || 'Your product catalog is empty or waiting for initial database sync.'}
+                        </p>
+                        <Button variant="cta" size="sm" onClick={handleOpenAddProduct}>
+                          {t('admin.products.createFirst') || 'Create First Product'}
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left rtl:text-right border-collapse">
+                          <thead>
+                            <tr className="border-b border-slate-200/80 bg-slate-50/50 text-[11px] font-headline font-bold text-slate-500 uppercase tracking-wider">
+                              <th className="py-3 px-3 w-10 text-center">
+                                <button
+                                  type="button"
+                                  onClick={() => handleSelectAllVisibleProducts(visibleProductIds)}
+                                  className="p-1 rounded hover:bg-slate-200 text-slate-600 transition-colors cursor-pointer"
+                                  title={isAllSelected ? (t('admin.bulk.deselectAll') || 'Deselect All') : (t('admin.bulk.selectAll') || 'Select All')}
+                                  aria-label={isAllSelected ? (t('admin.bulk.deselectAll') || 'Deselect All') : (t('admin.bulk.selectAll') || 'Select All')}
+                                >
+                                  {isAllSelected ? (
+                                    <CheckSquare className="w-4 h-4 text-[#016ba5]" />
+                                  ) : isIndeterminate ? (
+                                    <MinusSquare className="w-4 h-4 text-[#016ba5]" />
+                                  ) : (
+                                    <Square className="w-4 h-4 text-slate-400" />
+                                  )}
+                                </button>
+                              </th>
+                              <th className="py-3 px-4">{t('admin.products.colProduct') || 'Product'}</th>
+                              <th className="py-3 px-4">{t('admin.products.colCategory') || 'Category & Planet'}</th>
+                              <th className="py-3 px-4">{t('admin.products.colAgeType') || 'Age / Type'}</th>
+                              <th className="py-3 px-4">{t('admin.products.colPrice') || 'Price / XP'}</th>
+                              <th className="py-3 px-4">{t('admin.products.colStock') || 'Stock Level'}</th>
+                              <th className="py-3 px-4 text-center">{t('admin.products.colVisibility') || 'Visibility'}</th>
+                              <th className="py-3 px-4 text-right rtl:text-left">{t('admin.products.colActions') || 'Actions'}</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100 text-xs">
+                            {filteredProductsList.map((prod) => {
                               const stock = prod.stockCount !== undefined ? prod.stockCount : 15;
                               const isLow = stock > 0 && stock <= 10;
                               const isOut = stock === 0 || prod.inStock === false;
+                              const isSelected = selectedProductIds.includes(prod.id);
+                              const isOnline = prod.isActive !== false;
 
                               return (
-                                <tr key={prod.id} className="hover:bg-slate-50/80 transition-colors">
+                                <tr
+                                  key={prod.id}
+                                  className={`transition-colors ${
+                                    isSelected
+                                      ? 'bg-blue-50/70 dark:bg-blue-900/10'
+                                      : 'hover:bg-slate-50/80'
+                                  }`}
+                                >
+                                  {/* Checkbox Selector */}
+                                  <td className="py-3.5 px-3 text-center">
+                                    <input
+                                      type="checkbox"
+                                      checked={isSelected}
+                                      onChange={() => handleToggleSelectProduct(prod.id)}
+                                      className="w-4 h-4 rounded border-slate-300 text-[#016ba5] focus:ring-[#016ba5] cursor-pointer"
+                                      aria-label={`Select product ${prod.title}`}
+                                    />
+                                  </td>
+
                                   {/* Product title & SKU */}
                                   <td className="py-3.5 px-4">
                                     <div className="flex items-center gap-3">
@@ -3414,11 +3736,11 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
                                   <td className="py-3.5 px-4">
                                     <div>
                                       <div className="font-headline font-black text-slate-900 text-sm">
-                                        {formatPrice(prod.price, 'en')}
+                                        {formatPrice(prod.price, language)}
                                       </div>
                                       {prod.originalPrice && prod.originalPrice > prod.price && (
-                                        <span className="font-body text-[10px] text-slate-400 line-through mr-1">
-                                          {formatPrice(prod.originalPrice, 'en')}
+                                        <span className="font-body text-[10px] text-slate-400 line-through mr-1 rtl:mr-0 rtl:ml-1">
+                                          {formatPrice(prod.originalPrice, language)}
                                         </span>
                                       )}
                                       <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.2 rounded-full mt-0.5">
@@ -3444,24 +3766,52 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
                                           isOut ? 'bg-red-500' : isLow ? 'bg-amber-500' : 'bg-emerald-500'
                                         }`}
                                       />
-                                      {isOut ? 'Out of Stock' : isLow ? `Low Stock (${stock})` : `In Stock (${stock})`}
+                                      {isOut
+                                        ? (t('admin.products.outOfStock') || 'Out of Stock')
+                                        : isLow
+                                        ? (t('admin.products.lowStock', { count: stock }) || `Low Stock (${stock})`)
+                                        : (t('admin.products.inStock', { count: stock }) || `In Stock (${stock})`)}
                                     </span>
                                   </td>
 
+                                  {/* Online / Offline Visibility Toggle Column */}
+                                  <td className="py-3.5 px-4 text-center">
+                                    <button
+                                      type="button"
+                                      disabled={updatingVisibilityId === prod.id}
+                                      onClick={() => handleToggleProductVisibility(prod)}
+                                      title={isOnline ? (t('admin.products.toggleOffline') || 'Take Offline') : (t('admin.products.toggleOnline') || 'Publish Online')}
+                                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-headline font-bold transition-all cursor-pointer ${
+                                        isOnline
+                                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/80 hover:bg-emerald-100'
+                                          : 'bg-slate-100 text-slate-500 border border-slate-300 hover:bg-slate-200'
+                                      }`}
+                                    >
+                                      {updatingVisibilityId === prod.id ? (
+                                        <Loader2 className="w-3 h-3 animate-spin text-slate-500" />
+                                      ) : isOnline ? (
+                                        <Eye className="w-3 h-3 text-emerald-600" />
+                                      ) : (
+                                        <EyeOff className="w-3 h-3 text-slate-400" />
+                                      )}
+                                      <span>{isOnline ? (t('admin.products.online') || 'Online') : (t('admin.products.offline') || 'Offline')}</span>
+                                    </button>
+                                  </td>
+
                                   {/* Actions */}
-                                  <td className="py-3.5 px-4 text-right">
-                                    <div className="flex items-center justify-end gap-1.5">
+                                  <td className="py-3.5 px-4 text-right rtl:text-left">
+                                    <div className="flex items-center justify-end rtl:justify-start gap-1.5">
                                       <button
                                         onClick={() => handleOpenEditProduct(prod)}
                                         className="p-1.5 rounded-lg bg-slate-100 hover:bg-[#016ba5] hover:text-white text-slate-600 transition-colors cursor-pointer"
-                                        title="Edit Product"
+                                        title={t('admin.products.editProduct') || 'Edit Product'}
                                       >
                                         <Edit3 className="w-3.5 h-3.5" />
                                       </button>
                                       <button
                                         onClick={() => setDeletingProduct(prod)}
                                         className="p-1.5 rounded-lg bg-red-50 hover:bg-red-600 hover:text-white text-red-600 transition-colors cursor-pointer"
-                                        title="Delete Product"
+                                        title={t('admin.products.deleteProduct') || 'Delete Product'}
                                       >
                                         <Trash2 className="w-3.5 h-3.5" />
                                       </button>
@@ -3470,13 +3820,81 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
                                 </tr>
                               );
                             })}
-                        </tbody>
-                      </table>
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Sticky Floating Bulk Action Toolbar */}
+                  {selectedProductIds.length > 0 && (
+                    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-slate-900/95 text-white backdrop-blur-md px-5 py-3 rounded-2xl shadow-2xl border border-slate-700 flex flex-wrap items-center justify-center gap-3 animate-fadeIn">
+                      <div className="flex items-center gap-2 border-r rtl:border-r-0 rtl:border-l border-slate-700 pr-3 rtl:pr-0 rtl:pl-3">
+                        <span className="w-2 h-2 rounded-full bg-[#fa8221] animate-pulse" />
+                        <span className="font-headline font-bold text-xs">
+                          {selectedProductIds.length === 1
+                            ? (t('admin.bulk.selectedCount', { count: selectedProductIds.length }) || '1 product selected')
+                            : (t('admin.bulk.selectedCountPlural', { count: selectedProductIds.length }) || `${selectedProductIds.length} products selected`)}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={handleDeselectAllProducts}
+                          className="text-[11px] text-slate-400 hover:text-white underline cursor-pointer ml-1 rtl:ml-0 rtl:mr-1"
+                        >
+                          {t('admin.bulk.deselectAll') || 'Deselect'}
+                        </button>
+                      </div>
+
+                      {/* Quick Bulk Visibility Toggles */}
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          disabled={batchSubmitting}
+                          onClick={() => handleBatchSetVisibility(true)}
+                          className="px-2.5 py-1.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 text-xs font-headline font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                          title="Publish selected products online"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                          <span className="hidden sm:inline">{t('admin.bulk.setOnline') || 'Publish Online'}</span>
+                        </button>
+                        <button
+                          type="button"
+                          disabled={batchSubmitting}
+                          onClick={() => handleBatchSetVisibility(false)}
+                          className="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-headline font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                          title="Take selected products offline"
+                        >
+                          <EyeOff className="w-3.5 h-3.5" />
+                          <span className="hidden sm:inline">{t('admin.bulk.setOffline') || 'Take Offline'}</span>
+                        </button>
+                      </div>
+
+                      {/* Batch Edit Button */}
+                      <button
+                        type="button"
+                        disabled={batchSubmitting}
+                        onClick={handleOpenBatchEditModal}
+                        className="px-3 py-1.5 rounded-xl bg-[#016ba5] hover:bg-[#015888] text-white text-xs font-headline font-bold flex items-center gap-1.5 transition-colors cursor-pointer shadow-sm"
+                      >
+                        <Edit3 className="w-3.5 h-3.5" />
+                        <span>{t('admin.bulk.batchEdit') || 'Batch Edit'}</span>
+                      </button>
+
+                      {/* Batch Delete Button */}
+                      <button
+                        type="button"
+                        disabled={batchSubmitting}
+                        onClick={() => setBatchDeleteModalOpen(true)}
+                        className="px-3 py-1.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-headline font-bold flex items-center gap-1.5 transition-colors cursor-pointer shadow-sm"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>{t('admin.bulk.batchDelete') || 'Batch Delete'}</span>
+                      </button>
                     </div>
                   )}
                 </div>
-              </div>
-            )}
+              );
+            })()}
 
             {/* ========================================================
                 TAB: CATEGORIES & PLANETS (CRUD)
@@ -5969,8 +6387,8 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
                     </div>
                   </div>
 
-                  {/* Badges & Flags */}
-                  <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center justify-between">
+                  {/* Badges & Flags & Visibility */}
+                  <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 flex flex-wrap items-center justify-between gap-2">
                     <label className="flex items-center gap-2 cursor-pointer text-xs font-headline font-bold text-slate-700">
                       <input
                         type="checkbox"
@@ -5989,6 +6407,16 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
                         className="w-4 h-4 rounded text-purple-600 focus:ring-purple-600"
                       />
                       <span>New Arrival</span>
+                    </label>
+
+                    <label className="flex items-center gap-2 cursor-pointer text-xs font-headline font-bold text-slate-700">
+                      <input
+                        type="checkbox"
+                        checked={prodIsActive}
+                        onChange={(e) => setProdIsActive(e.target.checked)}
+                        className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-600"
+                      />
+                      <span className="text-emerald-700 font-bold">Visible Online</span>
                     </label>
                   </div>
                 </div>
@@ -6194,6 +6622,231 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
               >
                 {deletingProductSubmitting ? 'Deleting...' : 'Confirm Delete'}
               </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================
+          MODAL 2B: BATCH EDIT PRODUCTS
+         ======================================================== */}
+      {batchEditModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-sm animate-fadeIn">
+          <div className="relative w-full max-w-lg bg-white rounded-3xl p-6 sm:p-8 shadow-2xl border border-slate-100 animate-fadeIn space-y-5">
+            <button
+              type="button"
+              onClick={() => setBatchEditModalOpen(false)}
+              className="absolute top-5 right-5 p-2 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-2 mb-1">
+              <span className="px-2.5 py-0.5 rounded-full bg-blue-100 text-[#016ba5] font-headline font-black text-[10px] uppercase tracking-wider flex items-center gap-1">
+                <Edit3 className="w-3 h-3" /> {t('admin.bulk.batchEdit') || 'Batch Edit'}
+              </span>
+            </div>
+
+            <div>
+              <h3 className="font-headline text-xl sm:text-2xl font-black text-slate-900">
+                {t('admin.bulk.batchEditTitle', { count: selectedProductIds.length }) || `Batch Edit ${selectedProductIds.length} Products`}
+              </h3>
+              <p className="font-body text-xs text-slate-500 mt-1">
+                {t('admin.bulk.batchEditSubtitle') || 'Modify shared properties across all selected items simultaneously.'}
+              </p>
+            </div>
+
+            {batchError && (
+              <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 flex items-start gap-2.5 text-xs font-body text-red-600">
+                <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+                <span>{batchError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSaveBatchEdit} className="space-y-4 pt-1">
+              {/* Change Category & Planet */}
+              <div>
+                <label className="block text-xs font-headline font-bold text-slate-700 mb-1">
+                  {t('admin.bulk.fieldCategory') || 'Category & Planet'}
+                </label>
+                <select
+                  value={batchCategory}
+                  onChange={(e) => setBatchCategory(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-headline font-bold text-slate-700 cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#016ba5]"
+                >
+                  <option value="">{t('admin.bulk.noCategoryChange') || '-- Keep Current Category --'}</option>
+                  {categoriesList.map((cat) => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.name} ({cat.planetName})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Change Stock */}
+              <div>
+                <label className="block text-xs font-headline font-bold text-slate-700 mb-1">
+                  {t('admin.bulk.fieldStock') || 'Stock Level'}
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <select
+                    value={batchStockMode}
+                    onChange={(e) => setBatchStockMode(e.target.value as any)}
+                    className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs font-headline font-bold text-slate-700 cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#016ba5]"
+                  >
+                    <option value="keep">{t('admin.bulk.noStockChange') || '-- Keep Current Stock --'}</option>
+                    <option value="set">{t('admin.bulk.setExactStock') || 'Set Exact Quantity'}</option>
+                  </select>
+                  {batchStockMode === 'set' ? (
+                    <input
+                      type="number"
+                      min="0"
+                      value={batchStockValue}
+                      onChange={(e) => setBatchStockValue(e.target.value)}
+                      placeholder="e.g. 20"
+                      className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#016ba5]"
+                    />
+                  ) : (
+                    <div className="px-3 py-2 rounded-xl bg-slate-100 text-slate-400 text-xs flex items-center italic">
+                      No change
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Change Discount % */}
+              <div>
+                <label className="block text-xs font-headline font-bold text-slate-700 mb-1">
+                  {t('admin.bulk.fieldDiscount') || 'Discount Percentage (%)'}
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <select
+                    value={batchDiscountMode}
+                    onChange={(e) => setBatchDiscountMode(e.target.value as any)}
+                    className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs font-headline font-bold text-slate-700 cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#016ba5]"
+                  >
+                    <option value="keep">{t('admin.bulk.noDiscountChange') || '-- Keep Current Discount --'}</option>
+                    <option value="set">Set Discount %</option>
+                  </select>
+                  {batchDiscountMode === 'set' ? (
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={batchDiscountValue}
+                      onChange={(e) => setBatchDiscountValue(e.target.value)}
+                      placeholder="e.g. 15"
+                      className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#016ba5]"
+                    />
+                  ) : (
+                    <div className="px-3 py-2 rounded-xl bg-slate-100 text-slate-400 text-xs flex items-center italic">
+                      No change
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Change Visibility */}
+              <div>
+                <label className="block text-xs font-headline font-bold text-slate-700 mb-1">
+                  {t('admin.bulk.fieldVisibility') || 'Storefront Visibility'}
+                </label>
+                <select
+                  value={batchVisibilityMode}
+                  onChange={(e) => setBatchVisibilityMode(e.target.value as any)}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-headline font-bold text-slate-700 cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#016ba5]"
+                >
+                  <option value="keep">{t('admin.bulk.noVisibilityChange') || '-- Keep Current Visibility --'}</option>
+                  <option value="online">{t('admin.bulk.makeOnline') || 'Visible on Storefront (Online)'}</option>
+                  <option value="offline">{t('admin.bulk.makeOffline') || 'Hidden from Storefront (Offline)'}</option>
+                </select>
+              </div>
+
+              <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setBatchEditModalOpen(false)}
+                >
+                  {t('admin.bulk.cancel') || 'Cancel'}
+                </Button>
+                <Button
+                  type="submit"
+                  variant="cta"
+                  size="sm"
+                  disabled={batchSubmitting}
+                  icon={batchSubmitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : undefined}
+                >
+                  {batchSubmitting ? (t('admin.bulk.saving') || 'Applying...') : (t('admin.bulk.applyChanges') || 'Apply Changes')}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================
+          MODAL 2C: BATCH DELETE PRODUCTS CONFIRMATION
+         ======================================================== */}
+      {batchDeleteModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm animate-fadeIn">
+          <div className="relative w-full max-w-md bg-white rounded-3xl p-6 sm:p-8 shadow-2xl border border-slate-100 animate-fadeIn">
+            <button
+              onClick={() => setBatchDeleteModalOpen(false)}
+              className="absolute top-5 right-5 p-2 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="w-12 h-12 rounded-2xl bg-red-100 text-red-600 flex items-center justify-center mb-4">
+              <Trash2 className="w-6 h-6" />
+            </div>
+
+            <h3 className="font-headline text-xl font-black text-slate-900 mb-2">
+              {t('admin.bulk.confirmDeleteTitle') || 'Batch Delete Products'}
+            </h3>
+            <p className="font-body text-xs text-slate-500 mb-5 leading-relaxed">
+              {t('admin.bulk.confirmDeleteMsg', { count: selectedProductIds.length }) ||
+                `Are you sure you want to permanently delete ${selectedProductIds.length} selected products? This will remove them from Supabase database.`}
+            </p>
+
+            {batchError && (
+              <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 flex items-start gap-2.5 text-xs font-body text-red-600 mb-5">
+                <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+                <span>{batchError}</span>
+              </div>
+            )}
+
+            <div className="flex items-center justify-end gap-3">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setBatchDeleteModalOpen(false);
+                  setBatchError(null);
+                }}
+              >
+                {t('admin.bulk.cancel') || 'Cancel'}
+              </Button>
+              <button
+                type="button"
+                disabled={batchSubmitting}
+                onClick={handleConfirmBatchDelete}
+                className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-headline font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+              >
+                {batchSubmitting ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>{t('admin.bulk.deleting') || 'Deleting...'}</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>{t('admin.bulk.deleteConfirmBtn') || 'Delete Selected'}</span>
+                  </>
+                )}
+              </button>
             </div>
           </div>
         </div>

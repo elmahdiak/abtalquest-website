@@ -452,6 +452,11 @@ export const Marketplace: React.FC<MarketplaceProps> = ({
   // Filter and Sort Pipeline
   const filteredProducts = useMemo(() => {
     return products.filter((product) => {
+      // Hide inactive/offline products from public storefront
+      if (product.isActive === false) {
+        return false;
+      }
+
       // Search term filter
       if (searchTerm.trim()) {
         const q = searchTerm.toLowerCase();

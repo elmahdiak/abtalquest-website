@@ -102,6 +102,7 @@ export interface Product {
   discountPercent?: number;
   inStock: boolean;
   stockCount: number;
+  isActive?: boolean;
   isBestSeller?: boolean;
   isNew?: boolean;
   images: string[];
@@ -723,6 +724,7 @@ interface SupabaseProductRow {
   discount_percent?: number;
   in_stock?: boolean;
   stock_count?: number;
+  is_active?: boolean;
   is_best_seller?: boolean;
   is_new?: boolean;
   images?: string[];
@@ -780,6 +782,7 @@ const mapRowToProduct = (row: SupabaseProductRow): Product => {
     discountPercent: row.discount_percent,
     inStock: row.in_stock !== undefined ? row.in_stock : true,
     stockCount: row.stock_count !== undefined ? row.stock_count : 15,
+    isActive: row.is_active !== undefined ? row.is_active : true,
     isBestSeller: row.is_best_seller,
     isNew: row.is_new,
     images: normalizedImages,
@@ -1126,6 +1129,7 @@ export const createProduct = async (prod: Omit<Product, 'id'> & { id?: string })
     discount_percent: prod.discountPercent || 0,
     in_stock: prod.inStock !== undefined ? prod.inStock : true,
     stock_count: prod.stockCount !== undefined ? prod.stockCount : 15,
+    is_active: prod.isActive !== undefined ? prod.isActive : true,
     is_best_seller: prod.isBestSeller || false,
     is_new: prod.isNew || false,
     images: rawImages,
@@ -1197,6 +1201,7 @@ export const updateProduct = async (id: string, updates: Partial<Product>): Prom
   if (updates.discountPercent !== undefined) payload.discount_percent = updates.discountPercent;
   if (updates.inStock !== undefined) payload.in_stock = updates.inStock;
   if (updates.stockCount !== undefined) payload.stock_count = updates.stockCount;
+  if (updates.isActive !== undefined) payload.is_active = updates.isActive;
   if (updates.isBestSeller !== undefined) payload.is_best_seller = updates.isBestSeller;
   if (updates.isNew !== undefined) payload.is_new = updates.isNew;
   if (updates.images !== undefined) {
@@ -1282,6 +1287,145 @@ export const deleteProduct = async (id: string): Promise<boolean> => {
   }
 
   return true;
+};
+
+export const batchUpdateProducts = async (
+  ids: string[],
+  updates: Partial<Product>
+): Promise<{ success: boolean; count: number; error?: string }> => {
+  if (!ids || ids.length === 0) return { success: true, count: 0 };
+
+  const payload: any = {};
+  if (updates.category !== undefined) payload.category = updates.category;
+  if (updates.planetName !== undefined) payload.planet_name = updates.planetName;
+  if (updates.productType !== undefined) payload.product_type = updates.productType;
+  if (updates.ageGroup !== undefined) payload.age_group = updates.ageGroup;
+  if (updates.ageLabel !== undefined) payload.age_label = updates.ageLabel;
+  if (updates.price !== undefined) payload.price = updates.price;
+  if (updates.originalPrice !== undefined) payload.original_price = updates.originalPrice || null;
+  if (updates.discountPercent !== undefined) payload.discount_percent = updates.discountPercent;
+  if (updates.inStock !== undefined) payload.in_stock = updates.inStock;
+  if (updates.stockCount !== undefined) payload.stock_count = updates.stockCount;
+  if (updates.isActive !== undefined) payload.is_active = updates.isActive;
+  if (updates.isBestSeller !== undefined) payload.is_best_seller = updates.isBestSeller;
+  if (updates.isNew !== undefined) payload.is_new = updates.isNew;
+
+  if (!isSupabaseConfigured()) {
+    if (typeof window !== 'undefined') {
+      ids.forEach((id) => {
+        try {
+          window.dispatchEvent(
+            new CustomEvent('abtalquest_product_updated', {
+              detail: { id, ...updates },
+            })
+          );
+        } catch {
+          // ignore
+        }
+      });
+    }
+    return { success: true, count: ids.length };
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('products')
+      .update(payload)
+      .in('id', ids)
+      .select();
+
+    if (error) {
+      console.error('[AbtalQuest Supabase] Batch update failed:', error);
+      return { success: false, count: 0, error: error.message };
+    }
+
+    if (typeof window !== 'undefined' && data) {
+      data.forEach((row) => {
+        const prod = mapRowToProduct(row as unknown as SupabaseProductRow);
+        try {
+          window.dispatchEvent(new CustomEvent('abtalquest_product_updated', { detail: prod }));
+        } catch {
+          // ignore
+        }
+      });
+    }
+
+    return { success: true, count: data?.length ?? ids.length };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : 'Batch update failed';
+    return { success: false, count: 0, error: msg };
+  }
+};
+
+export const batchDeleteProducts = async (
+  ids: string[]
+): Promise<{ success: boolean; count: number; error?: string }> => {
+  if (!ids || ids.length === 0) return { success: true, count: 0 };
+
+  if (!isSupabaseConfigured()) {
+    if (typeof window !== 'undefined') {
+      ids.forEach((id) => {
+        try {
+          window.dispatchEvent(
+            new CustomEvent('abtalquest_product_updated', {
+              detail: { id, deleted: true },
+            })
+          );
+        } catch {
+          // ignore
+        }
+      });
+    }
+    return { success: true, count: ids.length };
+  }
+
+  try {
+    const { error } = await supabase.from('products').delete().in('id', ids);
+
+    if (error) {
+      console.error('[AbtalQuest Supabase] Batch delete failed:', error);
+      return { success: false, count: 0, error: error.message };
+    }
+
+    if (typeof window !== 'undefined') {
+      ids.forEach((id) => {
+        try {
+          window.dispatchEvent(
+            new CustomEvent('abtalquest_product_updated', {
+              detail: { id, deleted: true },
+            })
+          );
+        } catch {
+          // ignore
+        }
+      });
+    }
+
+    return { success: true, count: ids.length };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : 'Batch delete failed';
+    return { success: false, count: 0, error: msg };
+  }
+};
+
+export const toggleProductVisibility = async (
+  id: string,
+  isActive: boolean
+): Promise<{ success: boolean; error?: string }> => {
+  try {
+    await updateProduct(id, { isActive });
+    return { success: true };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : 'Toggle visibility failed';
+    return { success: false, error: msg };
+  }
+};
+
+export const batchToggleProductVisibility = async (
+  ids: string[],
+  isActive: boolean
+): Promise<{ success: boolean; count: number; error?: string }> => {
+  return batchUpdateProducts(ids, { isActive });
 };
 
 export const uploadProductImage = async (file: File): Promise<string> => {
