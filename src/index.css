@@ -15,12 +15,16 @@
     --color-brand-gamification: #7C3AED;
     --color-brand-info: #38BDF8;
     --color-brand-foundation: #0A2540;
-    --color-brand-text-primary: #1E293B;
+    --color-brand-navy: #06152B;
+    --color-brand-sky: #EBF5FB;
+    --color-brand-text-primary: #0F2A4A;
+    --color-brand-text-body: #475569;
     --color-brand-text-secondary: #64748B;
   }
 
   .dark {
     --color-brand-text-primary: #F8FAFC;
+    --color-brand-text-body: #CBD5E1;
     --color-brand-text-secondary: #94A3B8;
   }
 
@@ -28,7 +32,7 @@
   html {
     font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
     font-size-adjust: from-font;
-    color: #1E293B;
+    color: #0F2A4A;
     scroll-behavior: smooth;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -40,7 +44,8 @@
   body {
     font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
     font-size-adjust: from-font;
-    color: #1E293B;
+    color: #0F2A4A;
+    background-color: #ffffff;
     overflow-x: hidden;
     max-width: 100%;
     width: 100%;
@@ -49,16 +54,16 @@
 
   html.dark,
   html.dark body {
-    background-color: #071727;
+    background-color: #06152B;
     color: #F1F5F9;
   }
 
-  /* Headings: Clean geometric sans-serif with refined tracking */
+  /* Headings: Bold, confident, high contrast with refined tracking */
   h1, h2, h3, h4, h5, h6 {
     font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     font-size-adjust: from-font;
-    color: #1E293B;
-    letter-spacing: -0.02em;
+    color: #0F2A4A;
+    letter-spacing: -0.025em;
   }
 
   html.dark h1,
@@ -155,12 +160,6 @@
     font-family: 'Tajawal', 'Cairo', 'Inter', system-ui, sans-serif !important;
     letter-spacing: normal !important;
   }
-
-  [dir="rtl"] .font-gamification,
-  [dir="rtl"] .font-gamification * {
-    font-family: 'Cairo', 'Tajawal', 'Inter', system-ui, sans-serif !important;
-    font-weight: 700;
-  }
 }
 
 /* RTL icon mirroring utility */
@@ -168,7 +167,7 @@
   transform: scaleX(-1);
 }
 
-/* Custom animation utilities */
+/* Custom animation utilities & surface treatments */
 @layer utilities {
   @keyframes spinSlow {
     from {
@@ -195,22 +194,22 @@
   }
 
   .animate-fadeIn {
-    animation: fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    animation: fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
 
-  @keyframes slideLeft {
-    from {
-      opacity: 0;
-      transform: translateX(100%);
-    }
-    to {
-      opacity: 1;
-      transform: translateX(0);
-    }
+  /* Subtle cosmic starry grid background */
+  .bg-star-pattern {
+    background-color: #06152B;
+    background-image: radial-gradient(rgba(255, 255, 255, 0.15) 1px, transparent 1px),
+                      radial-gradient(rgba(2, 132, 199, 0.2) 1.5px, transparent 1.5px);
+    background-size: 32px 32px, 64px 64px;
+    background-position: 0 0, 16px 16px;
   }
 
-  .animate-slideLeft {
-    animation: slideLeft 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  /* Subtle light dot grid */
+  .bg-light-grid {
+    background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+    background-size: 24px 24px;
   }
 
   /* Utility to hide scrollbar while preserving touch scrolling */
@@ -220,67 +219,5 @@
   .no-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;
-  }
-
-  /* Infinite Marquee animations (Stripe / Vercel / Linear inspired) */
-  @keyframes marquee {
-    0% {
-      transform: translateX(0%);
-    }
-    100% {
-      transform: translateX(-50%);
-    }
-  }
-
-  @keyframes marqueeReverse {
-    0% {
-      transform: translateX(-50%);
-    }
-    100% {
-      transform: translateX(0%);
-    }
-  }
-
-  .animate-marquee {
-    display: flex;
-    width: max-content;
-    animation: marquee 34s linear infinite;
-  }
-
-  .animate-marquee-reverse {
-    display: flex;
-    width: max-content;
-    animation: marqueeReverse 34s linear infinite;
-  }
-
-  .animate-marquee-slow {
-    display: flex;
-    width: max-content;
-    animation: marquee 46s linear infinite;
-  }
-
-  /* Pause marquee gracefully on hover */
-  .group:hover .animate-marquee,
-  .group:hover .animate-marquee-reverse,
-  .group:hover .animate-marquee-slow,
-  .animate-marquee:hover,
-  .animate-marquee-reverse:hover,
-  .animate-marquee-slow:hover {
-    animation-play-state: paused;
-  }
-
-  /* Soft fade mask for edge fading */
-  .mask-marquee-fade {
-    mask-image: linear-gradient(to right, transparent 0%, black 6%, black 94%, transparent 100%);
-    -webkit-mask-image: linear-gradient(to right, transparent 0%, black 6%, black 94%, transparent 100%);
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .animate-marquee,
-    .animate-marquee-reverse,
-    .animate-marquee-slow {
-      animation: none !important;
-      overflow-x: auto;
-    }
   }
 }

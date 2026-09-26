@@ -5,8 +5,6 @@ import {
   ArrowRight, 
   ArrowLeft,
   Calendar, 
-  BookmarkCheck,
-  Compass,
   X,
   Share2,
   Check, 
@@ -18,6 +16,7 @@ import {
 } from 'lucide-react';
 import Badge from '../common/Badge';
 import Button from '../common/Button';
+import CtaBannerSection from './CtaBannerSection';
 import { useLanguage } from '../../context/LanguageContext';
 import { 
   fetchBlogs, 
@@ -27,7 +26,11 @@ import {
 } from '../../services/blogService';
 import { subscribeEmail, isValidEmail } from '../../services/subscriberService';
 
-export const ParentingResources: React.FC = () => {
+export interface ParentingResourcesProps {
+  onOpenWaitlist?: () => void;
+}
+
+export const ParentingResources: React.FC<ParentingResourcesProps> = ({ onOpenWaitlist }) => {
   const { t } = useLanguage();
   const [blogs, setBlogs] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -249,16 +252,10 @@ export const ParentingResources: React.FC = () => {
   };
 
   const getLocalizedTitle = (article: BlogPost) => {
-    if (article.id === 'blog-resilient-kids') return t('parenting.card_1_title') || article.title;
-    if (article.id === 'blog-digital-safety') return t('parenting.card_2_title') || article.title;
-    if (article.id === 'blog-family-bonding') return t('parenting.card_3_title') || article.title;
     return article.title;
   };
 
   const getLocalizedExcerpt = (article: BlogPost) => {
-    if (article.id === 'blog-resilient-kids') return t('parenting.card_1_desc') || article.excerpt;
-    if (article.id === 'blog-digital-safety') return t('parenting.card_2_desc') || article.excerpt;
-    if (article.id === 'blog-family-bonding') return t('parenting.card_3_desc') || article.excerpt;
     return article.excerpt;
   };
 
@@ -272,35 +269,36 @@ export const ParentingResources: React.FC = () => {
     <section id="parenting-resources" className="py-20 sm:py-28 bg-slate-50/70 dark:bg-[#071727] relative overflow-hidden border-b border-slate-200 dark:border-slate-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         
-        {/* Section Header */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
-          <div className="max-w-2xl">
-            <Badge variant="primary" size="md" icon={<Compass className="w-4 h-4" />}>
-              {t('parenting.badge')}
-            </Badge>
+        {/* Page Hero Header */}
+        <div className="text-center max-w-3xl mx-auto mb-14 sm:mb-16">
+          <span className="font-headline text-xs sm:text-sm font-bold text-[#0284c7] uppercase tracking-wider block mb-3">
+            BLOG
+          </span>
 
-            <h2 className="font-headline text-3xl sm:text-4xl lg:text-5xl font-black text-[#1E293B] dark:text-white tracking-tight mt-3 mb-3">
-              {t('parenting.title')}
-            </h2>
+          <h1 className="font-headline text-3xl sm:text-5xl lg:text-6xl font-black text-[#0F2A4A] dark:text-white tracking-tight leading-tight mb-4">
+            Ideas for a healthier digital childhood.
+          </h1>
 
-            <p className="font-body text-sm sm:text-base text-[#64748B] dark:text-slate-300 leading-relaxed">
-              {t('parenting.subtitle')}
-            </p>
-          </div>
-
-          <div>
-            <a
-              href="#newsletter"
-              className="inline-flex items-center gap-2 font-headline text-sm font-bold text-[#016ba5] dark:text-[#38BDF8] hover:text-[#015786] bg-white dark:bg-[#0F2F4E] border border-slate-200 dark:border-slate-700 shadow-sm px-5 py-2.5 rounded-xl transition-all hover:shadow-md"
-            >
-              <BookmarkCheck className="w-4 h-4 text-[#fa8221]" />
-              <span>{t('parenting.badge')}</span>
-            </a>
-          </div>
+          <p className="font-body text-base sm:text-lg text-[#475569] dark:text-slate-300 leading-relaxed max-w-2xl mx-auto">
+            Perspectives on parenting, child development, technology habits, life skills and the AbtalQuest journey.
+          </p>
         </div>
 
-        {/* Dynamic Category Filter Pills */}
-        {categories.length > 2 && (
+        {/* Editorial Preview Header */}
+        <div className="text-left rtl:text-right max-w-2xl mb-8">
+          <span className="font-headline text-xs font-bold text-[#0284c7] uppercase tracking-wider block mb-2">
+            EDITORIAL PREVIEW
+          </span>
+          <h2 className="font-headline text-2xl sm:text-3xl font-black text-[#0F2A4A] dark:text-white tracking-tight mb-2">
+            Written for families, not for algorithms.
+          </h2>
+          <p className="font-body text-sm text-[#475569] dark:text-slate-400">
+            These are placeholder previews. Published articles will replace them as the journal opens.
+          </p>
+        </div>
+
+        {/* Dynamic Category Filter Pills (if multiple categories available) */}
+        {categories.length > 3 && (
           <div className="flex items-center gap-2 overflow-x-auto pb-4 mb-8 no-scrollbar">
             {categories.map((cat) => (
               <button
@@ -313,7 +311,7 @@ export const ParentingResources: React.FC = () => {
                     : 'bg-white dark:bg-[#0F2F4E] text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:border-[#016ba5]'
                 }`}
               >
-                {cat === 'all' ? 'All Guides' : cat}
+                {cat === 'all' ? 'All Articles' : cat}
               </button>
             ))}
           </div>
@@ -325,7 +323,7 @@ export const ParentingResources: React.FC = () => {
             {[1, 2, 3].map((idx) => (
               <div
                 key={idx}
-                className="bg-white dark:bg-[#0F2F4E] rounded-3xl p-7 border-2 border-slate-200/80 dark:border-slate-700 animate-pulse space-y-4"
+                className="bg-white dark:bg-[#0c2238] rounded-3xl p-7 border border-slate-200/80 dark:border-slate-700 animate-pulse space-y-4"
               >
                 <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded-full w-1/3" />
                 <div className="h-44 bg-slate-200 dark:bg-slate-700 rounded-2xl" />
@@ -335,7 +333,7 @@ export const ParentingResources: React.FC = () => {
             ))}
           </div>
         ) : filteredBlogs.length === 0 ? (
-          <div className="py-16 text-center bg-white dark:bg-[#0F2F4E] rounded-3xl border border-slate-200 dark:border-slate-700 p-8">
+          <div className="py-16 text-center bg-white dark:bg-[#0c2238] rounded-3xl border border-slate-200 dark:border-slate-700 p-8">
             <BookOpen className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
             <h3 className="font-headline font-bold text-lg text-slate-800 dark:text-white mb-1">
               No Published Articles Found
@@ -350,36 +348,24 @@ export const ParentingResources: React.FC = () => {
               <article
                 key={article.id}
                 onClick={() => handleOpenArticle(article)}
-                className="group bg-white dark:bg-[#0F2F4E] rounded-3xl p-6 border-2 border-slate-200/80 dark:border-slate-700 hover:border-[#016ba5]/40 dark:hover:border-[#38BDF8]/40 hover:shadow-xl transition-all duration-300 hover:-translate-y-1.5 flex flex-col justify-between cursor-pointer"
+                className="group bg-white dark:bg-[#0c2238] rounded-3xl p-6 border border-slate-200/80 dark:border-slate-700 hover:border-[#016ba5]/40 dark:hover:border-[#38BDF8]/40 hover:shadow-xl transition-all duration-300 hover:-translate-y-1.5 flex flex-col justify-between cursor-pointer"
               >
                 <div>
-                  {/* Article Cover Image (if available) */}
-                  {article.imageUrl ? (
-                    <div className="relative w-full h-44 rounded-2xl overflow-hidden mb-5 bg-slate-100 dark:bg-slate-800">
-                      <img
-                        src={article.imageUrl}
-                        alt={article.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                        loading="lazy"
-                      />
-                      {article.featured && (
-                        <div className="absolute top-3 left-3 bg-[#fa8221] text-white text-[10px] font-headline font-black px-2.5 py-1 rounded-full shadow-md flex items-center gap-1">
-                          <Sparkles className="w-3 h-3" />
-                          <span>FEATURED</span>
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="w-12 h-12 rounded-2xl bg-[#016ba5]/10 text-[#016ba5] flex items-center justify-center mb-5 group-hover:scale-105 transition-transform">
-                      <BookOpen className="w-6 h-6" />
-                    </div>
-                  )}
+                  {/* Article Cover Image */}
+                  <div className="relative w-full h-48 sm:h-52 rounded-2xl overflow-hidden mb-5 bg-slate-100 dark:bg-slate-800">
+                    <img
+                      src={article.imageUrl || '/blog-digital-wellbeing.jpg'}
+                      alt={article.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      loading="lazy"
+                    />
+                  </div>
 
-                  {/* Header: Category and Read-Time Label */}
+                  {/* Header: Category Badge and Read-Time Badge */}
                   <div className="flex items-center justify-between gap-2 mb-3">
-                    <Badge variant={getCategoryVariant(article.category)} size="sm">
+                    <span className="font-headline text-xs font-bold text-[#0284c7] uppercase tracking-wider">
                       {article.category}
-                    </Badge>
+                    </span>
 
                     <span className="font-body text-xs text-slate-500 dark:text-slate-400 font-medium flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200/70 dark:border-slate-700 px-2.5 py-0.5 rounded-full">
                       <Clock className="w-3.5 h-3.5 text-[#fa8221]" />
@@ -388,41 +374,26 @@ export const ParentingResources: React.FC = () => {
                   </div>
 
                   {/* Article Title */}
-                  <h3 className="font-headline text-xl font-extrabold text-[#1E293B] dark:text-white group-hover:text-[#016ba5] dark:group-hover:text-[#38BDF8] transition-colors tracking-tight leading-snug mb-3">
+                  <h3 className="font-headline text-xl font-extrabold text-[#0F2A4A] dark:text-white group-hover:text-[#016ba5] dark:group-hover:text-[#38BDF8] transition-colors tracking-tight leading-snug mb-3">
                     {getLocalizedTitle(article)}
                   </h3>
 
                   {/* Summary Description */}
-                  <p className="font-body text-xs text-[#64748B] dark:text-slate-300 leading-relaxed mb-6 line-clamp-3">
+                  <p className="font-body text-sm text-[#475569] dark:text-slate-300 leading-relaxed mb-6 line-clamp-3">
                     {getLocalizedExcerpt(article)}
                   </p>
                 </div>
 
-                {/* Card Footer: Metadata & Read-More Link */}
+                {/* Card Footer: "Editorial preview" on left, "Read more →" on right */}
                 <div className="pt-4 border-t border-slate-100 dark:border-slate-700/80 flex items-center justify-between">
-                  <div className="flex items-center gap-1.5 text-[11px] font-body text-slate-400">
-                    <Calendar className="w-3.5 h-3.5" />
-                    <span>
-                      {new Date(article.createdAt).toLocaleDateString(undefined, {
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric',
-                      })}
-                    </span>
-                  </div>
+                  <span className="text-xs font-body text-slate-400 font-medium">
+                    Editorial preview
+                  </span>
 
-                  {/* Read-More Button */}
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleOpenArticle(article);
-                    }}
-                    className="font-headline text-xs font-bold text-[#fa8221] hover:text-[#e87313] inline-flex items-center gap-1 group-hover:translate-x-0.5 rtl:group-hover:-translate-x-0.5 transition-transform"
-                  >
-                    <span>Read Guide</span>
+                  <span className="font-headline text-xs font-bold text-[#016ba5] dark:text-[#38BDF8] group-hover:text-[#fa8221] inline-flex items-center gap-1 group-hover:translate-x-1 rtl:group-hover:-translate-x-1 transition-all">
+                    <span>Read more</span>
                     <ArrowRight className="w-3.5 h-3.5 rtl-flip" />
-                  </button>
+                  </span>
                 </div>
               </article>
             ))}
@@ -504,6 +475,16 @@ export const ParentingResources: React.FC = () => {
           </form>
         </div>
 
+      </div>
+
+      {/* Bottom CTA Banner matching PDF page 11 */}
+      <div className="mt-20">
+        <CtaBannerSection
+          onDownloadClick={onOpenWaitlist}
+          title="Stay Curious."
+          subtitle="The AbtalQuest journal is being prepared for parents, educators and everyone building a healthier digital childhood."
+          buttonText="Download AbtalQuest →"
+        />
       </div>
 
       {/* ========================================================

@@ -1,229 +1,153 @@
 import React from 'react';
 import { 
-  ShieldCheck, 
-  Compass, 
   Sparkles, 
-  Star, 
-  Heart, 
-  CheckCircle2, 
-  Lock, 
-  Play 
+  ArrowRight,
+  Compass
 } from 'lucide-react';
-import Button from '../common/Button';
-import Badge from '../common/Badge';
-import AbtalQuestLogo from '../common/AbtalQuestLogo';
-import { useLanguage } from '../../context/LanguageContext';
-
 export interface HeroProps {
-  onExploreClick?: () => void;
-  onWatchDemo?: () => void;
+  onDownloadClick?: () => void;
+  onSeeHowItWorksClick?: () => void;
 }
 
 export const Hero: React.FC<HeroProps> = ({ 
-  onExploreClick, 
-  onWatchDemo,
+  onDownloadClick,
+  onSeeHowItWorksClick,
 }) => {
-  const { t } = useLanguage();
-
-  const handleExplore = () => {
-    if (onExploreClick) {
-      onExploreClick();
+  const handleSeeHowItWorks = () => {
+    if (onSeeHowItWorksClick) {
+      onSeeHowItWorksClick();
     } else {
-      const el = document.getElementById('vision-mission') || document.getElementById('planet-worlds');
+      const el = document.getElementById('how-it-works');
       if (el) el.scrollIntoView({ behavior: 'smooth' });
     }
   };
 
   return (
-    <section className="relative overflow-hidden bg-gradient-to-b from-[#016ba5]/10 via-white to-slate-50/60 dark:from-[#0A2540] dark:via-[#071727] dark:to-[#0A2540] pt-12 pb-20 sm:pt-16 sm:pb-28 border-b border-slate-100 dark:border-slate-800">
-      {/* Ambient background aura */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-96 bg-gradient-to-r from-[#016ba5]/15 via-[#fa8221]/12 to-[#7C3AED]/12 rounded-full blur-3xl pointer-events-none -z-10" />
-      <div className="absolute -top-24 right-10 w-72 h-72 bg-[#38BDF8]/15 rounded-full blur-2xl pointer-events-none -z-10" />
+    <section className="relative overflow-hidden bg-gradient-to-b from-[#EBF5FB] via-[#F4F9FD] to-white dark:from-[#06152B] dark:via-[#091E3A] dark:to-[#06152B] pt-8 pb-16 sm:pt-14 sm:pb-24 border-b border-slate-100 dark:border-slate-800">
+      {/* Subtle ambient lighting */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-5xl h-80 bg-gradient-to-r from-[#016ba5]/10 via-[#38bdf8]/15 to-[#fa8221]/10 rounded-full blur-3xl pointer-events-none -z-10" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
+        
+        {/* Top Centered Content: Eyebrow, Headline, Subtitle, CTAs, Feature Bullets */}
+        <div className="max-w-3xl mx-auto text-center flex flex-col items-center mb-10 sm:mb-14">
           
-          {/* Left Column: Hero Text & Actions (Cols 1-7) */}
-          <div className="lg:col-span-7 flex flex-col items-start text-left rtl:text-right">
-            
-            {/* 1. Next-Gen Educational Adventure Badge */}
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#fa8221]/10 dark:bg-[#fa8221]/20 border border-[#fa8221]/30 text-[#e87313] dark:text-[#fb923c] text-xs sm:text-sm font-bold mb-4 shadow-sm">
-              <Sparkles className="w-4 h-4 text-[#fa8221] flex-shrink-0 animate-pulse" />
-              <span>{t('hero.badge_nextgen') || 'Next-Gen Educational Adventure'}</span>
-            </div>
-
-            {/* Security & Values Badges */}
-            <div className="flex flex-wrap items-center gap-2.5 mb-6">
-              <Badge variant="success" size="md" icon={<ShieldCheck className="w-4 h-4" />}>
-                {t('hero.badge_safe')}
-              </Badge>
-              <Badge variant="warning" size="md" icon={<Lock className="w-3.5 h-3.5" />}>
-                {t('nav.safety_ticker_bold_1')} • {t('nav.safety_ticker_bold_2')}
-              </Badge>
-              <Badge variant="gamification" size="md" icon={<Star className="w-3.5 h-3.5" />}>
-                {t('hero.badge_kids')}
-              </Badge>
-            </div>
-
-            {/* Main Headline: Protecting Childhood. Empowering Growth. */}
-            <h1 className="font-headline text-3xl sm:text-5xl lg:text-6xl font-black text-[#1E293B] dark:text-white tracking-tight leading-[1.15] mb-5 break-words">
-              {t('hero.title_protecting') || 'Protecting Childhood.'}{' '}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#fa8221] via-[#e87313] to-[#7C3AED]">
-                {t('hero.title_empowering') || 'Empowering Growth.'}
-              </span>
-            </h1>
-
-            {/* Sub-headline */}
-            <p className="font-body text-base sm:text-lg text-[#475569] dark:text-slate-200 leading-relaxed mb-4 max-w-2xl font-medium">
-              {t('hero.subtitle')}
-            </p>
-
-            {/* Ad-Free Standard Motto Callout */}
-            <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800/70 border border-slate-200/80 dark:border-slate-700 text-xs sm:text-sm text-slate-700 dark:text-slate-300 mb-8 max-w-2xl">
-              <ShieldCheck className="w-4 h-4 text-[#22C55E] flex-shrink-0" />
-              <span className="font-semibold text-slate-900 dark:text-white">{t('hero.ad_free_motto')}</span>
-            </div>
-
-            {/* Primary Call-to-Action Buttons */}
-            <div className="flex flex-wrap items-center gap-3 sm:gap-4 w-full sm:w-auto mb-10">
-              {/* Primary Button 1: Solid orange "Start Your Adventure ->" */}
-              <Button
-                variant="cta"
-                size="lg"
-                onClick={handleExplore}
-                className="w-full sm:w-auto shadow-cta hover:shadow-cta-hover transform hover:-translate-y-0.5 bg-[#fa8221] hover:bg-[#e87313] text-white font-bold px-7 py-3 rounded-full flex items-center justify-center gap-2"
-              >
-                <span>{t('hero.cta_adventure_arrow') || 'Start Your Adventure ->'}</span>
-              </Button>
-
-              {/* Primary Button 2: Outlined Pill "Watch Demo" */}
-              <Button
-                variant="outline"
-                size="lg"
-                icon={<Play className="w-4 h-4 text-[#fa8221] fill-current" />}
-                iconPosition="left"
-                onClick={onWatchDemo}
-                className="w-full sm:w-auto rounded-full border-2 border-slate-300 dark:border-slate-600 hover:border-[#fa8221] dark:hover:border-[#fa8221] px-6 transform hover:-translate-y-0.5"
-              >
-                {t('hero.cta_watch_demo') || 'Watch Demo'}
-              </Button>
-            </div>
-
-            {/* Safe Childhood Assurance Badges */}
-            <div className="flex flex-wrap items-center gap-y-2 gap-x-6 pt-6 border-t border-slate-200/80 dark:border-slate-800 w-full text-xs font-body text-[#64748B] dark:text-slate-300">
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-[#22C55E] flex-shrink-0" />
-                <span>{t('hero.stat_ad_free_desc')}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-[#22C55E] flex-shrink-0" />
-                <span>{t('hero.stat_values_desc')}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-[#22C55E] flex-shrink-0" />
-                <span>{t('hero.stat_offline_desc')}</span>
-              </div>
-            </div>
-
+          {/* Eyebrow Pill */}
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700 shadow-sm text-xs sm:text-sm font-bold text-[#0284c7] dark:text-[#38bdf8] mb-6 animate-fadeIn">
+            <Sparkles className="w-4 h-4 text-[#0284c7] dark:text-[#38bdf8] flex-shrink-0" />
+            <span className="tracking-wide uppercase">THE FRONT DOOR TO A BIGGER WORLD</span>
           </div>
 
-          {/* Right Column: Hero Visual Universe Card (Cols 8-12) */}
-          <div className="lg:col-span-5 relative w-full flex justify-center">
+          {/* Main Headline */}
+          <h1 className="font-headline text-3xl sm:text-5xl lg:text-6xl font-black text-[#0F2A4A] dark:text-white tracking-tight leading-[1.12] mb-5">
+            Turn Screen Time<br />
+            <span className="text-[#016ba5] dark:text-[#38bdf8]">Into Growth Time.</span>
+          </h1>
+
+          {/* Subtitle */}
+          <p className="font-body text-base sm:text-lg text-[#475569] dark:text-slate-300 leading-relaxed mb-8 max-w-2xl font-normal">
+            AbtalQuest turns children's digital time into meaningful adventures that encourage real-world action, healthier habits, character and essential life skills.
+          </p>
+
+          {/* Primary & Secondary Action Buttons */}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 w-full sm:w-auto mb-8">
+            {/* Primary CTA: Orange Pill Button */}
+            <button
+              type="button"
+              onClick={onDownloadClick}
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-full bg-[#fa8221] hover:bg-[#e87313] active:bg-[#cf630b] text-white font-headline font-bold text-base shadow-[0_6px_20px_rgba(250,130,33,0.38)] hover:shadow-[0_8px_26px_rgba(250,130,33,0.48)] transform hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 cursor-pointer group"
+            >
+              <span>Download the App</span>
+              <ArrowRight className="w-4 h-4 rtl-flip transition-transform duration-200 group-hover:translate-x-1" />
+            </button>
+
+            {/* Secondary CTA: Clean White Pill Button */}
+            <button
+              type="button"
+              onClick={handleSeeHowItWorks}
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-full bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-700/80 border border-slate-200/90 dark:border-slate-700 font-headline font-bold text-sm tracking-wider uppercase shadow-xs hover:shadow-sm transform hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 cursor-pointer group"
+            >
+              <span>SEE HOW IT WORKS</span>
+              <ArrowRight className="w-4 h-4 rtl-flip transition-transform duration-200 group-hover:translate-x-1" />
+            </button>
+          </div>
+
+          {/* Feature Bullet List / Micro-reassurances */}
+          <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 text-xs sm:text-sm font-body font-semibold text-[#0F2A4A] dark:text-slate-300">
+            <span>Built for ages 7–10</span>
+            <span className="text-[#fa8221] text-base">•</span>
+            <span>Child-first by design</span>
+            <span className="text-[#fa8221] text-base">•</span>
+            <span>Real-world action</span>
+          </div>
+
+        </div>
+
+        {/* Hero Visual Mockup: Realistic Smartphone Frame with Floating Tags */}
+        <div className="relative max-w-sm sm:max-w-md mx-auto pt-4 flex justify-center">
+          
+          {/* Subtle glow underneath phone */}
+          <div className="absolute -inset-4 bg-gradient-to-t from-[#016ba5]/25 via-[#38bdf8]/20 to-transparent rounded-full blur-2xl opacity-70 -z-10" />
+
+          {/* Phone Frame */}
+          <div className="relative w-full rounded-[44px] bg-slate-900 p-3 sm:p-3.5 shadow-2xl border-4 border-slate-800/90 ring-1 ring-black/40 overflow-hidden">
             
-            {/* Ambient decorative glow ring */}
-            <div className="absolute -inset-2 bg-gradient-to-tr from-[#016ba5]/40 via-[#fa8221]/30 to-[#7C3AED]/30 rounded-[32px] blur-2xl opacity-60" />
+            {/* Dynamic Island / Top Notch */}
+            <div className="absolute top-5 left-1/2 -translate-x-1/2 w-28 h-5 bg-black rounded-full z-30 flex items-center justify-end pr-2">
+              <div className="w-2.5 h-2.5 rounded-full bg-slate-800 border border-slate-700" />
+            </div>
 
-            {/* Interactive Universe Showcase Card */}
-            <div className="relative w-full max-w-md bg-gradient-to-b from-white to-slate-50 dark:from-[#0F2F4E] dark:to-[#0A2540] border-2 border-white/80 dark:border-[#1E4068] shadow-2xl rounded-3xl p-6 sm:p-7 overflow-hidden">
-              
-              {/* Top Card Navigation / Status */}
-              <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-700 mb-5">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-xl bg-[#016ba5] text-white flex items-center justify-center shadow-brand">
-                    <Compass className="w-5 h-5 animate-spin-slow" />
-                  </div>
-                  <div>
-                    <span className="font-headline text-xs font-bold text-[#016ba5] dark:text-[#38BDF8] uppercase tracking-wider block">
-                      {t('hero.preview_badge')}
-                    </span>
-                    <span className="font-headline text-base font-extrabold text-[#1E293B] dark:text-white">
-                      {t('hero.preview_title')}
-                    </span>
-                  </div>
-                </div>
+            {/* Screen Inner Display */}
+            <div className="relative rounded-[36px] overflow-hidden bg-slate-950 aspect-[9/16] sm:aspect-[9/15]">
+              <img
+                src="/hero-portal.jpg"
+                alt="AbtalQuest Hero Adventure World"
+                className="w-full h-full object-cover select-none"
+              />
 
-                <Badge variant="gamification" size="sm" icon={<Star className="w-3.5 h-3.5 fill-current" />}>
-                  {t('hero.preview_xp')}
-                </Badge>
+              {/* Floating Badge 1: Top-Left "QUESTS" */}
+              <div className="absolute top-10 left-3 sm:left-4 z-20">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/95 dark:bg-slate-900/90 backdrop-blur-md border border-[#0284c7]/30 text-[#0284c7] dark:text-[#38bdf8] font-headline font-black text-[11px] tracking-wider uppercase shadow-md">
+                  <Compass className="w-3 h-3 text-[#0284c7] animate-spin-slow" />
+                  <span>QUESTS</span>
+                </span>
               </div>
 
-              {/* Dynamic Child Hero Illustration Container */}
-              <div className="relative rounded-2xl bg-[#0A2540] p-6 text-white overflow-hidden shadow-inner mb-5 border border-[#016ba5]/30">
-                {/* Background Stars / Sparks */}
-                <div className="absolute top-2 right-4 text-amber-300 opacity-60">
-                  <Sparkles className="w-5 h-5" />
-                </div>
-                <div className="absolute bottom-3 left-4 text-sky-400 opacity-50">
-                  <Heart className="w-4 h-4" />
-                </div>
-
-                <div className="relative z-10 flex flex-col items-center text-center py-2">
-                  {/* Guardian Character Emblem */}
-                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-[#016ba5] to-[#38BDF8] p-1 shadow-lg mb-3 flex items-center justify-center">
-                    <div className="w-full h-full rounded-xl bg-[#0A2540] flex items-center justify-center text-white">
-                      {/* Official AbtalQuest Character Emblem */}
-                      <AbtalQuestLogo mode="emblem" variant="dark" size="sm" showText={false} />
-                    </div>
-                  </div>
-
-                  <span className="font-headline text-lg font-bold text-white mb-1">
-                    {t('hero.preview_tag_1')}
-                  </span>
-                  <span className="font-body text-xs text-slate-300">
-                    {t('hero.preview_tag_2')}
-                  </span>
-
-                  {/* Gamified progress bar */}
-                  <div className="w-full mt-4 space-y-1">
-                    <div className="flex justify-between font-body text-[11px] text-slate-300">
-                      <span>{t('hero.stat_values')}</span>
-                      <span className="text-[#38BDF8] font-semibold">{t('hero.preview_xp')}</span>
-                    </div>
-                    <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
-                      <div className="h-full bg-gradient-to-r from-[#016ba5] via-[#38BDF8] to-[#22C55E] rounded-full w-[80%]" />
-                    </div>
-                  </div>
-                </div>
+              {/* Floating Badge 2: Top-Right "MISSIONS" */}
+              <div className="absolute top-16 right-3 sm:right-4 z-20">
+                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-white/95 dark:bg-slate-900/90 backdrop-blur-md border border-[#016ba5]/30 text-[#016ba5] dark:text-[#38bdf8] font-headline font-black text-[11px] tracking-wider uppercase shadow-md">
+                  <Sparkles className="w-3 h-3 text-amber-500" />
+                  <span>MISSIONS</span>
+                </span>
               </div>
 
-              {/* Quick Feature Badges below card */}
-              <div className="grid grid-cols-2 gap-3 font-body text-xs">
-                <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700 flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded-lg bg-[#22C55E]/15 text-[#16a34a] flex items-center justify-center flex-shrink-0">
-                    <ShieldCheck className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <span className="font-semibold text-slate-800 dark:text-slate-100 block text-[11px]">{t('hero.stat_ad_free')}</span>
-                    <span className="text-slate-500 dark:text-slate-400 text-[10px]">{t('nav.safety_ticker_bold_1')}</span>
-                  </div>
-                </div>
-
-                <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700 flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded-lg bg-[#fa8221]/15 text-[#fa8221] flex items-center justify-center flex-shrink-0">
-                    <Play className="w-4 h-4 fill-current" />
-                  </div>
-                  <div>
-                    <span className="font-semibold text-slate-800 dark:text-slate-100 block text-[11px]">{t('hero.stat_values')}</span>
-                    <span className="text-slate-500 dark:text-slate-400 text-[10px]">{t('hero.stat_values_desc')}</span>
-                  </div>
-                </div>
+              {/* Floating Badge 3: Bottom-Left "REWARDS" */}
+              <div className="absolute bottom-20 left-3 sm:left-4 z-20">
+                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-white/95 dark:bg-slate-900/90 backdrop-blur-md border border-[#7C3AED]/30 text-[#7C3AED] dark:text-purple-300 font-headline font-black text-[11px] tracking-wider uppercase shadow-md">
+                  <span>★</span>
+                  <span>REWARDS</span>
+                </span>
               </div>
 
+              {/* Bottom Interactive Button inside phone: "Join the quest" */}
+              <div className="absolute bottom-6 left-0 right-0 px-6 z-20 flex justify-center">
+                <button
+                  type="button"
+                  onClick={onDownloadClick}
+                  className="w-full py-2.5 px-5 rounded-full bg-gradient-to-r from-[#fa8221] to-[#ff983d] text-white font-headline font-black text-sm tracking-wide shadow-lg hover:brightness-110 active:scale-95 transition-all text-center cursor-pointer"
+                >
+                  Join the quest
+                </button>
+              </div>
+
+              {/* Soft bottom vignette overlay */}
+              <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black/60 via-black/20 to-transparent pointer-events-none" />
             </div>
 
           </div>
 
         </div>
+
       </div>
     </section>
   );

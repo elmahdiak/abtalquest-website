@@ -407,11 +407,16 @@ export const MarketplaceImageGallery: React.FC<MarketplaceImageGalleryProps> = (
               {t('marketplace.badge_bestseller')}
             </span>
           )}
-          {product.discountPercent && product.discountPercent > 0 && (
-            <span className="px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-rose-500 text-white shadow-md">
-              {t('marketplace.badge_discount', { percent: product.discountPercent })}
-            </span>
-          )}
+          {(() => {
+            const computedDiscount = (product.originalPrice && product.originalPrice > product.price)
+              ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
+              : (product.discountPercent || 0);
+            return computedDiscount > 0 ? (
+              <span className="px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-rose-500 text-white shadow-md">
+                {t('marketplace.badge_discount', { percent: computedDiscount })}
+              </span>
+            ) : null;
+          })()}
           {product.isNew && (
             <span className="px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-emerald-500 text-white shadow-md">
               {t('marketplace.badge_new')}

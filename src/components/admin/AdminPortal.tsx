@@ -6372,7 +6372,15 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
                         step="0.5"
                         required
                         value={prodPrice}
-                        onChange={(e) => setProdPrice(e.target.value)}
+                        onChange={(e) => {
+                          const newPrice = e.target.value;
+                          setProdPrice(newPrice);
+                          const sell = parseFloat(newPrice);
+                          const orig = parseFloat(prodOriginalPrice);
+                          if (orig > 0 && sell > 0 && orig > sell) {
+                            setProdDiscountPercent(String(Math.round(((orig - sell) / orig) * 100)));
+                          }
+                        }}
                         placeholder="299"
                         className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-body text-xs focus:outline-none focus:ring-2 focus:ring-[#016ba5]"
                       />
@@ -6386,7 +6394,15 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
                         type="number"
                         step="0.5"
                         value={prodOriginalPrice}
-                        onChange={(e) => setProdOriginalPrice(e.target.value)}
+                        onChange={(e) => {
+                          const newOriginal = e.target.value;
+                          setProdOriginalPrice(newOriginal);
+                          const orig = parseFloat(newOriginal);
+                          const sell = parseFloat(prodPrice);
+                          if (orig > 0 && sell > 0 && orig > sell) {
+                            setProdDiscountPercent(String(Math.round(((orig - sell) / orig) * 100)));
+                          }
+                        }}
                         placeholder="399 (optional)"
                         className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-body text-xs focus:outline-none focus:ring-2 focus:ring-[#016ba5]"
                       />
@@ -6406,6 +6422,11 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
                         onChange={(e) => setProdDiscountPercent(e.target.value)}
                         className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-body text-xs focus:outline-none focus:ring-2 focus:ring-[#016ba5]"
                       />
+                      {parseFloat(prodOriginalPrice) > 0 && parseFloat(prodPrice) > 0 && parseFloat(prodOriginalPrice) > parseFloat(prodPrice) && (
+                        <p className="text-[10px] text-emerald-600 font-headline font-bold mt-1">
+                          {`\u2713`} Auto-calculated from prices
+                        </p>
+                      )}
                     </div>
 
                     <div>

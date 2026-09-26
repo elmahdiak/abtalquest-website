@@ -13,12 +13,16 @@ import {
   Truck, 
   RotateCcw, 
   Package, 
-  ChevronRight
+  ChevronRight,
+  PenLine,
+  MessageSquare,
+  X
 } from 'lucide-react';
-import { formatPrice, getProductDisplayImage, type Product } from '../../services/marketplaceService';
+import { formatPrice, getProductDisplayImage, type Product, type ProductReview } from '../../services/marketplaceService';
 import { useLanguage } from '../../context/LanguageContext';
 import { cn } from '../../lib/utils';
 import MarketplaceImageGallery from './MarketplaceImageGallery';
+import { ProductReviewForm } from './ProductReviewForm';
 
 export interface MarketplaceProductDetailPageProps {
   product: Product;
@@ -45,6 +49,9 @@ export const MarketplaceProductDetailPage: React.FC<MarketplaceProductDetailPage
   const [justAdded, setJustAdded] = useState<boolean>(false);
   const [copiedLink, setCopiedLink] = useState<boolean>(false);
   const [activeInfoTab, setActiveInfoTab] = useState<'about' | 'package' | 'skills' | 'safety' | 'reviews'>('about');
+  const [showReviewForm, setShowReviewForm] = useState<boolean>(false);
+  const [localReviews, setLocalReviews] = useState<ProductReview[]>(product.reviews || []);
+  const [selectedReviewImage, setSelectedReviewImage] = useState<string | null>(null);
 
   // Reset page state when product changes
   const [prevProductId, setPrevProductId] = useState(product.id);
@@ -69,6 +76,13 @@ export const MarketplaceProductDetailPage: React.FC<MarketplaceProductDetailPage
   // Scroll to top when product changes
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [product.id]);
+
+  // Sync local reviews when product changes
+  useEffect(() => {
+    setLocalReviews(product.reviews || []);
+    setShowReviewForm(false);
+    setSelectedReviewImage(null);
   }, [product.id]);
 
   // Handle ESC key to return to catalog
@@ -559,36 +573,180 @@ export const MarketplaceProductDetailPage: React.FC<MarketplaceProductDetailPage
 
         {/* Tab 5: Parent & Educator Feedback */}
         {activeInfoTab === 'reviews' && (
-          <div className="space-y-4 max-w-4xl animate-in fade-in duration-200">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {product.reviews.map((rev, idx) => (
-                <div
-                  key={idx}
-                  className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-3 shadow-sm"
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <span className="font-bold text-sm text-slate-900 dark:text-white block">
-                        {rev.author}
-                      </span>
-                      <span className="text-xs text-slate-500 dark:text-slate-400">
-                        {rev.role}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center text-amber-400">
-                      {Array.from({ length: rev.rating }).map((_, i) => (
-                        <Star key={i} className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                      ))}
-                    </div>
-                  </div>
-
-                  <p className="text-xs text-slate-600 dark:text-slate-300 italic leading-relaxed">
-                    &ldquo;{rev.comment}&rdquo;
-                  </p>
+          <div className="space-y-6 max-w-4xl animate-in fade-in duration-200">
+            {/* Rating Summary Header */}
+            <div className="p-6 rounded-3xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-start sm:items-center gap-6">
+              {/* Average Score */}
+              <div className="text-center shrink-0">
+                <div className="font-headline font-black text-5xl text-slate-900 dark:text-white leading-none">
+                  {localReviews.length > 0
+                    ? (localReviews.reduce((s, r) => s + r.rating, 0) / localReviews.length).toFixed(1)
+                    : product.rating.toFixed(1)
+                  }
                 </div>
-              ))}
+                <div className="flex items-center justify-center gap-0.5 my-1.5">
+                  {[1,2,3,4,5].map((s) => (
+                    <Star
+                      key={s}
+                      className={cn(
+                        'w-4 h-4',
+                        s <= Math.round(localReviews.length > 0
+                          ? localReviews.reduce((sum, r) => sum + r.rating, 0) / localReviews.length
+                          : product.rating)
+                          ? 'fill-amber-400 text-amber-400'
+                          : 'text-slate-300 dark:text-slate-600'
+                      )}
+                    />
+                  ))}
+                </div>
+                <p className="text-xs text-slate-500">
+                  {localReviews.length || product.reviewsCount || 0} review{(localReviews.length || product.reviewsCount || 0) !== 1 ? 's' : ''}
+                </p>
+              </div>
+
+              {/* Rating Distribution Bars */}
+              <div className="flex-1 space-y-1.5 min-w-0">
+                {[5,4,3,2,1].map((star) => {
+                  const count = localReviews.filter(r => r.rating === star).length;
+                  const pct = localReviews.length > 0 ? (count / localReviews.length) * 100 : 0;
+                  return (
+                    <div key={star} className="flex items-center gap-2">
+                      <span className="text-xs text-slate-500 w-4 shrink-0">{star}</span>
+                      <Star className="w-3 h-3 fill-amber-400 text-amber-400 shrink-0" />
+                      <div className="flex-1 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-amber-400 rounded-full transition-all duration-500"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                      <span className="text-xs text-slate-400 w-4 shrink-0">{count}</span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Write Review Button */}
+              {!showReviewForm && (
+                <button
+                  type="button"
+                  onClick={() => setShowReviewForm(true)}
+                  className="shrink-0 inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-[#016ba5] hover:bg-[#015786] text-white font-headline font-bold text-xs transition-all active:scale-95 cursor-pointer shadow-md"
+                >
+                  <PenLine className="w-3.5 h-3.5" />
+                  Write a Review
+                </button>
+              )}
             </div>
+
+            {/* Review Submission Form */}
+            {showReviewForm && (
+              <ProductReviewForm
+                productId={product.id}
+                productTitle={product.title}
+                onSubmitSuccess={(newReview) => {
+                  setLocalReviews(prev => [newReview, ...prev]);
+                  setShowReviewForm(false);
+                }}
+                onCancel={() => setShowReviewForm(false)}
+              />
+            )}
+
+            {/* Reviews List */}
+            {localReviews.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {localReviews.map((rev, idx) => (
+                  <div
+                    key={rev.id || idx}
+                    className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-3 shadow-sm"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        {/* Avatar */}
+                        {rev.avatar ? (
+                          <img src={rev.avatar} alt={rev.author} className="w-9 h-9 rounded-full object-cover border border-slate-200" />
+                        ) : (
+                          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#016ba5] to-[#fa8221] flex items-center justify-center text-white font-headline font-black text-sm shrink-0">
+                            {rev.author.charAt(0).toUpperCase()}
+                          </div>
+                        )}
+                        <div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-bold text-sm text-slate-900 dark:text-white">{rev.author}</span>
+                            {rev.verifiedPurchase && (
+                              <span className="px-1.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 text-[9px] font-bold uppercase tracking-wide">✓ Verified</span>
+                            )}
+                          </div>
+                          {rev.role && <span className="text-xs text-slate-500 dark:text-slate-400">{rev.role}</span>}
+                        </div>
+                      </div>
+                      <div className="shrink-0 text-right">
+                        <div className="flex items-center gap-0.5 justify-end">
+                          {Array.from({ length: 5 }).map((_, i) => (
+                            <Star key={i} className={cn('w-3 h-3', i < rev.rating ? 'fill-amber-400 text-amber-400' : 'text-slate-300 dark:text-slate-600')} />
+                          ))}
+                        </div>
+                        {rev.date && <span className="text-[10px] text-slate-400 mt-0.5 block">{rev.date}</span>}
+                      </div>
+                    </div>
+
+                    <p className="text-xs text-slate-600 dark:text-slate-300 italic leading-relaxed">&ldquo;{rev.comment}&rdquo;</p>
+
+                    {/* Review Images */}
+                    {rev.images && rev.images.length > 0 && (
+                      <div className="flex items-center gap-2 flex-wrap pt-1">
+                        {rev.images.map((imgUrl, imgIdx) => (
+                          <button
+                            key={imgIdx}
+                            type="button"
+                            onClick={() => setSelectedReviewImage(imgUrl)}
+                            className="w-14 h-14 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 hover:scale-105 transition-transform cursor-pointer"
+                            aria-label={`View review photo ${imgIdx + 1}`}
+                          >
+                            <img src={imgUrl} alt="Review" className="w-full h-full object-cover" />
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12 text-slate-500 dark:text-slate-400">
+                <MessageSquare className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                <p className="font-headline font-bold text-sm">No reviews yet</p>
+                <p className="text-xs mt-1">Be the first to share your experience with this kit!</p>
+                {!showReviewForm && (
+                  <button
+                    type="button"
+                    onClick={() => setShowReviewForm(true)}
+                    className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-[#016ba5] hover:bg-[#015786] text-white font-headline font-bold text-xs transition-all active:scale-95 cursor-pointer"
+                  >
+                    <PenLine className="w-3.5 h-3.5" />
+                    Write the First Review
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Review Image Lightbox */}
+            {selectedReviewImage && (
+              <div
+                className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-sm"
+                onClick={() => setSelectedReviewImage(null)}
+              >
+                <div className="relative max-w-2xl max-h-[80vh] p-2">
+                  <img src={selectedReviewImage} alt="Review" className="max-w-full max-h-[76vh] rounded-2xl object-contain" />
+                  <button
+                    type="button"
+                    onClick={() => setSelectedReviewImage(null)}
+                    className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center cursor-pointer"
+                    aria-label="Close image preview"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
 

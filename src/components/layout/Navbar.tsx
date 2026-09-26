@@ -34,6 +34,7 @@ export interface NavbarProps {
   onOpenAuth?: () => void;
   onOpenProfile?: () => void;
   onOpenContact?: () => void;
+  onOpenWaitlist?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({ 
@@ -43,6 +44,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenAuth,
   onOpenProfile,
   onOpenContact,
+  onOpenWaitlist,
 }) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -55,10 +57,11 @@ export const Navbar: React.FC<NavbarProps> = ({
   const languageMenuRef = useRef<HTMLDivElement>(null);
 
   const navItems: NavItem[] = [
-    { id: 'home', label: t('nav.home'), href: '#universe' },
-    { id: 'blog', label: t('nav.blog'), href: '#blog' },
-    { id: 'marketplace', label: t('nav.marketplace'), href: '#marketplace', badge: t('nav.badge_kits') },
-    { id: 'about', label: t('nav.about'), href: '#about' },
+    { id: 'home', label: 'Home', href: '#universe' },
+    { id: 'how-it-works', label: 'How It Works', href: '#how-it-works' },
+    { id: 'blog', label: 'Blog', href: '#blog' },
+    { id: 'marketplace', label: 'Marketplace', href: '#marketplace', badge: t('nav.badge_kits') },
+    { id: 'about', label: 'About Us', href: '#about' },
   ];
 
   // Sync active navigation tab with current view
@@ -89,7 +92,14 @@ export const Navbar: React.FC<NavbarProps> = ({
     setSelectedNavTab(item.id);
     setMobileMenuOpen(false);
 
-    if (item.id === 'marketplace') {
+    if (item.id === 'how-it-works') {
+      e.preventDefault();
+      onViewChange?.('home');
+      setTimeout(() => {
+        const el = document.getElementById('how-it-works');
+        if (el) el.scrollIntoView({ behavior: 'smooth' });
+      }, 60);
+    } else if (item.id === 'marketplace') {
       e.preventDefault();
       onViewChange?.('marketplace');
       window.scrollTo({ top: 0, behavior: 'instant' });
@@ -229,22 +239,23 @@ export const Navbar: React.FC<NavbarProps> = ({
             {/* Right-Side Actions: Globe Selector, Theme Toggle, Profile, and Pill CTA "Download App" */}
             <div className="flex items-center gap-1.5 sm:gap-3 flex-shrink-0">
               
-              {/* 1. Round Language / Globe Selector Button */}
+              {/* 1. Round Language / Globe Selector Button with text matching PDF */}
               <div className="relative" ref={languageMenuRef}>
                 <button
                   type="button"
                   onClick={() => setLanguageMenuOpen(!languageMenuOpen)}
                   className={cn(
-                    'w-8 h-8 sm:w-10 sm:h-10 rounded-full border flex items-center justify-center transition-all duration-200',
+                    'h-8 sm:h-10 px-2.5 sm:px-3 rounded-full border flex items-center gap-1.5 transition-all duration-200',
                     'border-slate-200/80 dark:border-slate-700 bg-white/70 dark:bg-slate-800/80 hover:bg-white dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 hover:text-[#016ba5] dark:hover:text-[#fa8221] hover:border-[#016ba5]/40',
-                    'shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#016ba5]',
+                    'shadow-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-[#016ba5] cursor-pointer',
                     languageMenuOpen && 'border-[#016ba5] ring-2 ring-[#016ba5]/20 bg-white dark:bg-slate-800 text-[#016ba5] dark:text-[#38BDF8]'
                   )}
                   aria-label={t('nav.select_language')}
                   title={t('nav.select_language')}
                   aria-expanded={languageMenuOpen}
                 >
-                  <Globe className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  <Globe className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-600 dark:text-slate-300" />
+                  <span className="font-headline font-bold text-xs uppercase">{language}</span>
                 </button>
 
                 {/* Language Dropdown Menu (EN, AR, FR) */}
@@ -316,9 +327,9 @@ export const Navbar: React.FC<NavbarProps> = ({
                 type="button"
                 onClick={toggleTheme}
                 className={cn(
-                  'w-8 h-8 sm:w-10 sm:h-10 rounded-full border flex items-center justify-center transition-all duration-200',
+                  'w-8 h-8 sm:w-10 sm:h-10 rounded-full border flex items-center justify-center transition-all duration-200 cursor-pointer',
                   'border-slate-200/80 dark:border-slate-700 bg-white/70 dark:bg-slate-800/80 hover:bg-white dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 hover:text-[#fa8221] hover:border-[#fa8221]/40',
-                  'shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#fa8221]'
+                  'shadow-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-[#fa8221]'
                 )}
                 aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} theme`}
                 title={`Theme: ${theme === 'light' ? 'Light mode (click for Dark)' : 'Dark mode (click for Light)'}`}
@@ -341,11 +352,11 @@ export const Navbar: React.FC<NavbarProps> = ({
                   }
                 }}
                 className={cn(
-                  'w-8 h-8 sm:w-10 sm:h-10 rounded-full border flex items-center justify-center transition-all duration-200 relative',
+                  'w-8 h-8 sm:w-10 sm:h-10 rounded-full border flex items-center justify-center transition-all duration-200 relative cursor-pointer',
                   user
                     ? 'border-[#016ba5] dark:border-[#38BDF8] bg-[#016ba5]/10 dark:bg-[#016ba5]/30 text-[#016ba5] dark:text-[#38BDF8] hover:bg-[#016ba5] hover:text-white'
                     : 'border-slate-200/80 dark:border-slate-700 bg-white/70 dark:bg-slate-800/80 hover:bg-white dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 hover:text-[#016ba5] dark:hover:text-[#fa8221] hover:border-[#016ba5]/40',
-                  'shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#016ba5]'
+                  'shadow-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-[#016ba5]'
                 )}
                 aria-label={user ? 'Open Family Profile' : 'Sign In to Family Hub'}
                 title={user ? `Family Profile (${user.email})` : 'Sign In / Create Account'}
@@ -365,16 +376,19 @@ export const Navbar: React.FC<NavbarProps> = ({
               {/* 4. Prominent Pill-Shaped CTA Button (#fa8221 Secondary Orange, Montserrat, Right Arrow) */}
               <button
                 type="button"
-                onClick={() => setDownloadModalOpen(true)}
+                onClick={() => {
+                  if (onOpenWaitlist) onOpenWaitlist();
+                  else setDownloadModalOpen(true);
+                }}
                 className={cn(
-                  'hidden sm:inline-flex items-center gap-2 px-6 py-2.5 rounded-full',
+                  'hidden sm:inline-flex items-center gap-2 px-6 py-2.5 rounded-full cursor-pointer',
                   'bg-[#fa8221] hover:bg-[#e87313] active:bg-[#cf630b] text-white',
-                  'font-headline font-bold text-sm tracking-wide',
+                  'font-headline font-bold text-xs tracking-wider uppercase',
                   'shadow-[0_4px_14px_rgba(250,130,33,0.38)] hover:shadow-[0_6px_22px_rgba(250,130,33,0.48)]',
                   'transform hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 group'
                 )}
               >
-                <span>{t('nav.download_app')}</span>
+                <span>DOWNLOAD THE APP</span>
                 <ArrowRight className="w-4 h-4 rtl-flip transition-transform duration-200 group-hover:translate-x-1" />
               </button>
 
@@ -394,44 +408,154 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
         </div>
 
-        {/* Mobile Navigation Drawer */}
+        {/* Mobile Navigation Drawer matching PDF page 8 */}
         {mobileMenuOpen && (
-          <div className="md:hidden border-t border-slate-200/80 dark:border-slate-700 bg-white/95 dark:bg-[#0A2540]/95 backdrop-blur-md shadow-xl px-4 pt-3 pb-6 animate-fadeIn">
+          <div className="md:hidden border-t border-slate-200/80 dark:border-slate-700 bg-white/95 dark:bg-[#0c2238]/95 backdrop-blur-md shadow-xl px-4 pt-3 pb-6 animate-fadeIn">
             <nav className="flex flex-col gap-1.5" aria-label="Mobile Navigation">
-              {navItems.map((item) => {
-                const isActive = activeTab === item.id;
-                return (
-                  <a
-                    key={item.id}
-                    href={item.href}
-                    onClick={(e) => handleNavClick(item, e)}
-                    className={cn(
-                      'font-headline text-base font-semibold px-4 py-3 rounded-2xl flex items-center justify-between transition-colors',
-                      isActive
-                        ? 'text-[#016ba5] dark:text-[#38BDF8] bg-[#016ba5]/10 dark:bg-[#016ba5]/30 font-bold'
-                        : 'text-slate-700 dark:text-slate-200 hover:text-[#016ba5] dark:hover:text-[#fa8221] hover:bg-slate-50 dark:hover:bg-slate-800/80',
-                      item.id === 'marketplace' && !isActive && 'bg-amber-500/[0.04] border border-amber-500/20 text-slate-900 dark:text-white font-bold'
-                    )}
-                  >
-                    <div className="flex items-center gap-2.5">
-                      {item.id === 'marketplace' && (
-                        <ShoppingBag className="w-5 h-5 text-[#fa8221]" />
-                      )}
-                      <span>{item.label}</span>
-                    </div>
-                    {item.badge && (
-                      <span className={cn(
-                        "text-xs font-gamification font-bold px-2 py-0.5 rounded-full border",
-                        item.id === 'marketplace'
-                          ? "bg-[#fa8221]/15 text-[#fa8221] border-[#fa8221]/30 font-extrabold shadow-sm"
-                          : "bg-[#fa8221]/10 text-[#fa8221] border-transparent"
-                      )}>
-                        {item.badge}
-                      </span>
-                    )}
-                  </a>
-                );
-              })}
+              {/* Home */}
+              <a
+                href="#universe"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setMobileMenuOpen(false);
+                  onViewChange?.('home');
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                className={cn(
+                  'font-headline text-base font-semibold px-4 py-3 rounded-2xl flex items-center justify-between transition-colors',
+                  currentView === 'home'
+                    ? 'text-[#016ba5] dark:text-[#38BDF8] bg-sky-50 dark:bg-sky-950/60 font-bold'
+                    : 'text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800'
+                )}
+              >
+                <span>Home</span>
+              </a>
+
+              {/* How It Works */}
+              <a
+                href="#how-it-works"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setMobileMenuOpen(false);
+                  onViewChange?.('home');
+                  setTimeout(() => {
+                    const el = document.getElementById('how-it-works');
+                    if (el) el.scrollIntoView({ behavior: 'smooth' });
+                  }, 60);
+                }}
+                className="font-headline text-base font-semibold px-4 py-3 rounded-2xl text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+              >
+                <span>How It Works</span>
+              </a>
+
+              {/* For Parents */}
+              <a
+                href="#blog"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setMobileMenuOpen(false);
+                  onViewChange?.('blog');
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                className={cn(
+                  'font-headline text-base font-semibold px-4 py-3 rounded-2xl flex items-center justify-between transition-colors',
+                  currentView === 'blog'
+                    ? 'text-[#016ba5] dark:text-[#38BDF8] bg-sky-50 dark:bg-sky-950/60 font-bold'
+                    : 'text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800'
+                )}
+              >
+                <span>For Parents</span>
+              </a>
+
+              {/* Marketplace */}
+              <a
+                href="#marketplace"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setMobileMenuOpen(false);
+                  onViewChange?.('marketplace');
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                className={cn(
+                  'font-headline text-base font-semibold px-4 py-3 rounded-2xl flex items-center justify-between transition-colors',
+                  currentView === 'marketplace'
+                    ? 'text-[#016ba5] dark:text-[#38BDF8] bg-sky-50 dark:bg-sky-950/60 font-bold'
+                    : 'text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800'
+                )}
+              >
+                <div className="flex items-center gap-2.5">
+                  <ShoppingBag className="w-5 h-5 text-[#fa8221]" />
+                  <span>Marketplace</span>
+                </div>
+                <span className="text-xs font-gamification font-bold px-2 py-0.5 rounded-full bg-[#fa8221]/15 text-[#fa8221]">
+                  Kits
+                </span>
+              </a>
+
+              {/* Blog */}
+              <a
+                href="#blog"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setMobileMenuOpen(false);
+                  onViewChange?.('blog');
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                className="font-headline text-base font-semibold px-4 py-3 rounded-2xl text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+              >
+                <span>Blog</span>
+              </a>
+
+              {/* About Us */}
+              <a
+                href="#about"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setMobileMenuOpen(false);
+                  onViewChange?.('about');
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                className={cn(
+                  'font-headline text-base font-semibold px-4 py-3 rounded-2xl flex items-center justify-between transition-colors',
+                  currentView === 'about'
+                    ? 'text-[#016ba5] dark:text-[#38BDF8] bg-sky-50 dark:bg-sky-950/60 font-bold'
+                    : 'text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800'
+                )}
+              >
+                <span>About Us</span>
+              </a>
+
+              {/* Parent seller */}
+              <a
+                href="#marketplace"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setMobileMenuOpen(false);
+                  onViewChange?.('marketplace');
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                className="font-headline text-base font-semibold px-4 py-3 rounded-2xl text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex items-center gap-2.5"
+              >
+                <div className="w-6 h-6 rounded-lg bg-amber-500/10 text-[#fa8221] flex items-center justify-center">
+                  <ShoppingBag className="w-3.5 h-3.5" />
+                </div>
+                <span>Parent seller</span>
+              </a>
+
+              {/* DOWNLOAD THE APP button in mobile drawer */}
+              <div className="mt-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    if (onOpenWaitlist) onOpenWaitlist();
+                    else setDownloadModalOpen(true);
+                  }}
+                  className="w-full flex items-center justify-center gap-2 py-3.5 px-6 rounded-full bg-[#fa8221] hover:bg-[#e87313] active:bg-[#cf630b] text-white font-headline font-bold text-sm tracking-wider uppercase shadow-[0_4px_14px_rgba(250,130,33,0.38)] transition-all cursor-pointer"
+                >
+                  <span>DOWNLOAD THE APP</span>
+                </button>
+              </div>
             </nav>
 
             <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-700/80 flex flex-col gap-2.5">
@@ -446,7 +570,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                     onOpenAuth?.();
                   }
                 }}
-                className="w-full flex items-center justify-between py-3 px-4 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-xs font-headline font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                className="w-full flex items-center justify-between py-3 px-4 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-xs font-headline font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer"
               >
                 <div className="flex items-center gap-2">
                   <UserIcon className="w-4 h-4 text-[#016ba5] dark:text-[#38BDF8]" />
@@ -462,31 +586,13 @@ export const Navbar: React.FC<NavbarProps> = ({
                   setMobileMenuOpen(false);
                   onOpenContact?.();
                 }}
-                className="w-full flex items-center justify-between py-3 px-4 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-xs font-headline font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                className="w-full flex items-center justify-between py-3 px-4 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-xs font-headline font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer"
               >
                 <div className="flex items-center gap-2">
                   <MessageSquare className="w-4 h-4 text-[#016ba5] dark:text-[#38BDF8]" />
                   <span>{t('nav.contact_support')}</span>
                 </div>
                 <ChevronRight className="w-4 h-4 text-slate-400 rtl-flip" />
-              </button>
-
-              {/* Mobile CTA Button: Pill-Shaped #fa8221 with right arrow */}
-              <button
-                type="button"
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  setDownloadModalOpen(true);
-                }}
-                className={cn(
-                  'w-full flex items-center justify-center gap-2 py-3.5 px-6 rounded-full',
-                  'bg-[#fa8221] hover:bg-[#e87313] text-white',
-                  'font-headline font-bold text-base tracking-wide',
-                  'shadow-[0_4px_14px_rgba(250,130,33,0.38)] transition-all'
-                )}
-              >
-                <span>{t('nav.download_app')}</span>
-                <ArrowRight className="w-4 h-4 rtl-flip" />
               </button>
             </div>
           </div>

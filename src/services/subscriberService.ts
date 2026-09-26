@@ -12,6 +12,18 @@ export interface Subscriber {
   source: string;
   createdAt: string;
   updatedAt?: string;
+  firstName?: string;
+  phoneNumber?: string;
+  whatsappNumber?: string;
+  device?: string;
+}
+
+export interface WaitlistSubmission {
+  firstName?: string;
+  email: string;
+  phoneNumber?: string;
+  whatsappNumber?: string;
+  device?: string;
 }
 
 const LOCAL_STORAGE_KEY = 'abtalquest_subscribers_cache';
@@ -254,6 +266,71 @@ export const subscribeEmail = async (
       message: err?.message || 'A network error occurred while subscribing.',
     };
   }
+};
+
+/**
+ * Submit waitlist registration with device and contact details
+ */
+export const submitWaitlist = async (
+  data: WaitlistSubmission
+): Promise<{ success: boolean; isDuplicate?: boolean; message: string; subscriber?: Subscriber }> => {
+  if (!data.email || !isValidEmail(data.email)) {
+    return {
+      success: false,
+      message: 'Please enter a valid email address.',
+    };
+  }
+
+  const normalized = data.email.trim().toLowerCase();
+  const localList = getLocalSubscribers();
+  const existing = localList.find((s) => s.email.toLowerCase() === normalized);
+
+  const subObj: Subscriber = {
+    id: existing?.id || `waitlist_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+    email: normalized,
+    source: 'early_access_waitlist',
+    createdAt: existing?.createdAt || new Date().toISOString(),
+    firstName: data.firstName?.trim() || undefined,
+    phoneNumber: data.phoneNumber?.trim() || undefined,
+    whatsappNumber: data.whatsappNumber?.trim() || undefined,
+    device: data.device || 'Not sure yet',
+  };
+
+  if (!existing) {
+    localList.unshift(subObj);
+  } else {
+    // update details
+    const idx = localList.findIndex((s) => s.id === existing.id);
+    if (idx !== -1) localList[idx] = { ...existing, ...subObj };
+  }
+  saveLocalSubscribers(localList);
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('abtalquest:subscriber_added', { detail: subObj }));
+  }
+
+  if (isSupabaseConfigured()) {
+    try {
+      await supabase
+        .from('subscribers')
+        .upsert(
+          {
+            email: normalized,
+            source: 'early_access_waitlist',
+          },
+          { onConflict: 'email' }
+        );
+    } catch (e) {
+      console.warn('[SubscriberService] Supabase waitlist sync fallback:', e);
+    }
+  }
+
+  return {
+    success: true,
+    isDuplicate: !!existing,
+    message: existing ? "You're already on our early-access waitlist!" : "You're on the list! We'll be in touch soon.",
+    subscriber: subObj,
+  };
 };
 
 /**

@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import Layout from './components/layout/Layout';
 import Hero from './components/home/Hero';
-import VisionMission from './components/home/VisionMission';
-import CoreFeatures from './components/home/CoreFeatures';
+import HowItWorksJourney from './components/home/HowItWorksJourney';
+import OneContinuousWorld from './components/home/OneContinuousWorld';
+import ParentStoriesSection from './components/home/ParentStoriesSection';
+import CommonQuestionsSection from './components/home/CommonQuestionsSection';
+import CtaBannerSection from './components/home/CtaBannerSection';
 import ParentingResources from './components/home/ParentingResources';
-import DownloadAppSection from './components/home/DownloadAppSection';
-import WhyAbtalQuestSection from './components/home/WhyAbtalQuestSection';
 import Marketplace from './components/marketplace/Marketplace';
 import AdminPortal from './components/admin/AdminPortal';
 import AboutUsView from './components/about/AboutUsView';
@@ -13,6 +14,7 @@ import UserAuthModal from './components/auth/UserAuthModal';
 import UserProfileModal from './components/auth/UserProfileModal';
 import ContactModal from './components/common/ContactModal';
 import WatchDemoModal from './components/common/WatchDemoModal';
+import WaitlistModal from './components/common/WaitlistModal';
 import FloatingCartButton from './components/common/FloatingCartButton';
 import { SafetyStandardsView, type SafetyStandardTab } from './components/compliance/SafetyStandardsView';
 import { subscribeToAuthChanges, signOutUser } from './services/authService';
@@ -28,6 +30,7 @@ export function App() {
   const [profileModalOpen, setProfileModalOpen] = useState<boolean>(false);
   const [contactModalOpen, setContactModalOpen] = useState<boolean>(false);
   const [watchDemoOpen, setWatchDemoOpen] = useState<boolean>(false);
+  const [waitlistModalOpen, setWaitlistModalOpen] = useState<boolean>(false);
 
   useEffect(() => {
     const handleHash = () => {
@@ -62,6 +65,22 @@ export function App() {
       } else if (hash === '#contact') {
         setContactModalOpen(true);
         setCurrentView('home');
+      } else if (
+        hash === '#waitlist' ||
+        hash === '#download' ||
+        hash === '#early-access'
+      ) {
+        setWaitlistModalOpen(true);
+        setCurrentView('home');
+      } else if (
+        hash === '#how-it-works' ||
+        hash === '#howitworks'
+      ) {
+        setCurrentView('home');
+        setTimeout(() => {
+          const el = document.getElementById('how-it-works');
+          el?.scrollIntoView({ behavior: 'smooth' });
+        }, 100);
       } else if (
         hash === '#privacy-for-kids' ||
         hash === '#privacy-kids' ||
@@ -172,6 +191,7 @@ export function App() {
       onOpenAuth={() => setAuthModalOpen(true)}
       onOpenProfile={() => setProfileModalOpen(true)}
       onOpenContact={() => setContactModalOpen(true)}
+      onOpenWaitlist={() => setWaitlistModalOpen(true)}
     >
       {currentView === 'marketplace' ? (
         <Marketplace 
@@ -190,9 +210,11 @@ export function App() {
             setCurrentView('marketplace');
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }}
+          onOpenContact={() => setContactModalOpen(true)}
+          onOpenWaitlist={() => setWaitlistModalOpen(true)}
         />
       ) : currentView === 'blog' ? (
-        <ParentingResources />
+        <ParentingResources onOpenWaitlist={() => setWaitlistModalOpen(true)} />
       ) : currentView === 'safety-standards' ? (
         <SafetyStandardsView
           activeTab={activeSafetyTab}
@@ -213,32 +235,35 @@ export function App() {
         <>
           {/* 1. HERO SECTION */}
           <Hero
-            onExploreClick={() => {
-              const el = document.getElementById('vision-mission');
+            onDownloadClick={() => setWaitlistModalOpen(true)}
+            onSeeHowItWorksClick={() => {
+              const el = document.getElementById('how-it-works');
               el?.scrollIntoView({ behavior: 'smooth' });
             }}
-            onWatchDemo={() => setWatchDemoOpen(true)}
           />
 
-          {/* 2. VISION & MISSION SECTION */}
-          <VisionMission />
+          {/* 2. HOW IT WORKS 5-STEP JOURNEY */}
+          <HowItWorksJourney />
 
-          {/* 3. CORE FEATURES */}
-          <CoreFeatures />
+          {/* 3. ONE CONTINUOUS WORLD */}
+          <OneContinuousWorld onJoinQuestClick={() => setWaitlistModalOpen(true)} />
 
-          {/* 4. FOUNDING STORY / WHY ABTALQUEST */}
-          <WhyAbtalQuestSection
-            onLearnMore={() => {
-              setCurrentView('about');
-              window.location.hash = '#about';
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
-          />
+          {/* 4. PARENT STORIES */}
+          <ParentStoriesSection />
 
-          {/* 5. APP DOWNLOAD SECTION */}
-          <DownloadAppSection />
+          {/* 5. COMMON QUESTIONS ACCORDIONS */}
+          <CommonQuestionsSection />
+
+          {/* 6. BOTTOM STARFIELD CTA BANNER */}
+          <CtaBannerSection onDownloadClick={() => setWaitlistModalOpen(true)} />
         </>
       )}
+
+      {/* Early Access Waitlist Modal */}
+      <WaitlistModal
+        isOpen={waitlistModalOpen}
+        onClose={() => setWaitlistModalOpen(false)}
+      />
 
       {/* User Authentication Modal */}
       <UserAuthModal
@@ -281,7 +306,7 @@ export function App() {
         isOpen={watchDemoOpen}
         onClose={() => setWatchDemoOpen(false)}
         onExplorePlanets={() => {
-          const el = document.getElementById('vision-mission');
+          const el = document.getElementById('how-it-works');
           el?.scrollIntoView({ behavior: 'smooth' });
         }}
       />

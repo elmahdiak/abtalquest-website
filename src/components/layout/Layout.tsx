@@ -14,6 +14,7 @@ export interface LayoutProps {
   onOpenAuth?: () => void;
   onOpenProfile?: () => void;
   onOpenContact?: () => void;
+  onOpenWaitlist?: () => void;
   whatsappPosition?: WhatsAppPosition;
 }
 
@@ -25,6 +26,7 @@ export const Layout: React.FC<LayoutProps> = ({
   onOpenAuth,
   onOpenProfile,
   onOpenContact,
+  onOpenWaitlist,
   whatsappPosition,
 }) => {
   return (
@@ -36,11 +38,14 @@ export const Layout: React.FC<LayoutProps> = ({
         onOpenAuth={onOpenAuth}
         onOpenProfile={onOpenProfile}
         onOpenContact={onOpenContact}
+        onOpenWaitlist={onOpenWaitlist}
       />
       <main className="flex-1 w-full max-w-full flex flex-col overflow-x-hidden">
         {children}
       </main>
-      {currentView !== 'marketplace' && <Footer onOpenContact={onOpenContact} />}
+      {currentView !== 'marketplace' && (
+        <Footer onOpenContact={onOpenContact} onNavigate={onViewChange} />
+      )}
       <WhatsAppButton position={whatsappPosition} />
     </div>
   );

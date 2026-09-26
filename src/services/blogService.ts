@@ -91,29 +91,26 @@ export const DEFAULT_BLOG_CATEGORIES = [
 
 export const DEFAULT_BLOG_POSTS: BlogPost[] = [
   {
-    id: 'blog-resilient-kids',
-    title: 'How to Raise Emotionally Resilient Kids',
-    slug: 'how-to-raise-emotionally-resilient-kids',
-    excerpt: 'Discover actionable emotional wellness strategies from child psychologists to help your children thrive amidst digital overload and constant stimulation.',
-    content: `In today's hyper-connected environment, children are exposed to unprecedented cognitive stimuli. As parents and educators, nurturing emotional resilience is no longer an optional skill—it is foundational.
+    id: 'blog-meaningful-screen-time',
+    title: 'What meaningful screen time can look like',
+    slug: 'what-meaningful-screen-time-can-look-like',
+    excerpt: 'A thoughtful starting point for families exploring a healthier relationship with technology.',
+    content: `Screen time doesn't have to be a battle between mindless passive scrolling and complete deprivation. When intentional design meets imaginative storytelling, technology becomes a launchpad into the physical world.
 
-### 1. Fostering a Growth Mindset
-Children who view challenges as learning opportunities develop psychological fortitude. Instead of praising innate abilities like "you are so smart," praise perseverance: "I noticed how hard you worked to solve that riddle."
+### 1. The Passive vs. Active Digital Divide
+Most modern media algorithms optimize strictly for session duration—keeping young minds passive, reactive, and dopamine-reliant. In contrast, meaningful screen time sparks curiosity, prompts critical questions, and always points toward offline exploration.
 
-### 2. Digital Boundaries & Unplugged Reflection
-Set designated screen-free sanctuaries in your home. Replace passive scrolling with tactile problem-solving, board games, or mindful storytelling.
+### 2. The Bridge to Real-World Action
+A thoughtful digital experience gives children agency. When a quest on screen teaches them about constellation patterns, structural engineering, or kindness, the true adventure begins when they step away from the device to build, test, and observe in real life.
 
-### 3. Emotional Literacy
-Give children the vocabulary to name complex feelings. Whether it is frustration, anxiety, or excitement, acknowledging emotions without judgment builds lasting self-regulation.
-
-### 4. Co-Regulation Over Correction
-When emotional storms erupt, children mirror their parents' emotional regulation. Taking deep, audible breaths and offering a calm physical presence helps regulate their nervous system before engaging in problem-solving dialogue.`,
-    category: 'Emotional Wellness',
-    tags: ['parenting', 'resilience', 'screen-free', 'mental-health'],
-    imageUrl: 'https://images.unsplash.com/photo-1491438590914-bc09fcaaf77a?auto=format&fit=crop&w=1200&q=80',
-    author: 'Dr. Amina Mansour',
-    authorName: 'Dr. Amina Mansour',
-    authorRole: 'Child Psychologist',
+### 3. Setting Intentional Family Tech Rituals
+Establishing clear, positive boundaries helps children understand technology as an empowering tool rather than a constant entertainment crutch.`,
+    category: 'Digital Wellbeing',
+    tags: ['digital-wellbeing', 'screen-time', 'parenting', 'mindful-tech'],
+    imageUrl: '/blog-digital-wellbeing.jpg',
+    author: 'AbtalQuest Editorial Team',
+    authorName: 'AbtalQuest Editorial Team',
+    authorRole: 'Child Development & Digital Safety Specialist',
     readTime: '5 min read',
     isPublished: true,
     featured: true,
@@ -123,27 +120,27 @@ When emotional storms erupt, children mirror their parents' emotional regulation
     updatedAt: '2026-03-14T10:00:00.000Z',
   },
   {
-    id: 'blog-digital-safety',
-    title: 'Digital Dangers: What You Need to Know',
-    slug: 'digital-dangers-what-you-need-to-know',
-    excerpt: 'Practical insights and family agreements to safeguard young minds against digital vulnerabilities while empowering healthy curiosity.',
-    content: `Digital safety begins with proactive dialogue rather than restrictive punishment. When children understand the reasons behind boundaries, they become active guardians of their own wellbeing.
+    id: 'blog-real-world-missions',
+    title: 'Why small real-world missions matter',
+    slug: 'why-small-real-world-missions-matter',
+    excerpt: 'How everyday action can help children practice independence and confidence.',
+    content: `Children don't build genuine confidence from hollow praise; they build it by solving real problems, overcoming tangible friction, and experiencing the satisfaction of meaningful accomplishment.
 
-### 1. The Power of Family Technology Agreements
-Create a shared pact outlining screen time limits, approved platforms, and guidelines for asking permission before downloading new applications. Involve children in setting these agreements so they feel ownership and agency.
+### 1. The Power of Micro-Missions
+Small, age-appropriate quests—like cataloging local plants, preparing a simple recipe, or organizing an emergency kit—break complex life skills into achievable victories.
 
-### 2. Identifying Dark Patterns & Manipulative Algorithms
-Teach older children to recognize app design tricks engineered to induce addictive loops. Discuss why commercial games push instant gratification and how deliberate mindfulness preserves personal autonomy.
+### 2. Autonomy and Decision Making
+When children are given the freedom to plan and execute a mission, they take ownership of the outcome. Experiencing minor mistakes in low-stakes environments builds cognitive flexibility and emotional grit.
 
-### 3. Cultivating Safe Online Spaces
-Prioritize educational, violence-free, and ad-free ecosystems where young minds can explore STEM, art, and values without predatory targeted advertisements.`,
-    category: 'Digital Safety',
-    tags: ['cyber-safety', 'parenting', 'digital-literacy'],
-    imageUrl: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1200&q=80',
-    author: 'Tariq Al-Farooq',
-    authorName: 'Tariq Al-Farooq',
-    authorRole: 'Cybersecurity Researcher',
-    readTime: '7 min read',
+### 3. Connecting Curiosity to Daily Life
+Everyday environments are rich with discovery opportunities. Translating abstract concepts into tactile experiments anchors learning in deep, memorable experience.`,
+    category: 'Life Skills',
+    tags: ['life-skills', 'independence', 'curiosity', 'resilience'],
+    imageUrl: '/blog-life-skills.jpg',
+    author: 'AbtalQuest Editorial Team',
+    authorName: 'AbtalQuest Editorial Team',
+    authorRole: 'Experiential Learning Architect',
+    readTime: '4 min read',
     isPublished: true,
     featured: false,
     viewsCount: 980,
@@ -152,27 +149,27 @@ Prioritize educational, violence-free, and ad-free ecosystems where young minds 
     updatedAt: '2026-03-10T14:30:00.000Z',
   },
   {
-    id: 'blog-family-bonding',
-    title: 'Fun Habits to Try with Your Kids',
-    slug: 'fun-habits-to-try-with-your-kids',
-    excerpt: 'Why unplugged cooperative games and imaginative family challenges foster lifelong empathy, teamwork, and mutual trust.',
-    content: `Play is the universal language through which children decipher relationships, ethics, and emotional bonds. Cooperative family play bridges generational divides and reinforces mutual trust.
+    id: 'blog-supporting-without-taking-over',
+    title: 'Supporting without taking over',
+    slug: 'supporting-without-taking-over',
+    excerpt: 'Practical ways to guide a child\'s journey while keeping them in the hero role.',
+    content: `As parents, our instinctive urge is to step in whenever a child encounters friction or frustration. Yet true mentorship lies in being a supportive ally rather than the solver of every challenge.
 
-### 1. Screen-Free Tabletop Adventures
-Engaging in tactile quests and collaborative challenges teaches children to communicate effectively under low-stakes pressure. Unlike competitive games where one winner leaves others frustrated, cooperative games celebrate collective triumphs.
+### 1. Keeping the Child in the Hero Role
+When a child faces a difficult challenge, ask open-ended questions instead of providing direct solutions: "What do you notice about how these pieces connect?" or "What would happen if we tried a different approach?"
 
-### 2. Active Listening Through Storytelling
-Shared family reading rituals cultivate profound empathy. Prompting children to evaluate character decisions in moral chronicles develops their innate ethical compass and critical judgment.
+### 2. Embracing Productive Struggle
+Frustration is a normal phase of cognitive growth. Normalizing setbacks helps children develop patience and persistence without feeling defeated.
 
-### 3. Celebrating Effort Over Perfection
-When parents participate alongside children—embracing mistakes with humor and curiosity—children internalize the confidence to tackle real-world challenges without the crippling fear of failure.`,
-    category: 'Family Bonding',
-    tags: ['family-time', 'cooperative-play', 'empathy', 'values'],
-    imageUrl: 'https://images.unsplash.com/photo-1543269865-cbf427effbad?auto=format&fit=crop&w=1200&q=80',
-    author: 'Fatima Zohra',
-    authorName: 'Fatima Zohra',
-    authorRole: 'Family Life Coach',
-    readTime: '4 min read',
+### 3. Shared Moments of Wonder
+Working together on family projects builds lasting emotional connections and models lifelong curiosity.`,
+    category: 'Parenting',
+    tags: ['parenting', 'co-regulation', 'mentorship', 'connection'],
+    imageUrl: '/blog-parenting.jpg',
+    author: 'AbtalQuest Editorial Team',
+    authorName: 'AbtalQuest Editorial Team',
+    authorRole: 'Family Mentorship Specialist',
+    readTime: '6 min read',
     isPublished: true,
     featured: false,
     viewsCount: 1120,

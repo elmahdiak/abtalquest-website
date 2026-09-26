@@ -7,11 +7,15 @@ export interface SkillLearned {
 }
 
 export interface ProductReview {
+  id?: string;
   author: string;
-  role: string;
-  rating: number;
+  role?: string;
+  rating: number; // 1 to 5
   date: string;
   comment: string;
+  avatar?: string;           // optional user avatar URL
+  images?: string[];         // optional review photo URLs
+  verifiedPurchase?: boolean;
 }
 
 export interface ProductVariant {
@@ -1530,6 +1534,52 @@ export const uploadProductImage = async (file: File): Promise<string> => {
   }
 
   return data.publicUrl;
+};
+
+/**
+ * Submit a user review for a product.
+ * Appends the review to the product's JSONB reviews column in Supabase,
+ * recalculates the average rating, and dispatches a local event for optimistic UI update.
+ */
+export const submitProductReview = async (
+  productId: string,
+  reviewData: Omit<ProductReview, 'id' | 'date'>
+): Promise<ProductReview> => {
+  const newReview: ProductReview = {
+    ...reviewData,
+    id: `rev_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+    date: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
+  };
+
+  if (isSupabaseConfigured()) {
+    try {
+      const { data: existing } = await supabase
+        .from('products')
+        .select('reviews, reviews_count')
+        .eq('id', productId)
+        .single();
+
+      const currentReviews: ProductReview[] = Array.isArray(existing?.reviews) ? existing.reviews : [];
+      const updatedReviews = [...currentReviews, newReview];
+      const newAvg = updatedReviews.reduce((sum, r) => sum + r.rating, 0) / updatedReviews.length;
+
+      await supabase
+        .from('products')
+        .update({
+          reviews: updatedReviews,
+          rating: Math.round(newAvg * 10) / 10,
+          reviews_count: updatedReviews.length,
+        })
+        .eq('id', productId);
+    } catch (err) {
+      console.warn('[AbtalQuest] submitProductReview Supabase error:', err);
+    }
+  }
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('abtalquest_product_updated', { detail: { id: productId, newReview } }));
+  }
+  return newReview;
 };
 
 /**

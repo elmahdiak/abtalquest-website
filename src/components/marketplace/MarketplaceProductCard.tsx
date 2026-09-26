@@ -150,11 +150,16 @@ export const MarketplaceProductCard: React.FC<MarketplaceProductCardProps> = ({
             </span>
           )}
 
-          {product.discountPercent && product.discountPercent > 0 && (
-            <span className="px-1.5 py-0.5 sm:px-2 sm:py-0.5 rounded-full text-[8px] sm:text-[10px] font-black uppercase tracking-wider bg-rose-500 text-white shadow-sm">
-              {t('marketplace.badge_discount', { percent: product.discountPercent })}
-            </span>
-          )}
+          {(() => {
+            const computedDiscount = (product.originalPrice && product.originalPrice > product.price)
+              ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
+              : (product.discountPercent || 0);
+            return computedDiscount > 0 ? (
+              <span className="px-1.5 py-0.5 sm:px-2 sm:py-0.5 rounded-full text-[8px] sm:text-[10px] font-black uppercase tracking-wider bg-rose-500 text-white shadow-sm">
+                {t('marketplace.badge_discount', { percent: computedDiscount })}
+              </span>
+            ) : null;
+          })()}
         </div>
 
         {/* Top-Right Wishlist Button */}
