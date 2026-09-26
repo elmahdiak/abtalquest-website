@@ -99,6 +99,15 @@ const config: Config = {
         '4xl': '2rem',
         '5xl': '2.5rem',
       },
+      keyframes: {
+        marquee: {
+          '0%': { transform: 'translateX(0%)' },
+          '100%': { transform: 'translateX(-100%)' },
+        },
+      },
+      animation: {
+        marquee: 'marquee 45s linear infinite',
+      },
     },
   },
   plugins: [],
