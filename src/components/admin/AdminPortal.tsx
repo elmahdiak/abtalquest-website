@@ -1894,7 +1894,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
 
   if (checkingAuth) {
     return (
-      <div className="min-h-screen bg-[#0A2540] flex items-center justify-center text-white">
+      <div className="min-h-screen bg-[#06152B] flex items-center justify-center text-white">
         <Loader2 className="w-8 h-8 text-[#fa8221] animate-spin mb-2" />
         <span className="ml-3 font-headline text-sm font-bold">Verifying Administrator Access...</span>
       </div>
@@ -1904,7 +1904,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
   // View 1: Hidden Login & Provisioning Interface
   if (!isAdmin) {
     return (
-      <div className="min-h-screen bg-[#0A2540] flex flex-col justify-between p-3 sm:p-8 w-full max-w-full overflow-x-hidden">
+      <div className="min-h-screen bg-[#06152B] flex flex-col justify-between p-3 sm:p-8 w-full max-w-full overflow-x-hidden">
         <header className="max-w-7xl mx-auto w-full flex items-center justify-between py-4">
           <div className="flex items-center gap-3">
             <AbtalQuestLogo 
@@ -1931,7 +1931,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
         </header>
 
         <main className="max-w-md mx-auto w-full py-12">
-          <div className="bg-[#1C1C1C] rounded-3xl p-8 border border-slate-800 shadow-2xl relative overflow-hidden">
+          <div className="bg-[#091E3A] rounded-3xl p-8 border border-[#016ba5]/30 shadow-2xl relative overflow-hidden">
             {/* Ambient indicator */}
             <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#016ba5] via-[#fa8221] to-[#7C3AED]" />
 
@@ -2318,7 +2318,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
 
       {/* Left Vertical Sidebar (Sticky / Fixed h-screen) */}
       <aside
-        className={`fixed md:sticky top-0 start-0 z-50 h-screen bg-[#0A2540] border-r rtl:border-r-0 rtl:border-l border-slate-800/80 flex flex-col justify-between shrink-0 transition-all duration-300 ease-in-out ${
+        className={`fixed md:sticky top-0 start-0 z-50 h-screen bg-[#06152B] border-r rtl:border-r-0 rtl:border-l border-slate-800/80 flex flex-col justify-between shrink-0 transition-all duration-300 ease-in-out ${
           sidebarOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full md:translate-x-0 rtl:translate-x-full rtl:md:translate-x-0'
         } ${
           isSidebarCollapsed ? 'md:w-20' : 'md:w-64 lg:w-72'
@@ -2718,7 +2718,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
         {/* Right Content Workspace Column */}
         <div className="flex-1 min-w-0 flex flex-col h-screen overflow-hidden">
           {/* Top Bar Navigation Header */}
-          <header className="bg-[#0A2540] text-white border-b border-slate-800 h-14 sm:h-16 shrink-0 z-30 w-full flex items-center">
+          <header className="bg-[#06152B] text-white border-b border-slate-800 h-14 sm:h-16 shrink-0 z-30 w-full flex items-center">
             <div className="w-full px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-4">
               <div className="flex items-center gap-3 sm:gap-4">
                 {/* Mobile Sidebar Hamburger Toggle */}
@@ -2801,7 +2801,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
                   >
                     <Bell className="w-4 h-4" />
                     {notifications.filter((n) => !n.isRead).length > 0 && (
-                      <span className="absolute -top-1 -right-1 px-1.5 py-0.2 rounded-full bg-red-500 text-white font-headline font-black text-[10px] animate-pulse border-2 border-[#0A2540] shadow-sm">
+                      <span className="absolute -top-1 -right-1 px-1.5 py-0.2 rounded-full bg-red-500 text-white font-headline font-black text-[10px] animate-pulse border-2 border-[#06152B] shadow-sm">
                         {notifications.filter((n) => !n.isRead).length > 99 ? '99+' : notifications.filter((n) => !n.isRead).length}
                       </span>
                     )}
@@ -2809,7 +2809,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
 
                   {/* Notification Center Popover */}
                   {notificationsOpen && (
-                    <div className="absolute right-0 mt-3 w-80 sm:w-96 rounded-2xl bg-white dark:bg-[#0A2540] border border-slate-200 dark:border-slate-800 shadow-2xl z-50 overflow-hidden animate-fadeIn text-slate-800 dark:text-slate-100">
+                    <div className="absolute right-0 mt-3 w-80 sm:w-96 rounded-2xl bg-white dark:bg-[#081D37] border border-slate-200 dark:border-slate-800 shadow-2xl z-50 overflow-hidden animate-fadeIn text-slate-800 dark:text-slate-100">
                       {/* Header */}
                       <div className="p-3.5 border-b border-slate-100 dark:border-slate-800/80 flex items-center justify-between bg-slate-50/70 dark:bg-slate-900/40">
                         <div className="flex items-center gap-2">
@@ -2975,7 +2975,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
 
                   {adminLangMenuOpen && (
                     <div
-                      className={`absolute mt-2 w-48 rounded-2xl bg-[#0A2540] backdrop-blur-md shadow-2xl border border-slate-700 py-1.5 z-50 animate-fadeIn ${
+                      className={`absolute mt-2 w-48 rounded-2xl bg-[#081D37] backdrop-blur-md shadow-2xl border border-slate-700 py-1.5 z-50 animate-fadeIn ${
                         direction === 'rtl' ? 'left-0' : 'right-0'
                       }`}
                     >
@@ -3836,7 +3836,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
 
                   {/* Sticky Floating Bulk Action Toolbar */}
                   {selectedProductIds.length > 0 && (
-                    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-slate-900/95 text-white backdrop-blur-md px-5 py-3 rounded-2xl shadow-2xl border border-slate-700 flex flex-wrap items-center justify-center gap-3 animate-fadeIn">
+                    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-[#06152B]/95 text-white backdrop-blur-md px-6 py-3 rounded-2xl shadow-2xl border border-slate-700/80 flex flex-wrap items-center justify-center gap-3 animate-fadeIn">
                       <div className="flex items-center gap-2 border-r rtl:border-r-0 rtl:border-l border-slate-700 pr-3 rtl:pr-0 rtl:pl-3">
                         <span className="w-2 h-2 rounded-full bg-[#fa8221] animate-pulse" />
                         <span className="font-headline font-bold text-xs">
@@ -4133,7 +4133,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
 
                   {/* 4 KPI Summary Cards */}
                   <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                    <div className="p-4 rounded-2xl bg-white dark:bg-[#0A2540] border border-slate-200/80 dark:border-slate-800 shadow-xs">
+                    <div className="p-4 rounded-2xl bg-white dark:bg-[#0c2238] border border-slate-200/80 dark:border-slate-800 shadow-xs">
                       <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 mb-2">
                         <span className="text-[11px] font-headline font-bold uppercase tracking-wider">Total Coupons</span>
                         <Ticket className="w-4 h-4 text-[#016ba5] dark:text-[#38BDF8]" />
@@ -4144,7 +4144,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
                       <p className="font-body text-[10px] text-slate-400 mt-0.5">Configurés sur la plateforme</p>
                     </div>
 
-                    <div className="p-4 rounded-2xl bg-white dark:bg-[#0A2540] border border-slate-200/80 dark:border-slate-800 shadow-xs">
+                    <div className="p-4 rounded-2xl bg-white dark:bg-[#0c2238] border border-slate-200/80 dark:border-slate-800 shadow-xs">
                       <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 mb-2">
                         <span className="text-[11px] font-headline font-bold uppercase tracking-wider">Codes Actifs</span>
                         <CheckCircle className="w-4 h-4 text-emerald-500" />
@@ -4155,7 +4155,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
                       <p className="font-body text-[10px] text-slate-400 mt-0.5">Disponibles au checkout</p>
                     </div>
 
-                    <div className="p-4 rounded-2xl bg-white dark:bg-[#0A2540] border border-slate-200/80 dark:border-slate-800 shadow-xs">
+                    <div className="p-4 rounded-2xl bg-white dark:bg-[#0c2238] border border-slate-200/80 dark:border-slate-800 shadow-xs">
                       <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 mb-2">
                         <span className="text-[11px] font-headline font-bold uppercase tracking-wider">Utilisations</span>
                         <TrendingUp className="w-4 h-4 text-purple-500" />
@@ -4166,7 +4166,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
                       <p className="font-body text-[10px] text-slate-400 mt-0.5">Commandes avec réduction</p>
                     </div>
 
-                    <div className="p-4 rounded-2xl bg-white dark:bg-[#0A2540] border border-slate-200/80 dark:border-slate-800 shadow-xs">
+                    <div className="p-4 rounded-2xl bg-white dark:bg-[#0c2238] border border-slate-200/80 dark:border-slate-800 shadow-xs">
                       <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 mb-2">
                         <span className="text-[11px] font-headline font-bold uppercase tracking-wider">Codes Expirés</span>
                         <Clock className="w-4 h-4 text-amber-500" />
@@ -4179,7 +4179,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
                   </div>
 
                   {/* Filter & Search Bar */}
-                  <div className="p-3.5 sm:p-4 rounded-2xl bg-white dark:bg-[#0A2540] border border-slate-200/80 dark:border-slate-800 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3">
+                  <div className="p-3.5 sm:p-4 rounded-2xl bg-white dark:bg-[#0c2238] border border-slate-200/80 dark:border-slate-800 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3">
                     {/* Search */}
                     <div className="relative flex-1 max-w-sm">
                       <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -4243,7 +4243,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
 
                   {/* Coupons Grid / Cards */}
                   {filteredCoupons.length === 0 ? (
-                    <div className="p-12 text-center rounded-3xl bg-white dark:bg-[#0A2540] border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-3">
+                    <div className="p-12 text-center rounded-3xl bg-white dark:bg-[#0c2238] border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-3">
                       <Ticket className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto" />
                       <h4 className="font-headline text-sm font-bold text-slate-700 dark:text-slate-200">
                         Aucun code promo trouvé
@@ -4273,7 +4273,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
                         return (
                           <div
                             key={coupon.id}
-                            className={`p-5 rounded-3xl bg-white dark:bg-[#0A2540] border transition-all hover:shadow-md flex flex-col justify-between ${
+                            className={`p-5 rounded-3xl bg-white dark:bg-[#0c2238] border transition-all hover:shadow-md flex flex-col justify-between ${
                               !coupon.isActive
                                 ? 'border-slate-200 dark:border-slate-800 opacity-70 bg-slate-50/50 dark:bg-slate-900/40'
                                 : isExpired || isLimitReached
@@ -4423,7 +4423,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
                       aria-modal="true"
                     >
                       <div
-                        className="relative w-full max-w-lg bg-white dark:bg-[#0A2540] rounded-3xl shadow-2xl p-6 sm:p-7 max-h-[90vh] overflow-y-auto border border-slate-200 dark:border-slate-700"
+                        className="relative w-full max-w-lg bg-white dark:bg-[#081D37] rounded-3xl shadow-2xl p-6 sm:p-7 max-h-[90vh] overflow-y-auto border border-slate-200 dark:border-slate-700"
                         onClick={(e) => e.stopPropagation()}
                       >
                         <button
@@ -4632,7 +4632,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
                       aria-modal="true"
                     >
                       <div
-                        className="relative w-full max-w-sm bg-white dark:bg-[#0A2540] rounded-3xl shadow-2xl p-6 border border-slate-200 dark:border-slate-700"
+                        className="relative w-full max-w-sm bg-white dark:bg-[#081D37] rounded-3xl shadow-2xl p-6 border border-slate-200 dark:border-slate-700"
                         onClick={(e) => e.stopPropagation()}
                       >
                         <div className="w-12 h-12 rounded-2xl bg-red-500/10 text-red-500 flex items-center justify-center mb-4 border border-red-500/20">
@@ -5606,7 +5606,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
                   {/* 4 Primary Performance KPI Cards */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
                     {/* Card 1: Total Orders */}
-                    <div className="p-6 rounded-3xl bg-white dark:bg-[#0A2540]/80 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+                    <div className="p-6 rounded-3xl bg-white dark:bg-[#0c2238] border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between">
                       <div>
                         <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 mb-2">
                           <span className="font-headline font-bold text-xs uppercase tracking-wider">Commandes</span>
@@ -5625,7 +5625,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
                     </div>
 
                     {/* Card 2: Gross Revenue */}
-                    <div className="p-6 rounded-3xl bg-white dark:bg-[#0A2540]/80 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+                    <div className="p-6 rounded-3xl bg-white dark:bg-[#0c2238] border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between">
                       <div>
                         <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 mb-2">
                           <span className="font-headline font-bold text-xs uppercase tracking-wider">Chiffre d'Affaires</span>
@@ -5644,7 +5644,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
                     </div>
 
                     {/* Card 3: Average Order Value / AOV */}
-                    <div className="p-6 rounded-3xl bg-white dark:bg-[#0A2540]/80 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+                    <div className="p-6 rounded-3xl bg-white dark:bg-[#0c2238] border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between">
                       <div>
                         <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 mb-2">
                           <span className="font-headline font-bold text-xs uppercase tracking-wider">Panier Moyen (AOV)</span>
@@ -5662,7 +5662,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
                     </div>
 
                     {/* Card 4: Site Visits / Traffic */}
-                    <div className="p-6 rounded-3xl bg-white dark:bg-[#0A2540]/80 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+                    <div className="p-6 rounded-3xl bg-white dark:bg-[#0c2238] border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between">
                       <div>
                         <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 mb-2">
                           <span className="font-headline font-bold text-xs uppercase tracking-wider">Visites Estimées</span>
@@ -5682,7 +5682,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
                   </div>
 
                   {/* Top Featured Products Leaderboard ("Produits vedettes") */}
-                  <div className="bg-white dark:bg-[#0A2540]/80 p-6 sm:p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                  <div className="bg-white dark:bg-[#0c2238] p-6 sm:p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-6">
                       <div>
                         <h4 className="font-headline font-bold text-lg text-slate-900 dark:text-white">
@@ -5766,7 +5766,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
                   {/* Charts Grid: Dynamic Velocity Trend + Planet World Engagement */}
                   <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                     {/* Left: Dynamic Velocity Chart (Cols 1-7) */}
-                    <div className="lg:col-span-7 bg-white dark:bg-[#0A2540]/80 p-6 sm:p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                    <div className="lg:col-span-7 bg-white dark:bg-[#0c2238] p-6 sm:p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
                       <div className="flex items-center justify-between mb-6">
                         <div>
                           <h4 className="font-headline font-bold text-base text-slate-900 dark:text-white">
@@ -5810,7 +5810,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
                     </div>
 
                     {/* Right: Planet Sales Distribution (Cols 8-12) */}
-                    <div className="lg:col-span-5 bg-white dark:bg-[#0A2540]/80 p-6 sm:p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                    <div className="lg:col-span-5 bg-white dark:bg-[#0c2238] p-6 sm:p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
                       <h4 className="font-headline font-bold text-base text-slate-900 dark:text-white mb-1">
                         Univers & Planètes Éducatives
                       </h4>
@@ -5850,7 +5850,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
             {activeTab === 'team' && isSuperAdmin(currentUser) && (
               <div className="space-y-6">
                 {/* Header & Action Banner */}
-                <div className="bg-gradient-to-r from-[#0A2540] via-purple-950 to-[#0A2540] rounded-3xl p-6 sm:p-8 border border-purple-900/60 shadow-xl text-white flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                <div className="bg-gradient-to-r from-[#06152B] via-purple-950 to-[#06152B] rounded-3xl p-6 sm:p-8 border border-purple-900/60 shadow-xl text-white flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <span className="px-2.5 py-0.5 rounded-full bg-amber-400 text-slate-950 font-headline font-black text-[10px] uppercase tracking-wider flex items-center gap-1">
