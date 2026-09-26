@@ -53,10 +53,12 @@ export const MarketplaceProductGrid: React.FC<MarketplaceProductGridProps> = ({
       {/* Top Toolbar: Results Counter, Active Filter Chips, Sort Selector */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 mb-4 sm:mb-6 pb-3 sm:pb-4 border-b border-slate-200 dark:border-slate-800">
         
-        {/* Results Counter & Active Chips */}
+        {/* Results Counter & Active Chips matching PDF */}
         <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-          <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">
-            {products.length === 1 ? t('marketplace.cart_item_singular') : t('marketplace.cart_items', { count: products.length })}
+          <span className="font-headline text-sm sm:text-base font-black text-[#0F2A4A] dark:text-white uppercase tracking-tight">
+            {activeFilters.planet !== 'all' 
+              ? `${activeFilters.planet} kits (${products.length})`
+              : `ALL learning kits (${products.length})`}
           </span>
 
           {/* Active Chips */}
@@ -124,22 +126,22 @@ export const MarketplaceProductGrid: React.FC<MarketplaceProductGridProps> = ({
           )}
         </div>
 
-        {/* Sort selector */}
+        {/* Sort selector matching PDF (Sort: 6 KITS) */}
         <div className="flex items-center justify-between w-full sm:w-auto gap-2 self-end sm:self-auto">
-          <label htmlFor="grid-sort" className="text-xs font-bold text-slate-500 dark:text-slate-400 whitespace-nowrap">
-            {t('marketplace.sort_label')}
+          <label htmlFor="grid-sort" className="text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">
+            Sort: {products.length} KITS
           </label>
           <div className="relative">
             <select
               id="grid-sort"
               value={sortBy}
               onChange={(e) => onSortChange(e.target.value as any)}
-              className="py-1.5 px-3 pr-8 rounded-xl text-xs font-bold bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 outline-none focus:border-[#016ba5] cursor-pointer shadow-sm"
+              className="py-2 px-3.5 pr-8 rounded-xl text-xs font-bold bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 outline-none focus:border-[#016ba5] cursor-pointer shadow-sm"
             >
-              <option value="featured">{t('marketplace.sort_featured')}</option>
-              <option value="price-asc">{t('marketplace.sort_price_asc')}</option>
-              <option value="price-desc">{t('marketplace.sort_price_desc')}</option>
-              <option value="xp-desc">{t('marketplace.sort_xp_desc')}</option>
+              <option value="featured">Most Requested / Featured</option>
+              <option value="price-asc">Price: Low to High</option>
+              <option value="price-desc">Price: High to Low</option>
+              <option value="xp-desc">Most XP Bonus</option>
             </select>
           </div>
         </div>

@@ -37,6 +37,10 @@ import { MarketplaceCheckoutModal, type CheckoutFormData } from './MarketplaceCh
 import { PayzoneHostedModal } from './PayzoneHostedModal';
 import { MarketplaceConfirmationModal } from './MarketplaceConfirmationModal';
 import { MarketplaceFooter } from './MarketplaceFooter';
+import { WeeklyFeaturedKits } from './WeeklyFeaturedKits';
+import { PersonalProductGuide } from './PersonalProductGuide';
+import { FamilyBundleSection } from './FamilyBundleSection';
+import { ParentSellerSection } from './ParentSellerSection';
 
 export interface MarketplaceProps {
   user?: SupabaseUser | null;
@@ -713,7 +717,17 @@ export const Marketplace: React.FC<MarketplaceProps> = ({
           />
         </main>
       ) : (
-        <main className="max-w-7xl 2xl:max-w-[1600px] mx-auto px-3 sm:px-6 lg:px-8 py-5 sm:py-8 space-y-6 sm:space-y-8 flex-1 w-full">
+        <main className="max-w-7xl 2xl:max-w-[1600px] mx-auto px-3 sm:px-6 lg:px-8 py-5 sm:py-8 space-y-8 sm:space-y-12 flex-1 w-full">
+          {/* 1. Weekly Featured Kits matching PDF Page 9 */}
+          <WeeklyFeaturedKits
+            products={products}
+            onSelectProduct={handleSelectProduct}
+            onAddToCart={handleAddToCart}
+            onToggleWishlist={handleToggleWishlist}
+            wishlistIds={wishlistIds}
+            cartIds={cart.map((c) => c.id)}
+          />
+
           {/* 2. Promotional Banners Carousel */}
           <MarketplaceBannerCarousel
             onFilterPlanet={(planet) => {
@@ -743,7 +757,7 @@ export const Marketplace: React.FC<MarketplaceProps> = ({
             categoryCounts={categoryCounts}
           />
 
-          {/* 4. Product Grid & Instant Sorting */}
+          {/* 5. Product Grid & Instant Sorting */}
           <MarketplaceProductGrid
             products={filteredProducts}
             isLoading={loadingProducts}
@@ -761,6 +775,27 @@ export const Marketplace: React.FC<MarketplaceProps> = ({
             onToggleWishlist={handleToggleWishlist}
             wishlistIds={wishlistIds}
             cartIds={cart.map((c) => c.id)}
+          />
+
+          {/* 6. Personal Product Guide Text Analyzer matching PDF Page 10 */}
+          <PersonalProductGuide
+            products={products}
+            onSelectProduct={handleSelectProduct}
+            onAddToCart={handleAddToCart}
+            cartIds={cart.map((c) => c.id)}
+          />
+
+          {/* 7. Family Bundle / Better Together Starter matching PDF Page 10 */}
+          <FamilyBundleSection
+            products={products}
+            onAddToCart={handleAddToCart}
+            onSelectProduct={handleSelectProduct}
+          />
+
+          {/* 8. Parent Seller Section matching PDF Page 14/15 */}
+          <ParentSellerSection
+            user={user}
+            onOpenAuth={onOpenAuth}
           />
         </main>
       )}
