@@ -2,6 +2,7 @@ import React from 'react';
 import Navbar from './Navbar';
 import Footer from './Footer';
 import WhatsAppButton from '../common/WhatsAppButton';
+import ScrollToTopButton from '../common/ScrollToTopButton';
 import type { WhatsAppPosition } from '../../utils/whatsapp';
 
 import type { User as SupabaseUser } from '@supabase/supabase-js';
@@ -47,6 +48,7 @@ export const Layout: React.FC<LayoutProps> = ({
         <Footer onOpenContact={onOpenContact} onNavigate={onViewChange} />
       )}
       <WhatsAppButton position={whatsappPosition} />
+      <ScrollToTopButton />
     </div>
   );
 };

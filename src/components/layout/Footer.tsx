@@ -1,5 +1,4 @@
 import React from 'react';
-import { ArrowUp } from 'lucide-react';
 import AbtalQuestLogo from '../common/AbtalQuestLogo';
 import { useTheme } from '../../context/ThemeContext';
 
@@ -157,15 +156,6 @@ export const Footer: React.FC<FooterProps> = ({ onOpenContact, onNavigate }) => 
             <span className="font-medium text-slate-600 dark:text-slate-300">
               App Store • Google Play
             </span>
-            <button
-              type="button"
-              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-              className="w-9 h-9 rounded-full bg-[#fa8221] hover:bg-[#e87313] active:bg-[#cf630b] text-white flex items-center justify-center shadow-md transform hover:-translate-y-0.5 active:translate-y-0 transition-all cursor-pointer"
-              title="Back to top"
-              aria-label="Back to top"
-            >
-              <ArrowUp className="w-4 h-4 stroke-[2.5]" />
-            </button>
           </div>
         </div>
 
