@@ -6,6 +6,7 @@ import {
   Star, 
   RotateCw 
 } from 'lucide-react';
+import { useLanguage } from '../../context/LanguageContext';
 
 export interface StepItem {
   number: string;
@@ -15,35 +16,37 @@ export interface StepItem {
 }
 
 export const HowItWorksJourney: React.FC = () => {
+  const { t } = useLanguage();
+
   const steps: StepItem[] = [
     {
       number: '01',
-      title: 'Discover',
-      description: 'Children enter a world shaped around curiosity and exploration.',
+      title: t('how_it_works.step1_title'),
+      description: t('how_it_works.step1_desc'),
       icon: <Compass className="w-6 h-6 text-[#0284c7]" />,
     },
     {
       number: '02',
-      title: 'Quest',
-      description: 'They receive thoughtful, age-appropriate challenges and missions.',
+      title: t('how_it_works.step2_title'),
+      description: t('how_it_works.step2_desc'),
       icon: <BookOpen className="w-6 h-6 text-[#0284c7]" />,
     },
     {
       number: '03',
-      title: 'Act',
-      description: 'Digital engagement becomes meaningful action in everyday life.',
+      title: t('how_it_works.step3_title'),
+      description: t('how_it_works.step3_desc'),
       icon: <Sprout className="w-6 h-6 text-[#0284c7]" />,
     },
     {
       number: '04',
-      title: 'Grow',
-      description: 'Skills, habits and confidence develop through repeated practice.',
+      title: t('how_it_works.step4_title'),
+      description: t('how_it_works.step4_desc'),
       icon: <Star className="w-6 h-6 text-[#0284c7]" />,
     },
     {
       number: '05',
-      title: 'Progress',
-      description: 'The journey evolves as the child grows and discovers more.',
+      title: t('how_it_works.step5_title'),
+      description: t('how_it_works.step5_desc'),
       icon: <RotateCw className="w-6 h-6 text-[#0284c7]" />,
     },
   ];
@@ -58,13 +61,13 @@ export const HowItWorksJourney: React.FC = () => {
         {/* Section Header */}
         <div className="text-center max-w-2xl mx-auto mb-16 sm:mb-20">
           <span className="font-headline text-xs sm:text-sm font-bold text-[#0284c7] uppercase tracking-wider block mb-3">
-            HOW IT WORKS
+            {t('how_it_works.eyebrow')}
           </span>
           <h2 className="font-headline text-3xl sm:text-4xl lg:text-5xl font-black text-[#0F2A4A] dark:text-white tracking-tight leading-tight mb-4">
-            A digital journey designed<br className="hidden sm:inline" /> to lead somewhere real.
+            {t('how_it_works.title')}
           </h2>
           <p className="font-body text-base text-[#475569] dark:text-slate-300 leading-relaxed font-normal">
-            AbtalQuest connects engaging experiences with simple actions children can try in everyday life.
+            {t('how_it_works.subtitle')}
           </p>
         </div>
 

@@ -54,21 +54,7 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }
     }
 
-    // 2. Fallback to French if missing
-    if (typeof current !== 'string') {
-      let fallbackFr: unknown = dictionaries.fr;
-      for (const k of keys) {
-        if (fallbackFr && typeof fallbackFr === 'object' && k in fallbackFr) {
-          fallbackFr = (fallbackFr as Record<string, unknown>)[k];
-        } else {
-          fallbackFr = undefined;
-          break;
-        }
-      }
-      current = fallbackFr;
-    }
-
-    // 3. Fallback to English if also missing in French
+    // 2. Fallback to English if missing
     if (typeof current !== 'string') {
       let fallbackEn: unknown = dictionaries.en;
       for (const k of keys) {
@@ -80,6 +66,20 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         }
       }
       current = fallbackEn;
+    }
+
+    // 3. Fallback to French if also missing in English
+    if (typeof current !== 'string') {
+      let fallbackFr: unknown = dictionaries.fr;
+      for (const k of keys) {
+        if (fallbackFr && typeof fallbackFr === 'object' && k in fallbackFr) {
+          fallbackFr = (fallbackFr as Record<string, unknown>)[k];
+        } else {
+          fallbackFr = undefined;
+          break;
+        }
+      }
+      current = fallbackFr;
     }
 
     if (typeof current !== 'string') {

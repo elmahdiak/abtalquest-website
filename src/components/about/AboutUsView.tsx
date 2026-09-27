@@ -8,6 +8,7 @@ import {
   ArrowLeft
 } from 'lucide-react';
 import CtaBannerSection from '../home/CtaBannerSection';
+import { useLanguage } from '../../context/LanguageContext';
 
 export interface AboutUsViewProps {
   onBackToHome: () => void;
@@ -21,30 +22,32 @@ export const AboutUsView: React.FC<AboutUsViewProps> = ({
   onOpenContact,
   onOpenWaitlist,
 }) => {
+  const { t } = useLanguage();
+
   const coreBeliefs = [
     {
-      title: 'Respect & Transparency',
-      description: 'We respect children and families, communicate clearly and design with their dignity in mind.',
+      title: t('about_page.belief_1_title'),
+      description: t('about_page.belief_1_desc'),
       icon: <Sparkles className="w-5 h-5 text-[#0284c7]" />,
     },
     {
-      title: 'Integrity & Accountability',
-      description: 'We take responsibility for what we build, the choices we make and the trust families place in us.',
+      title: t('about_page.belief_2_title'),
+      description: t('about_page.belief_2_desc'),
       icon: <Heart className="w-5 h-5 text-[#0284c7]" />,
     },
     {
-      title: 'Humility',
-      description: 'We listen, learn and improve with families and experts rather than pretending to have every answer.',
-      icon: <ArrowRight className="w-5 h-5 text-[#0284c7]" />,
+      title: t('about_page.belief_3_title'),
+      description: t('about_page.belief_3_desc'),
+      icon: <ArrowRight className="w-5 h-5 text-[#0284c7] rtl-flip" />,
     },
     {
-      title: 'Consistency',
-      description: 'Meaningful development comes through steady action, thoughtful practice and dependable support.',
+      title: t('about_page.belief_4_title'),
+      description: t('about_page.belief_4_desc'),
       icon: <Sparkles className="w-5 h-5 text-[#0284c7]" />,
     },
     {
-      title: 'Excellence & Innovation',
-      description: 'We pursue exceptional quality and imaginative solutions that serve children\'s real needs.',
+      title: t('about_page.belief_5_title'),
+      description: t('about_page.belief_5_desc'),
       icon: <Sparkles className="w-5 h-5 text-[#0284c7]" />,
     },
   ];
@@ -63,22 +66,22 @@ export const AboutUsView: React.FC<AboutUsViewProps> = ({
             className="inline-flex items-center gap-1.5 text-xs font-headline font-bold text-[#016ba5] dark:text-[#38bdf8] hover:underline mb-6 cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4 rtl-flip" />
-            <span>Home</span>
+            <span>{t('about_page.breadcrumb_home')}</span>
           </button>
 
           {/* Eyebrow */}
           <span className="font-headline text-xs sm:text-sm font-bold text-[#0284c7] dark:text-[#38bdf8] uppercase tracking-wider block mb-3">
-            ABOUT ABTALQUEST
+            {t('about_page.hero_eyebrow')}
           </span>
 
           {/* Headline */}
           <h1 className="font-headline text-3xl sm:text-5xl lg:text-6xl font-black text-[#0F2A4A] dark:text-white tracking-tight leading-tight mb-5">
-            Building a healthier digital childhood.
+            {t('about_page.hero_title')}
           </h1>
 
           {/* Subtitle */}
           <p className="font-body text-base sm:text-lg text-[#475569] dark:text-slate-300 leading-relaxed max-w-2xl mx-auto font-normal">
-            AbtalQuest transforms screen time into a catalyst for meaningful action, helping children become the heroes of their own journeys.
+            {t('about_page.hero_subtitle')}
           </p>
         </div>
       </section>
@@ -86,13 +89,13 @@ export const AboutUsView: React.FC<AboutUsViewProps> = ({
       {/* 2. WHY WE EXIST */}
       <section className="py-16 sm:py-20 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-left rtl:text-right">
         <span className="font-headline text-xs sm:text-sm font-bold text-[#0284c7] uppercase tracking-wider block mb-2">
-          WHY WE EXIST
+          {t('about_page.why_eyebrow')}
         </span>
         <h2 className="font-headline text-2xl sm:text-4xl font-black text-[#0F2A4A] dark:text-white tracking-tight mb-6">
-          Children deserve digital experiences that believe in what they can become.
+          {t('about_page.why_title')}
         </h2>
         <p className="font-body text-base sm:text-lg text-[#475569] dark:text-slate-300 leading-relaxed font-normal">
-          AbtalQuest is a behavioral development system that combines immersive digital adventures, real-life missions and practical parent guidance. Children make choices, act beyond the screen and build skills through experience, while parents gain useful insight to support their growth and strengthen connection.
+          {t('about_page.why_text')}
         </p>
       </section>
 
@@ -101,31 +104,31 @@ export const AboutUsView: React.FC<AboutUsViewProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
           
           {/* Mission Card */}
-          <div className="bg-[#F8FAFC] dark:bg-[#0c2238] rounded-3xl p-8 sm:p-10 border border-slate-200/80 dark:border-slate-700/80 shadow-xs flex flex-col justify-between">
+          <div className="bg-[#F8FAFC] dark:bg-[#0c2238] rounded-3xl p-8 sm:p-10 border border-slate-200/80 dark:border-slate-700/80 shadow-xs flex flex-col justify-between text-left rtl:text-right">
             <div>
               <div className="w-12 h-12 rounded-full bg-sky-100 dark:bg-sky-950 text-[#0284c7] flex items-center justify-center mb-6">
                 <Compass className="w-6 h-6" />
               </div>
               <h3 className="font-headline text-xl sm:text-2xl font-black text-[#0F2A4A] dark:text-white mb-3 uppercase tracking-tight">
-                OUR MISSION
+                {t('about_page.mission_title')}
               </h3>
               <p className="font-body text-sm sm:text-base text-[#475569] dark:text-slate-300 leading-relaxed">
-                Help every child build a healthier relationship with technology while developing the character, confidence and essential life skills needed to thrive in an increasingly digital world.
+                {t('about_page.mission_text')}
               </p>
             </div>
           </div>
 
           {/* Vision Card */}
-          <div className="bg-[#F8FAFC] dark:bg-[#0c2238] rounded-3xl p-8 sm:p-10 border border-slate-200/80 dark:border-slate-700/80 shadow-xs flex flex-col justify-between">
+          <div className="bg-[#F8FAFC] dark:bg-[#0c2238] rounded-3xl p-8 sm:p-10 border border-slate-200/80 dark:border-slate-700/80 shadow-xs flex flex-col justify-between text-left rtl:text-right">
             <div>
               <div className="w-12 h-12 rounded-full bg-sky-100 dark:bg-sky-950 text-[#016ba5] flex items-center justify-center mb-6">
                 <Telescope className="w-6 h-6" />
               </div>
               <h3 className="font-headline text-xl sm:text-2xl font-black text-[#0F2A4A] dark:text-white mb-3 uppercase tracking-tight">
-                OUR VISION
+                {t('about_page.vision_title')}
               </h3>
               <p className="font-body text-sm sm:text-base text-[#475569] dark:text-slate-300 leading-relaxed">
-                To become the world's leading behavioral development system, inspiring millions of children to grow through action, curiosity, meaningful real-world experiences and stronger parent-child relationships.
+                {t('about_page.vision_text')}
               </p>
             </div>
           </div>
@@ -137,10 +140,10 @@ export const AboutUsView: React.FC<AboutUsViewProps> = ({
       <section className="py-16 sm:py-24 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-left rtl:text-right">
         <div className="mb-10 sm:mb-12">
           <span className="font-headline text-xs sm:text-sm font-bold text-[#0284c7] uppercase tracking-wider block mb-2">
-            WHAT WE BELIEVE
+            {t('about_page.beliefs_eyebrow')}
           </span>
           <h2 className="font-headline text-2xl sm:text-4xl font-black text-[#0F2A4A] dark:text-white tracking-tight">
-            The values behind every quest.
+            {t('about_page.beliefs_title')}
           </h2>
         </div>
 
@@ -171,13 +174,13 @@ export const AboutUsView: React.FC<AboutUsViewProps> = ({
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-left rtl:text-right">
           <div className="mb-10 sm:mb-12">
             <span className="font-headline text-xs sm:text-sm font-bold text-[#0284c7] uppercase tracking-wider block mb-2">
-              TEAM & PARTNERS
+              {t('about_page.team_eyebrow')}
             </span>
             <h2 className="font-headline text-2xl sm:text-4xl font-black text-[#0F2A4A] dark:text-white tracking-tight mb-4">
-              Built by people who care about childhood.
+              {t('about_page.team_title')}
             </h2>
             <p className="font-body text-base text-[#475569] dark:text-slate-300 leading-relaxed">
-              Founder stories, team profiles and confirmed partners will appear here when approved. We do not publish invented names, credentials or affiliations.
+              {t('about_page.team_text')}
             </p>
           </div>
 
@@ -185,30 +188,30 @@ export const AboutUsView: React.FC<AboutUsViewProps> = ({
             {/* Team Profiles Placeholder */}
             <div className="bg-white dark:bg-[#0c2238] rounded-2xl p-6 border border-slate-200/80 dark:border-slate-700/80 shadow-xs flex flex-col justify-center min-h-[140px]">
               <span className="font-headline text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-200 block mb-1">
-                TEAM PROFILES
+                {t('about_page.team_profiles')}
               </span>
               <span className="font-body text-sm text-slate-400">
-                Coming soon
+                {t('about_page.coming_soon')}
               </span>
             </div>
 
             {/* Expert Advisors Placeholder */}
             <div className="bg-white dark:bg-[#0c2238] rounded-2xl p-6 border border-slate-200/80 dark:border-slate-700/80 shadow-xs flex flex-col justify-center min-h-[140px]">
               <span className="font-headline text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-200 block mb-1">
-                EXPERT ADVISORS
+                {t('about_page.expert_advisors')}
               </span>
               <span className="font-body text-sm text-slate-400">
-                Coming soon
+                {t('about_page.coming_soon')}
               </span>
             </div>
 
             {/* Partners Placeholder */}
             <div className="bg-white dark:bg-[#0c2238] rounded-2xl p-6 border border-slate-200/80 dark:border-slate-700/80 shadow-xs flex flex-col justify-center min-h-[140px]">
               <span className="font-headline text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-200 block mb-1">
-                PARTNERS
+                {t('about_page.partners')}
               </span>
               <span className="font-body text-sm text-slate-400">
-                Coming soon
+                {t('about_page.coming_soon')}
               </span>
             </div>
           </div>
@@ -220,7 +223,7 @@ export const AboutUsView: React.FC<AboutUsViewProps> = ({
               onClick={onOpenContact}
               className="inline-flex items-center gap-2 px-8 py-3.5 rounded-full bg-white dark:bg-slate-800 text-[#0F2A4A] dark:text-white hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 font-headline font-bold text-sm tracking-wider uppercase shadow-xs hover:shadow-sm transition-all cursor-pointer group"
             >
-              <span>CONTACT ABTALQUEST</span>
+              <span>{t('about_page.btn_contact')}</span>
               <ArrowRight className="w-4 h-4 rtl-flip transition-transform duration-200 group-hover:translate-x-1 text-[#0284c7]" />
             </button>
           </div>
@@ -229,12 +232,7 @@ export const AboutUsView: React.FC<AboutUsViewProps> = ({
       </section>
 
       {/* 6. BOTTOM CTA BANNER */}
-      <CtaBannerSection
-        onDownloadClick={onOpenWaitlist}
-        title="Every Child Has a Quest."
-        subtitle="Give your child a digital experience that encourages curiosity, action and growth—on screen and in the real world."
-        buttonText="Download AbtalQuest →"
-      />
+      <CtaBannerSection onDownloadClick={onOpenWaitlist} />
 
     </div>
   );

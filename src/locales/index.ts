@@ -45,7 +45,7 @@ export const dictionaries = {
 
 export type TranslationDictionary = typeof en;
 
-export const DEFAULT_LANGUAGE: Language = 'fr';
+export const DEFAULT_LANGUAGE: Language = 'en';
 export const SUPPORTED_LANGUAGES: readonly Language[] = ['en', 'ar', 'fr'] as const;
 export const STORAGE_KEY = 'abtalquest_lang';
 
@@ -57,7 +57,7 @@ export function isSupportedLanguage(lang: unknown): lang is Language {
  * Detects visitor's device/browser language preference:
  * - Checks `navigator.languages` (priority array) and `navigator.language`.
  * - Matches against supported locales ('fr', 'ar', 'en').
- * - Falls back to French ('fr') if unsupported or unrecognized.
+ * - Falls back to English ('en') if unsupported or unrecognized.
  */
 export function detectDeviceLanguage(): Language {
   if (typeof window === 'undefined' || typeof navigator === 'undefined') {
@@ -92,7 +92,7 @@ export function detectDeviceLanguage(): Language {
  * Initializes language preference:
  * 1. Checks localStorage for explicit manual user selection.
  * 2. If no saved preference, automatically detects device language.
- * 3. Falls back to French ('fr') if unrecognized or unsupported.
+ * 3. Falls back to English ('en') if unrecognized or unsupported.
  */
 export function getInitialLanguage(): Language {
   if (typeof window === 'undefined') return DEFAULT_LANGUAGE;

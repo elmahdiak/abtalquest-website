@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Plus, X } from 'lucide-react';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface FaqItem {
   question: string;
@@ -7,41 +8,36 @@ interface FaqItem {
 }
 
 export const CommonQuestionsSection: React.FC = () => {
+  const { t } = useLanguage();
+
   const faqs: FaqItem[] = [
     {
-      question: 'What is AbtalQuest?',
-      answer:
-        'AbtalQuest is a child-centered digital experience that turns screen time into stories, quests and real-world missions designed to encourage action and growth.',
+      question: t('common_questions.q1'),
+      answer: t('common_questions.a1'),
     },
     {
-      question: 'What age is it designed for?',
-      answer:
-        'The current experience is being designed for children ages 7–10. Age ranges may evolve as the product is tested with families.',
+      question: t('common_questions.q2'),
+      answer: t('common_questions.a2'),
     },
     {
-      question: 'Is it a game or an educational app?',
-      answer:
-        'It uses the joy of games and stories, but it is designed as a broader developmental journey—not a school replacement or a traditional game.',
+      question: t('common_questions.q3'),
+      answer: t('common_questions.a3'),
     },
     {
-      question: 'How are parents involved?',
-      answer:
-        'Parents receive guidance they can apply at home—helping them strengthen their relationship with their child and nurture confidence, autonomy, resilience and emotional skills.',
+      question: t('common_questions.q4'),
+      answer: t('common_questions.a4'),
     },
     {
-      question: 'How does it encourage real-world activity?',
-      answer:
-        'Digital quests lead to simple missions children can try at home and in daily life, connecting discovery on screen with action beyond it.',
+      question: t('common_questions.q5'),
+      answer: t('common_questions.a5'),
     },
     {
-      question: 'How does AbtalQuest approach privacy?',
-      answer:
-        'Child safety and privacy are core design priorities. Full policies and product details will be published before public release.',
+      question: t('common_questions.q6'),
+      answer: t('common_questions.a6'),
     },
     {
-      question: 'Which devices will it support?',
-      answer:
-        'Final device availability and store links will be announced before launch.',
+      question: t('common_questions.q7'),
+      answer: t('common_questions.a7'),
     },
   ];
 
@@ -61,10 +57,10 @@ export const CommonQuestionsSection: React.FC = () => {
         {/* Header */}
         <div className="text-left rtl:text-right mb-12 sm:mb-16">
           <span className="font-headline text-xs sm:text-sm font-bold text-[#0284c7] uppercase tracking-wider block mb-3">
-            COMMON QUESTIONS
+            {t('common_questions.eyebrow')}
           </span>
           <h2 className="font-headline text-3xl sm:text-4xl lg:text-5xl font-black text-[#0F2A4A] dark:text-white tracking-tight">
-            A clear view for families.
+            {t('common_questions.title')}
           </h2>
         </div>
 

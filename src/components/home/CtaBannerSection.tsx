@@ -1,5 +1,6 @@
 import React from 'react';
 import { Sparkles, ArrowRight } from 'lucide-react';
+import { useLanguage } from '../../context/LanguageContext';
 
 export interface CtaBannerSectionProps {
   onDownloadClick?: () => void;
@@ -10,10 +11,15 @@ export interface CtaBannerSectionProps {
 
 export const CtaBannerSection: React.FC<CtaBannerSectionProps> = ({
   onDownloadClick,
-  title = 'Every Child Has a Quest.',
-  subtitle = 'Give your child a digital experience that encourages curiosity, action and growth—on screen and in the real world.',
-  buttonText = 'Download AbtalQuest →',
+  title,
+  subtitle,
+  buttonText,
 }) => {
+  const { t } = useLanguage();
+  const displayTitle = title ?? t('cta_banner.title');
+  const displaySubtitle = subtitle ?? t('cta_banner.subtitle');
+  const displayButtonText = buttonText ?? t('cta_banner.button');
+
   return (
     <section className="py-20 sm:py-28 bg-[#06152B] text-white relative overflow-hidden bg-star-pattern">
       {/* Ambient background glows */}
@@ -28,12 +34,12 @@ export const CtaBannerSection: React.FC<CtaBannerSectionProps> = ({
 
         {/* Title */}
         <h2 className="font-headline text-3xl sm:text-5xl font-black text-white tracking-tight mb-4 leading-tight">
-          {title}
+          {displayTitle}
         </h2>
 
         {/* Subtitle */}
         <p className="font-body text-base sm:text-lg text-slate-300 leading-relaxed max-w-2xl mx-auto mb-8 font-normal">
-          {subtitle}
+          {displaySubtitle}
         </p>
 
         {/* Orange CTA Button */}
@@ -43,7 +49,7 @@ export const CtaBannerSection: React.FC<CtaBannerSectionProps> = ({
             onClick={onDownloadClick}
             className="inline-flex items-center gap-2 px-8 py-3.5 rounded-full bg-[#fa8221] hover:bg-[#e87313] active:bg-[#cf630b] text-white font-headline font-bold text-base shadow-[0_6px_20px_rgba(250,130,33,0.4)] hover:shadow-[0_8px_26px_rgba(250,130,33,0.55)] transform hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 cursor-pointer group"
           >
-            <span>{buttonText}</span>
+            <span>{displayButtonText}</span>
             <ArrowRight className="w-4 h-4 rtl-flip transition-transform duration-200 group-hover:translate-x-1" />
           </button>
         </div>

@@ -4,6 +4,8 @@ import {
   ArrowRight,
   Compass
 } from 'lucide-react';
+import { useLanguage } from '../../context/LanguageContext';
+
 export interface HeroProps {
   onDownloadClick?: () => void;
   onSeeHowItWorksClick?: () => void;
@@ -13,6 +15,8 @@ export const Hero: React.FC<HeroProps> = ({
   onDownloadClick,
   onSeeHowItWorksClick,
 }) => {
+  const { t } = useLanguage();
+
   const handleSeeHowItWorks = () => {
     if (onSeeHowItWorksClick) {
       onSeeHowItWorksClick();
@@ -35,18 +39,18 @@ export const Hero: React.FC<HeroProps> = ({
           {/* Eyebrow Pill */}
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700 shadow-sm text-xs sm:text-sm font-bold text-[#0284c7] dark:text-[#38bdf8] mb-6 animate-fadeIn">
             <Sparkles className="w-4 h-4 text-[#0284c7] dark:text-[#38bdf8] flex-shrink-0" />
-            <span className="tracking-wide uppercase">THE FRONT DOOR TO A BIGGER WORLD</span>
+            <span className="tracking-wide uppercase">{t('hero.eyebrow_world')}</span>
           </div>
 
           {/* Main Headline */}
           <h1 className="font-headline text-3xl sm:text-5xl lg:text-6xl font-black text-[#0F2A4A] dark:text-white tracking-tight leading-[1.12] mb-5">
-            Turn Screen Time<br />
-            <span className="text-[#016ba5] dark:text-[#38bdf8]">Into Growth Time.</span>
+            {t('hero.title_turn_screen_time')}<br />
+            <span className="text-[#016ba5] dark:text-[#38bdf8]">{t('hero.title_into_growth')}</span>
           </h1>
 
           {/* Subtitle */}
           <p className="font-body text-base sm:text-lg text-[#475569] dark:text-slate-300 leading-relaxed mb-8 max-w-2xl font-normal">
-            AbtalQuest turns children's digital time into meaningful adventures that encourage real-world action, healthier habits, character and essential life skills.
+            {t('hero.subtitle_growth')}
           </p>
 
           {/* Primary & Secondary Action Buttons */}
@@ -57,7 +61,7 @@ export const Hero: React.FC<HeroProps> = ({
               onClick={onDownloadClick}
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-full bg-[#fa8221] hover:bg-[#e87313] active:bg-[#cf630b] text-white font-headline font-bold text-base shadow-[0_6px_20px_rgba(250,130,33,0.38)] hover:shadow-[0_8px_26px_rgba(250,130,33,0.48)] transform hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 cursor-pointer group"
             >
-              <span>Download the App</span>
+              <span>{t('hero.btn_download_app')}</span>
               <ArrowRight className="w-4 h-4 rtl-flip transition-transform duration-200 group-hover:translate-x-1" />
             </button>
 
@@ -67,18 +71,18 @@ export const Hero: React.FC<HeroProps> = ({
               onClick={handleSeeHowItWorks}
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-full bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-700/80 border border-slate-200/90 dark:border-slate-700 font-headline font-bold text-sm tracking-wider uppercase shadow-xs hover:shadow-sm transform hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 cursor-pointer group"
             >
-              <span>SEE HOW IT WORKS</span>
+              <span>{t('hero.btn_see_how_it_works')}</span>
               <ArrowRight className="w-4 h-4 rtl-flip transition-transform duration-200 group-hover:translate-x-1" />
             </button>
           </div>
 
           {/* Feature Bullet List / Micro-reassurances */}
           <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 text-xs sm:text-sm font-body font-semibold text-[#0F2A4A] dark:text-slate-300">
-            <span>Built for ages 7–10</span>
+            <span>{t('hero.bullet_ages')}</span>
             <span className="text-[#fa8221] text-base">•</span>
-            <span>Child-first by design</span>
+            <span>{t('hero.bullet_child_first')}</span>
             <span className="text-[#fa8221] text-base">•</span>
-            <span>Real-world action</span>
+            <span>{t('hero.bullet_real_world')}</span>
           </div>
 
         </div>
@@ -109,7 +113,7 @@ export const Hero: React.FC<HeroProps> = ({
               <div className="absolute top-10 left-3 sm:left-4 z-20">
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/95 dark:bg-slate-900/90 backdrop-blur-md border border-[#0284c7]/30 text-[#0284c7] dark:text-[#38bdf8] font-headline font-black text-[11px] tracking-wider uppercase shadow-md">
                   <Compass className="w-3 h-3 text-[#0284c7] animate-spin-slow" />
-                  <span>QUESTS</span>
+                  <span>{t('hero.badge_quests')}</span>
                 </span>
               </div>
 
@@ -117,7 +121,7 @@ export const Hero: React.FC<HeroProps> = ({
               <div className="absolute top-16 right-3 sm:right-4 z-20">
                 <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-white/95 dark:bg-slate-900/90 backdrop-blur-md border border-[#016ba5]/30 text-[#016ba5] dark:text-[#38bdf8] font-headline font-black text-[11px] tracking-wider uppercase shadow-md">
                   <Sparkles className="w-3 h-3 text-amber-500" />
-                  <span>MISSIONS</span>
+                  <span>{t('hero.badge_missions')}</span>
                 </span>
               </div>
 
@@ -125,7 +129,7 @@ export const Hero: React.FC<HeroProps> = ({
               <div className="absolute bottom-20 left-3 sm:left-4 z-20">
                 <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-white/95 dark:bg-slate-900/90 backdrop-blur-md border border-[#7C3AED]/30 text-[#7C3AED] dark:text-purple-300 font-headline font-black text-[11px] tracking-wider uppercase shadow-md">
                   <span>★</span>
-                  <span>REWARDS</span>
+                  <span>{t('hero.badge_rewards')}</span>
                 </span>
               </div>
 
@@ -136,7 +140,7 @@ export const Hero: React.FC<HeroProps> = ({
                   onClick={onDownloadClick}
                   className="w-full py-2.5 px-5 rounded-full bg-gradient-to-r from-[#fa8221] to-[#ff983d] text-white font-headline font-black text-sm tracking-wide shadow-lg hover:brightness-110 active:scale-95 transition-all text-center cursor-pointer"
                 >
-                  Join the quest
+                  {t('hero.btn_join_quest')}
                 </button>
               </div>
 

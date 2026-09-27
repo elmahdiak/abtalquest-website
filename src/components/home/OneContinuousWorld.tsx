@@ -1,31 +1,34 @@
 import React from 'react';
 import { Compass, Sparkles } from 'lucide-react';
+import { useLanguage } from '../../context/LanguageContext';
 
 export interface OneContinuousWorldProps {
   onJoinQuestClick?: () => void;
 }
 
 export const OneContinuousWorld: React.FC<OneContinuousWorldProps> = ({ onJoinQuestClick }) => {
+  const { t } = useLanguage();
+
   const pillars = [
     {
-      title: 'Quests',
-      description: 'Turn everyday actions into meaningful challenges.',
-      color: 'border-l-[#016ba5]',
+      title: t('continuous_world.pillar_quests_title'),
+      description: t('continuous_world.pillar_quests_desc'),
+      color: 'border-l-[#016ba5] rtl:border-r-[#016ba5]',
     },
     {
-      title: 'Stories',
-      description: 'Make important ideas memorable through storytelling.',
-      color: 'border-l-[#fa8221]',
+      title: t('continuous_world.pillar_stories_title'),
+      description: t('continuous_world.pillar_stories_desc'),
+      color: 'border-l-[#fa8221] rtl:border-r-[#fa8221]',
     },
     {
-      title: 'Games',
-      description: 'Make practice playful, focused and inviting.',
-      color: 'border-l-[#7C3AED]',
+      title: t('continuous_world.pillar_games_title'),
+      description: t('continuous_world.pillar_games_desc'),
+      color: 'border-l-[#7C3AED] rtl:border-r-[#7C3AED]',
     },
     {
-      title: 'Real-world missions',
-      description: 'Connect digital experiences to life beyond the screen.',
-      color: 'border-l-[#22C55E]',
+      title: t('continuous_world.pillar_missions_title'),
+      description: t('continuous_world.pillar_missions_desc'),
+      color: 'border-l-[#22C55E] rtl:border-r-[#22C55E]',
     },
   ];
 
@@ -61,21 +64,21 @@ export const OneContinuousWorld: React.FC<OneContinuousWorldProps> = ({ onJoinQu
                   <div className="absolute top-10 left-3 sm:left-4 z-20">
                     <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/95 dark:bg-slate-900/90 backdrop-blur-md border border-[#0284c7]/30 text-[#0284c7] dark:text-[#38bdf8] font-headline font-black text-[11px] tracking-wider uppercase shadow-md">
                       <Compass className="w-3 h-3 text-[#0284c7]" />
-                      <span>QUESTS</span>
+                      <span>{t('hero.badge_quests')}</span>
                     </span>
                   </div>
 
                   <div className="absolute top-16 right-3 sm:right-4 z-20">
                     <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-white/95 dark:bg-slate-900/90 backdrop-blur-md border border-[#016ba5]/30 text-[#016ba5] dark:text-[#38bdf8] font-headline font-black text-[11px] tracking-wider uppercase shadow-md">
                       <Sparkles className="w-3 h-3 text-amber-500" />
-                      <span>MISSIONS</span>
+                      <span>{t('hero.badge_missions')}</span>
                     </span>
                   </div>
 
                   <div className="absolute bottom-20 left-3 sm:left-4 z-20">
                     <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-white/95 dark:bg-slate-900/90 backdrop-blur-md border border-[#7C3AED]/30 text-[#7C3AED] dark:text-purple-300 font-headline font-black text-[11px] tracking-wider uppercase shadow-md">
                       <span>★</span>
-                      <span>REWARDS</span>
+                      <span>{t('hero.badge_rewards')}</span>
                     </span>
                   </div>
 
@@ -86,7 +89,7 @@ export const OneContinuousWorld: React.FC<OneContinuousWorldProps> = ({ onJoinQu
                       onClick={onJoinQuestClick}
                       className="w-full py-2.5 px-5 rounded-full bg-gradient-to-r from-[#fa8221] to-[#ff983d] text-white font-headline font-black text-sm tracking-wide shadow-lg hover:brightness-110 active:scale-95 transition-all text-center cursor-pointer"
                     >
-                      Join the quest
+                      {t('hero.btn_join_quest')}
                     </button>
                   </div>
 
@@ -102,13 +105,13 @@ export const OneContinuousWorld: React.FC<OneContinuousWorldProps> = ({ onJoinQu
           <div className="lg:col-span-6 space-y-8 order-1 lg:order-2 text-left rtl:text-right">
             <div>
               <span className="font-headline text-xs sm:text-sm font-bold text-[#0284c7] uppercase tracking-wider block mb-3">
-                ONE CONTINUOUS WORLD
+                {t('continuous_world.eyebrow')}
               </span>
               <h2 className="font-headline text-3xl sm:text-4xl lg:text-5xl font-black text-[#0F2A4A] dark:text-white tracking-tight leading-tight mb-4">
-                The experience feels like an adventure—not a checklist.
+                {t('continuous_world.title')}
               </h2>
               <p className="font-body text-base text-[#475569] dark:text-slate-300 leading-relaxed font-normal">
-                Stories spark curiosity. Quests give it direction. Missions carry it beyond the screen. Progress helps the journey evolve without turning childhood into a competition.
+                {t('continuous_world.subtitle')}
               </p>
             </div>
 
@@ -117,7 +120,7 @@ export const OneContinuousWorld: React.FC<OneContinuousWorldProps> = ({ onJoinQu
               {pillars.map((pillar) => (
                 <div
                   key={pillar.title}
-                  className={`bg-white dark:bg-[#0c2238] p-5 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 shadow-xs hover:shadow-card-soft transition-all duration-200 pl-5 border-l-4 ${pillar.color}`}
+                  className={`bg-white dark:bg-[#0c2238] p-5 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 shadow-xs hover:shadow-card-soft transition-all duration-200 pl-5 rtl:pl-6 rtl:pr-5 border-l-4 rtl:border-l-0 rtl:border-r-4 ${pillar.color}`}
                 >
                   <h3 className="font-headline text-lg sm:text-xl font-bold text-[#0F2A4A] dark:text-white mb-1">
                     {pillar.title}

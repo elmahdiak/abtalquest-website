@@ -57,11 +57,11 @@ export const Navbar: React.FC<NavbarProps> = ({
   const languageMenuRef = useRef<HTMLDivElement>(null);
 
   const navItems: NavItem[] = [
-    { id: 'home', label: 'Home', href: '#universe' },
-    { id: 'how-it-works', label: 'How It Works', href: '#how-it-works' },
-    { id: 'blog', label: 'Blog', href: '#blog' },
-    { id: 'marketplace', label: 'Marketplace', href: '#marketplace', badge: t('nav.badge_kits') },
-    { id: 'about', label: 'About Us', href: '#about' },
+    { id: 'home', label: t('nav.home'), href: '#universe' },
+    { id: 'how-it-works', label: t('nav.how_it_works'), href: '#how-it-works' },
+    { id: 'blog', label: t('nav.blog'), href: '#blog' },
+    { id: 'marketplace', label: t('nav.marketplace'), href: '#marketplace', badge: t('nav.badge_kits') },
+    { id: 'about', label: t('nav.about'), href: '#about' },
   ];
 
   // Sync active navigation tab with current view
@@ -388,7 +388,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   'transform hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 group'
                 )}
               >
-                <span>DOWNLOAD THE APP</span>
+                <span>{t('nav.download_the_app')}</span>
                 <ArrowRight className="w-4 h-4 rtl-flip transition-transform duration-200 group-hover:translate-x-1" />
               </button>
 
@@ -428,7 +428,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                     : 'text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800'
                 )}
               >
-                <span>Home</span>
+                <span>{t('nav.home')}</span>
               </a>
 
               {/* How It Works */}
@@ -445,7 +445,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 }}
                 className="font-headline text-base font-semibold px-4 py-3 rounded-2xl text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
               >
-                <span>How It Works</span>
+                <span>{t('nav.how_it_works')}</span>
               </a>
 
               {/* For Parents */}
@@ -464,7 +464,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                     : 'text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800'
                 )}
               >
-                <span>For Parents</span>
+                <span>{t('nav.for_parents')}</span>
               </a>
 
               {/* Marketplace */}
@@ -485,10 +485,10 @@ export const Navbar: React.FC<NavbarProps> = ({
               >
                 <div className="flex items-center gap-2.5">
                   <ShoppingBag className="w-5 h-5 text-[#fa8221]" />
-                  <span>Marketplace</span>
+                  <span>{t('nav.marketplace')}</span>
                 </div>
                 <span className="text-xs font-gamification font-bold px-2 py-0.5 rounded-full bg-[#fa8221]/15 text-[#fa8221]">
-                  Kits
+                  {t('nav.badge_kits')}
                 </span>
               </a>
 
@@ -503,7 +503,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 }}
                 className="font-headline text-base font-semibold px-4 py-3 rounded-2xl text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
               >
-                <span>Blog</span>
+                <span>{t('nav.blog')}</span>
               </a>
 
               {/* About Us */}
@@ -522,7 +522,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                     : 'text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800'
                 )}
               >
-                <span>About Us</span>
+                <span>{t('nav.about')}</span>
               </a>
 
               {/* Parent seller */}
@@ -539,8 +539,33 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <div className="w-6 h-6 rounded-lg bg-amber-500/10 text-[#fa8221] flex items-center justify-center">
                   <ShoppingBag className="w-3.5 h-3.5" />
                 </div>
-                <span>Parent seller</span>
+                <span>{t('nav.parent_seller')}</span>
               </a>
+
+              {/* Mobile Language Switcher */}
+              <div className="flex items-center justify-between p-2 mt-1 rounded-2xl bg-slate-100/80 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700">
+                <span className="text-xs font-headline font-bold text-slate-500 dark:text-slate-400 px-2 flex items-center gap-1.5">
+                  <Globe className="w-3.5 h-3.5 text-slate-400" />
+                  <span>{t('nav.select_language')}</span>
+                </span>
+                <div className="flex items-center gap-1">
+                  {(['en', 'ar', 'fr'] as const).map((langCode) => (
+                    <button
+                      key={langCode}
+                      type="button"
+                      onClick={() => setLanguage(langCode)}
+                      className={cn(
+                        'px-2.5 py-1 rounded-xl text-xs font-headline font-bold uppercase transition-all cursor-pointer',
+                        language === langCode
+                          ? 'bg-[#016ba5] text-white shadow-xs'
+                          : 'text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-700'
+                      )}
+                    >
+                      {langCode === 'en' ? 'EN' : langCode === 'ar' ? 'العربية' : 'FR'}
+                    </button>
+                  ))}
+                </div>
+              </div>
 
               {/* DOWNLOAD THE APP button in mobile drawer */}
               <div className="mt-2 pt-2">
@@ -553,7 +578,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   }}
                   className="w-full flex items-center justify-center gap-2 py-3.5 px-6 rounded-full bg-[#fa8221] hover:bg-[#e87313] active:bg-[#cf630b] text-white font-headline font-bold text-sm tracking-wider uppercase shadow-[0_4px_14px_rgba(250,130,33,0.38)] transition-all cursor-pointer"
                 >
-                  <span>DOWNLOAD THE APP</span>
+                  <span>{t('nav.download_the_app')}</span>
                 </button>
               </div>
             </nav>

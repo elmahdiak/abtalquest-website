@@ -1,6 +1,7 @@
 import React from 'react';
 import AbtalQuestLogo from '../common/AbtalQuestLogo';
 import { useTheme } from '../../context/ThemeContext';
+import { useLanguage } from '../../context/LanguageContext';
 
 export interface FooterProps {
   onOpenContact?: () => void;
@@ -9,6 +10,7 @@ export interface FooterProps {
 
 export const Footer: React.FC<FooterProps> = ({ onOpenContact, onNavigate }) => {
   const { theme } = useTheme();
+  const { t } = useLanguage();
 
   const handleNav = (view: 'home' | 'marketplace' | 'about' | 'blog', hash?: string) => (e: React.MouseEvent) => {
     e.preventDefault();
@@ -43,14 +45,14 @@ export const Footer: React.FC<FooterProps> = ({ onOpenContact, onNavigate }) => 
               href="#universe"
             />
             <p className="font-headline font-bold text-sm sm:text-base text-[#0F2A4A] dark:text-slate-200 leading-snug mt-1">
-              Turn Screen Time Into Growth Time.
+              {t('footer.tagline')}
             </p>
           </div>
 
           {/* Column 1: Explore (Cols 5-6) */}
           <div className="md:col-span-3 flex flex-col gap-3">
             <h4 className="font-headline text-sm font-bold text-[#0F2A4A] dark:text-white uppercase tracking-wider">
-              Explore
+              {t('footer.col_explore')}
             </h4>
             <ul className="flex flex-col gap-2.5 font-body text-sm text-[#475569] dark:text-slate-400">
               <li>
@@ -59,7 +61,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenContact, onNavigate }) => 
                   onClick={handleNav('home', '#how-it-works')}
                   className="hover:text-[#016ba5] dark:hover:text-[#38bdf8] transition-colors"
                 >
-                  How It Works
+                  {t('footer.link_how_it_works')}
                 </a>
               </li>
               <li>
@@ -68,7 +70,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenContact, onNavigate }) => 
                   onClick={handleNav('blog')}
                   className="hover:text-[#016ba5] dark:hover:text-[#38bdf8] transition-colors"
                 >
-                  Parents
+                  {t('footer.link_parents')}
                 </a>
               </li>
               <li>
@@ -77,7 +79,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenContact, onNavigate }) => 
                   onClick={handleNav('marketplace')}
                   className="hover:text-[#016ba5] dark:hover:text-[#38bdf8] transition-colors"
                 >
-                  Marketplace
+                  {t('footer.link_marketplace')}
                 </a>
               </li>
             </ul>
@@ -86,7 +88,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenContact, onNavigate }) => 
           {/* Column 2: Company (Cols 7-9) */}
           <div className="md:col-span-3 flex flex-col gap-3">
             <h4 className="font-headline text-sm font-bold text-[#0F2A4A] dark:text-white uppercase tracking-wider">
-              Company
+              {t('footer.col_company')}
             </h4>
             <ul className="flex flex-col gap-2.5 font-body text-sm text-[#475569] dark:text-slate-400">
               <li>
@@ -95,7 +97,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenContact, onNavigate }) => 
                   onClick={handleNav('blog')}
                   className="hover:text-[#016ba5] dark:hover:text-[#38bdf8] transition-colors"
                 >
-                  Blog
+                  {t('footer.link_blog')}
                 </a>
               </li>
               <li>
@@ -104,7 +106,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenContact, onNavigate }) => 
                   onClick={handleNav('about')}
                   className="hover:text-[#016ba5] dark:hover:text-[#38bdf8] transition-colors"
                 >
-                  About
+                  {t('footer.link_about')}
                 </a>
               </li>
               <li>
@@ -113,7 +115,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenContact, onNavigate }) => 
                   onClick={onOpenContact}
                   className="hover:text-[#016ba5] dark:hover:text-[#38bdf8] transition-colors text-left rtl:text-right cursor-pointer"
                 >
-                  Contact
+                  {t('footer.link_contact')}
                 </button>
               </li>
             </ul>
@@ -122,7 +124,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenContact, onNavigate }) => 
           {/* Column 3: Legal (Cols 10-12) */}
           <div className="md:col-span-2 flex flex-col gap-3">
             <h4 className="font-headline text-sm font-bold text-[#0F2A4A] dark:text-white uppercase tracking-wider">
-              Legal
+              {t('footer.col_legal')}
             </h4>
             <ul className="flex flex-col gap-2.5 font-body text-sm text-[#475569] dark:text-slate-400">
               <li>
@@ -130,7 +132,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenContact, onNavigate }) => 
                   href="#privacy-for-kids"
                   className="hover:text-[#016ba5] dark:hover:text-[#38bdf8] transition-colors"
                 >
-                  Privacy Policy
+                  {t('footer.link_privacy_policy')}
                 </a>
               </li>
               <li>
@@ -138,7 +140,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenContact, onNavigate }) => 
                   href="#terms"
                   className="hover:text-[#016ba5] dark:hover:text-[#38bdf8] transition-colors"
                 >
-                  Terms
+                  {t('footer.link_terms')}
                 </a>
               </li>
             </ul>
@@ -149,12 +151,12 @@ export const Footer: React.FC<FooterProps> = ({ onOpenContact, onNavigate }) => 
         {/* Bottom Bar: Copyright, App Store / Google Play, and Orange Back-to-Top Button */}
         <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 font-body text-xs text-slate-500 dark:text-slate-400">
           <div>
-            © 2026 ABTALQUEST
+            {t('footer.copyright')}
           </div>
 
           <div className="flex items-center gap-4">
             <span className="font-medium text-slate-600 dark:text-slate-300">
-              App Store • Google Play
+              {t('footer.stores')}
             </span>
           </div>
         </div>
