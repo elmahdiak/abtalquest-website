@@ -17,7 +17,6 @@ export const FloatingCartButton: React.FC<FloatingCartButtonProps> = ({
 }) => {
   const { t, direction } = useLanguage();
   const [internalCount, setInternalCount] = useState<number>(0);
-  const [isScrolled, setIsScrolled] = useState<boolean>(false);
 
   const calculateCount = (cartObj: Record<string, number>) => {
     return Object.values(cartObj).reduce((sum, qty) => sum + (Number(qty) || 0), 0);
@@ -31,20 +30,6 @@ export const FloatingCartButton: React.FC<FloatingCartButtonProps> = ({
       // Graceful fallback
     }
   };
-
-  useEffect(() => {
-    const handleScroll = () => {
-      const scrollY = window.pageYOffset || document.documentElement.scrollTop;
-      setIsScrolled(scrollY > 300);
-    };
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    handleScroll();
-
-    return () => {
-      window.removeEventListener('scroll', handleScroll);
-    };
-  }, []);
 
   useEffect(() => {
     if (cartCountOverride !== undefined) return;
@@ -81,8 +66,7 @@ export const FloatingCartButton: React.FC<FloatingCartButtonProps> = ({
   return (
     <div
       className={cn(
-        "fixed right-4 sm:right-6 z-50 transition-all duration-300 ease-out",
-        isScrolled ? "bottom-18 sm:bottom-22 md:bottom-24" : "bottom-4 sm:bottom-6",
+        "fixed right-4 bottom-20 sm:right-6 sm:bottom-24 z-50 transition-all duration-300 ease-out",
         className
       )}
     >

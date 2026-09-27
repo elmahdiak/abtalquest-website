@@ -83,23 +83,9 @@ export const WhatsAppButton: React.FC<WhatsAppButtonProps> = ({
     ? (direction === 'rtl' ? 'ml-3' : 'mr-3')
     : (direction === 'rtl' ? 'mr-3' : 'ml-3');
 
-  // Track scroll position to coordinate offset when docked right with other floating action buttons
-  const [isScrolled, setIsScrolled] = useState(false);
-  useEffect(() => {
-    const handleScroll = () => {
-      const scrollY = window.pageYOffset || document.documentElement.scrollTop;
-      setIsScrolled(scrollY > 300);
-    };
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    handleScroll();
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  // Bottom-left is default; if docked right, offset dynamically above cart and scroll-to-top buttons
+  // Bottom-left is default; if docked right, offset cleanly above cart and scroll-to-top buttons
   const positionClasses = isRight
-    ? (isScrolled 
-        ? "bottom-34 right-4 sm:bottom-40 sm:right-6 md:bottom-44 md:right-7" 
-        : "bottom-18 right-4 sm:bottom-22 sm:right-6 md:bottom-24 md:right-7")
+    ? "bottom-36 right-4 sm:bottom-42 sm:right-6 md:bottom-44 md:right-7"
     : "bottom-4 left-4 sm:bottom-6 sm:left-6 md:bottom-7 md:left-7";
 
   return (
