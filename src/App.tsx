@@ -16,12 +16,13 @@ import ContactModal from './components/common/ContactModal';
 import WatchDemoModal from './components/common/WatchDemoModal';
 import WaitlistModal from './components/common/WaitlistModal';
 import FloatingCartButton from './components/common/FloatingCartButton';
+import ParentVendorsPage from './components/vendors/ParentVendorsPage';
 import { SafetyStandardsView, type SafetyStandardTab } from './components/compliance/SafetyStandardsView';
 import { subscribeToAuthChanges, signOutUser } from './services/authService';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 
 export function App() {
-  const [currentView, setCurrentView] = useState<'home' | 'marketplace' | 'admin' | 'safety-standards' | 'about' | 'blog'>('home');
+  const [currentView, setCurrentView] = useState<'home' | 'marketplace' | 'admin' | 'safety-standards' | 'about' | 'blog' | 'parent-sellers'>('home');
   const [activeSafetyTab, setActiveSafetyTab] = useState<SafetyStandardTab>('privacy-kids');
 
   // User Authentication & Modals State
@@ -122,6 +123,16 @@ export function App() {
       ) {
         setCurrentView('about');
       } else if (
+        hash === '#parent-sellers' ||
+        hash === '#parent-vendeurs' ||
+        hash === '#vendors' ||
+        hash === '#vendeurs' ||
+        hash === '#vendor-application' ||
+        pathname === '/parent-sellers' ||
+        pathname === '/vendeurs'
+      ) {
+        setCurrentView('parent-sellers');
+      } else if (
         hash.startsWith('#safety-standards') ||
         hash.startsWith('#compliance')
       ) {
@@ -185,6 +196,7 @@ export function App() {
           view === 'marketplace' ? '#marketplace' : 
           view === 'about' ? '#about' : 
           view === 'blog' ? '#blog' : 
+          view === 'parent-sellers' ? '#parent-sellers' :
           '#universe';
       }}
       user={user}
@@ -197,6 +209,19 @@ export function App() {
         <Marketplace 
           user={user}
           onOpenAuth={() => setAuthModalOpen(true)}
+        />
+      ) : currentView === 'parent-sellers' ? (
+        <ParentVendorsPage
+          onNavigate={(view) => {
+            setCurrentView(view);
+            window.location.hash = 
+              view === 'marketplace' ? '#marketplace' : 
+              view === 'about' ? '#about' : 
+              view === 'blog' ? '#blog' : 
+              view === 'parent-sellers' ? '#parent-sellers' :
+              '#universe';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
         />
       ) : currentView === 'about' ? (
         <AboutUsView

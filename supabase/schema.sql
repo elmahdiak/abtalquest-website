@@ -1304,7 +1304,54 @@ VALUES
 ON CONFLICT (id) DO NOTHING;
 
 -- ==============================================================================
--- 14. GRANT PERMISSIONS & RELOAD SCHEMA CACHE
+-- 14. PARENT VENDORS APPLICATIONS TABLE (Parent Vendeurs)
+-- ==============================================================================
+CREATE TABLE IF NOT EXISTS public.vendor_applications (
+  id TEXT PRIMARY KEY,
+  full_name TEXT NOT NULL,
+  email TEXT NOT NULL,
+  phone TEXT,
+  shop_name TEXT NOT NULL,
+  category TEXT NOT NULL,
+  product_description TEXT NOT NULL,
+  target_age_group TEXT,
+  website_or_social TEXT,
+  sample_images TEXT[] DEFAULT '{}',
+  status TEXT NOT NULL DEFAULT 'pending', -- 'pending', 'approved', 'rejected'
+  admin_notes TEXT,
+  reviewed_by TEXT,
+  reviewed_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE public.vendor_applications ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Allow public insert on vendor_applications" ON public.vendor_applications;
+DROP POLICY IF EXISTS "Allow public read on vendor_applications" ON public.vendor_applications;
+DROP POLICY IF EXISTS "Allow update on vendor_applications" ON public.vendor_applications;
+DROP POLICY IF EXISTS "Allow delete on vendor_applications" ON public.vendor_applications;
+
+CREATE POLICY "Allow public insert on vendor_applications"
+  ON public.vendor_applications FOR INSERT TO anon, authenticated WITH CHECK (true);
+
+CREATE POLICY "Allow public read on vendor_applications"
+  ON public.vendor_applications FOR SELECT TO anon, authenticated USING (true);
+
+CREATE POLICY "Allow update on vendor_applications"
+  ON public.vendor_applications FOR UPDATE TO anon, authenticated USING (true) WITH CHECK (true);
+
+CREATE POLICY "Allow delete on vendor_applications"
+  ON public.vendor_applications FOR DELETE TO anon, authenticated USING (true);
+
+-- Seed Initial Vendor Application Sample
+INSERT INTO public.vendor_applications (id, full_name, email, phone, shop_name, category, product_description, target_age_group, website_or_social, sample_images, status)
+VALUES
+  ('app_parent_amina', 'Amina Benjelloun', 'amina.b@oasiscrafts.ma', '+212 661 234 567', 'Atlas Wooden Curiosities', 'wood', 'Handcrafted Moroccan cedarwood puzzles and tactile sorting blocks inspired by traditional geometric architecture, certified non-toxic with organic beeswax finish.', '4-7', 'https://instagram.com/atlascuriosities', ARRAY['https://images.unsplash.com/photo-1596461404969-9ae70f2830c1?auto=format&fit=crop&w=800&q=80'], 'pending')
+ON CONFLICT (id) DO NOTHING;
+
+-- ==============================================================================
+-- 15. GRANT PERMISSIONS & RELOAD SCHEMA CACHE
 -- ==============================================================================
 GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated, service_role;
 GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated, service_role;

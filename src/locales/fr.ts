@@ -911,6 +911,7 @@ export const fr = {
       orders: 'Commandes',
       coupons: 'Codes Promo',
       banners: 'Bannières Slider',
+      vendors: 'Parents Vendeurs',
       subscribers: 'Abonnés',
       blog: 'Blog & Articles',
       messages: 'Messages',

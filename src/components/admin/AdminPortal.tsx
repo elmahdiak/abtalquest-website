@@ -59,7 +59,8 @@ import {
   Square,
   MinusSquare,
   Video,
-  Star
+  Star,
+  Store
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import Badge from '../common/Badge';
@@ -174,6 +175,8 @@ import type { User } from '@supabase/supabase-js';
 import { supabase, isSupabaseConfigured } from '../../supabaseClient';
 import MarketplaceBannersTab from './MarketplaceBannersTab';
 import { getStoredBanners } from '../../services/bannerService';
+import VendorApplicationsTab from './VendorApplicationsTab';
+import { getStoredVendorApplications } from '../../services/vendorService';
 
 export interface AdminPortalProps {
   onClose?: () => void;
@@ -204,8 +207,9 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
   const { theme, toggleTheme } = useTheme();
   const { language, direction, setLanguage, t } = useLanguage();
   const [adminLangMenuOpen, setAdminLangMenuOpen] = useState<boolean>(false);
-  const [activeTab, setActiveTab] = useState<'orders' | 'products' | 'categories' | 'coupons' | 'banners' | 'blogs' | 'subscribers' | 'messages' | 'analytics' | 'team' | 'settings'>('orders');
+  const [activeTab, setActiveTab] = useState<'orders' | 'products' | 'categories' | 'coupons' | 'banners' | 'vendors' | 'blogs' | 'subscribers' | 'messages' | 'analytics' | 'team' | 'settings'>('orders');
   const [bannersCount, setBannersCount] = useState<number>(() => getStoredBanners().length);
+  const [pendingVendorsCount, setPendingVendorsCount] = useState<number>(() => getStoredVendorApplications().filter(a => a.status === 'pending').length);
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
@@ -1857,7 +1861,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
     if (editingAdmin.email.toLowerCase() === currentUser?.email?.toLowerCase()) {
       if (!hasAdminTabPermission(currentUser, activeTab, editAdminPermissions)) {
         const candidateTabs: AdminTabPermission[] = [
-          'orders', 'banners', 'blogs', 'messages', 'subscribers', 'products', 'categories', 'coupons', 'analytics', 'settings'
+          'orders', 'banners', 'vendors', 'blogs', 'messages', 'subscribers', 'products', 'categories', 'coupons', 'analytics', 'settings'
         ];
         const nextAllowed = candidateTabs.find((t) => hasAdminTabPermission(currentUser, t, editAdminPermissions));
         if (nextAllowed) setActiveTab(nextAllowed);
@@ -2450,7 +2454,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
         {/* Scrollable Navigation Links Grouped Vertically */}
         <div className={`flex-1 p-3.5 space-y-5 overflow-y-auto ${isSidebarCollapsed ? 'md:p-2 md:space-y-4' : ''}`}>
           {/* Section 1: Commerce & Inventory */}
-          {(canAccess('orders') || canAccess('products') || canAccess('categories') || canAccess('coupons')) && (
+          {(canAccess('orders') || canAccess('products') || canAccess('categories') || canAccess('coupons') || canAccess('banners') || canAccess('vendors')) && (
             <div>
               {!isSidebarCollapsed ? (
                 <div className="px-3 pb-2 text-[10px] font-headline font-black uppercase tracking-wider text-slate-400/80 flex items-center justify-between">
@@ -2597,6 +2601,40 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
                     }`}>
                       {bannersCount}
                     </span>
+                  </button>
+                )}
+
+                {canAccess('vendors') && (
+                  <button
+                    type="button"
+                    title={isSidebarCollapsed ? (t('admin.tabs.vendors') || 'Parent Vendors') : undefined}
+                    onClick={() => {
+                      setActiveTab('vendors');
+                      setSidebarOpen(false);
+                    }}
+                    className={`w-full px-3 py-2.5 rounded-xl font-headline text-xs font-bold transition-all flex items-center group cursor-pointer relative ${
+                      isSidebarCollapsed ? 'md:justify-center md:px-0' : 'justify-between'
+                    } ${
+                      activeTab === 'vendors'
+                        ? 'bg-[#fa8221] text-white shadow-sm'
+                        : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
+                    }`}
+                  >
+                    <div className={`flex items-center ${isSidebarCollapsed ? 'md:justify-center' : 'gap-2.5'}`}>
+                      <Store className={`w-4 h-4 shrink-0 ${activeTab === 'vendors' ? 'text-white' : 'text-slate-400 group-hover:text-slate-200'}`} />
+                      <span className={isSidebarCollapsed ? 'md:hidden' : 'inline'}>{t('admin.tabs.vendors') || 'Parent Vendors'}</span>
+                    </div>
+                    {pendingVendorsCount > 0 ? (
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${isSidebarCollapsed ? 'md:hidden' : 'inline-block'} bg-amber-500 text-white animate-pulse`}>
+                        {pendingVendorsCount}
+                      </span>
+                    ) : (
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${isSidebarCollapsed ? 'md:hidden' : 'inline-block'} ${
+                        activeTab === 'vendors' ? 'bg-white/20 text-white' : 'bg-slate-800 text-slate-300 group-hover:bg-slate-700'
+                      }`}>
+                        0
+                      </span>
+                    )}
                   </button>
                 )}
               </div>
@@ -3165,7 +3203,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
                   type="button"
                   onClick={() => {
                     const candidateTabs: AdminTabPermission[] = [
-                      'orders', 'banners', 'blogs', 'messages', 'subscribers', 'products', 'categories', 'coupons', 'analytics', 'settings'
+                      'orders', 'banners', 'vendors', 'blogs', 'messages', 'subscribers', 'products', 'categories', 'coupons', 'analytics', 'settings'
                     ];
                     const nextAllowed = candidateTabs.find((t) => canAccess(t));
                     if (nextAllowed) setActiveTab(nextAllowed);
@@ -4791,6 +4829,16 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
                ======================================================== */}
             {activeTab === 'banners' && (
               <MarketplaceBannersTab onBannersCountChange={setBannersCount} />
+            )}
+
+            {/* ========================================================
+                TAB: PARENT VENDOR APPLICATIONS
+               ======================================================== */}
+            {activeTab === 'vendors' && (
+              <VendorApplicationsTab
+                currentUserEmail={currentUser?.email || 'akmahdi085@gmail.com'}
+                onPendingCountChange={setPendingVendorsCount}
+              />
             )}
 
             {/* ========================================================

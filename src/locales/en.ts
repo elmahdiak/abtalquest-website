@@ -911,6 +911,7 @@ export const en = {
       orders: 'Orders',
       coupons: 'Coupons',
       banners: 'Marketplace Banners',
+      vendors: 'Parent Vendors',
       subscribers: 'Subscribers',
       blog: 'Blog & Articles',
       messages: 'Messages',

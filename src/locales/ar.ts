@@ -903,6 +903,7 @@ export const ar = {
       orders: 'الطلبات',
       coupons: 'كوبونات الخصم',
       banners: 'لافتات المتجر',
+      vendors: 'أولياء الأمور البائعين',
       subscribers: 'المشتركون',
       blog: 'المدونة والمقالات',
       messages: 'الرسائل',

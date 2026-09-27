@@ -28,8 +28,8 @@ export interface NavItem {
 }
 
 export interface NavbarProps {
-  currentView?: 'home' | 'marketplace' | 'admin' | 'safety-standards' | 'about' | 'blog';
-  onViewChange?: (view: 'home' | 'marketplace' | 'about' | 'blog') => void;
+  currentView?: 'home' | 'marketplace' | 'admin' | 'safety-standards' | 'about' | 'blog' | 'parent-sellers';
+  onViewChange?: (view: 'home' | 'marketplace' | 'about' | 'blog' | 'parent-sellers') => void;
   user?: SupabaseUser | null;
   onOpenAuth?: () => void;
   onOpenProfile?: () => void;
@@ -61,11 +61,12 @@ export const Navbar: React.FC<NavbarProps> = ({
     { id: 'how-it-works', label: t('nav.how_it_works'), href: '#how-it-works' },
     { id: 'blog', label: t('nav.blog'), href: '#blog' },
     { id: 'marketplace', label: t('nav.marketplace'), href: '#marketplace', badge: t('nav.badge_kits') },
+    { id: 'parent-sellers', label: t('nav.parent_seller'), href: '#parent-sellers' },
     { id: 'about', label: t('nav.about'), href: '#about' },
   ];
 
   // Sync active navigation tab with current view
-  const activeTab = currentView === 'marketplace' ? 'marketplace' : currentView === 'about' ? 'about' : currentView === 'blog' ? 'blog' : selectedNavTab;
+  const activeTab = currentView === 'marketplace' ? 'marketplace' : currentView === 'about' ? 'about' : currentView === 'blog' ? 'blog' : currentView === 'parent-sellers' ? 'parent-sellers' : selectedNavTab;
 
   // Handle scroll detection for frosted glass transition
   useEffect(() => {
@@ -102,6 +103,11 @@ export const Navbar: React.FC<NavbarProps> = ({
     } else if (item.id === 'marketplace') {
       e.preventDefault();
       onViewChange?.('marketplace');
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    } else if (item.id === 'parent-sellers') {
+      e.preventDefault();
+      onViewChange?.('parent-sellers');
+      window.location.hash = '#parent-sellers';
       window.scrollTo({ top: 0, behavior: 'instant' });
     } else if (item.id === 'about') {
       e.preventDefault();
@@ -527,14 +533,20 @@ export const Navbar: React.FC<NavbarProps> = ({
 
               {/* Parent seller */}
               <a
-                href="#marketplace"
+                href="#parent-sellers"
                 onClick={(e) => {
                   e.preventDefault();
                   setMobileMenuOpen(false);
-                  onViewChange?.('marketplace');
+                  onViewChange?.('parent-sellers');
+                  window.location.hash = '#parent-sellers';
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
-                className="font-headline text-base font-semibold px-4 py-3 rounded-2xl text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex items-center gap-2.5"
+                className={cn(
+                  "font-headline text-base font-semibold px-4 py-3 rounded-2xl transition-colors flex items-center gap-2.5",
+                  activeTab === 'parent-sellers'
+                    ? "bg-[#fa8221]/15 text-[#fa8221] font-bold"
+                    : "text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
+                )}
               >
                 <div className="w-6 h-6 rounded-lg bg-amber-500/10 text-[#fa8221] flex items-center justify-center">
                   <ShoppingBag className="w-3.5 h-3.5" />

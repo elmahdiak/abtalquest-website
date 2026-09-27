@@ -22,6 +22,7 @@ export type AdminTabPermission =
   | 'categories' 
   | 'coupons' 
   | 'banners'
+  | 'vendors'
   | 'blogs' 
   | 'subscribers' 
   | 'messages' 
@@ -30,13 +31,13 @@ export type AdminTabPermission =
   | 'team';
 
 export const ROLE_DEFAULT_PERMISSIONS: Record<AdminRole, AdminTabPermission[]> = {
-  super_admin: ['orders', 'products', 'categories', 'coupons', 'banners', 'blogs', 'subscribers', 'messages', 'analytics', 'settings', 'team'],
-  admin: ['orders', 'products', 'categories', 'coupons', 'banners', 'blogs', 'subscribers', 'messages', 'analytics', 'settings'],
-  marketplace_manager: ['orders', 'products', 'categories', 'coupons', 'banners', 'analytics'],
+  super_admin: ['orders', 'products', 'categories', 'coupons', 'banners', 'vendors', 'blogs', 'subscribers', 'messages', 'analytics', 'settings', 'team'],
+  admin: ['orders', 'products', 'categories', 'coupons', 'banners', 'vendors', 'blogs', 'subscribers', 'messages', 'analytics', 'settings'],
+  marketplace_manager: ['orders', 'products', 'categories', 'coupons', 'banners', 'vendors', 'analytics'],
   content_manager: ['blogs', 'subscribers', 'messages', 'analytics'],
   support_admin: ['orders', 'messages', 'subscribers'],
   support: ['orders', 'messages', 'subscribers'],
-  manager: ['orders', 'products', 'categories', 'coupons', 'banners', 'blogs', 'subscribers', 'messages', 'analytics'],
+  manager: ['orders', 'products', 'categories', 'coupons', 'banners', 'vendors', 'blogs', 'subscribers', 'messages', 'analytics'],
 };
 
 export const ROLE_DISPLAY_NAMES: Record<AdminRole, string> = {

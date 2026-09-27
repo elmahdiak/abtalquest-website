@@ -18,7 +18,6 @@ export interface ParentSellerSectionProps {
 
 export const ParentSellerSection: React.FC<ParentSellerSectionProps> = ({
   user,
-  onOpenAuth,
 }) => {
   const [modalOpen, setModalOpen] = useState(false);
   const [name, setName] = useState(user?.user_metadata?.full_name || '');
@@ -33,11 +32,8 @@ export const ParentSellerSection: React.FC<ParentSellerSectionProps> = ({
   const [submitted, setSubmitted] = useState(false);
 
   const handleApplyClick = () => {
-    if (!user && onOpenAuth) {
-      onOpenAuth();
-      return;
-    }
-    setModalOpen(true);
+    window.location.hash = '#parent-sellers';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
