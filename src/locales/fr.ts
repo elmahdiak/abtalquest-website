@@ -910,6 +910,7 @@ export const fr = {
       categories: 'Catégories & Planètes',
       orders: 'Commandes',
       coupons: 'Codes Promo',
+      banners: 'Bannières Slider',
       subscribers: 'Abonnés',
       blog: 'Blog & Articles',
       messages: 'Messages',

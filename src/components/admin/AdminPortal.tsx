@@ -172,6 +172,8 @@ import {
 } from '../../services/couponService';
 import type { User } from '@supabase/supabase-js';
 import { supabase, isSupabaseConfigured } from '../../supabaseClient';
+import MarketplaceBannersTab from './MarketplaceBannersTab';
+import { getStoredBanners } from '../../services/bannerService';
 
 export interface AdminPortalProps {
   onClose?: () => void;
@@ -202,7 +204,8 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
   const { theme, toggleTheme } = useTheme();
   const { language, direction, setLanguage, t } = useLanguage();
   const [adminLangMenuOpen, setAdminLangMenuOpen] = useState<boolean>(false);
-  const [activeTab, setActiveTab] = useState<'orders' | 'products' | 'categories' | 'coupons' | 'blogs' | 'subscribers' | 'messages' | 'analytics' | 'team' | 'settings'>('orders');
+  const [activeTab, setActiveTab] = useState<'orders' | 'products' | 'categories' | 'coupons' | 'banners' | 'blogs' | 'subscribers' | 'messages' | 'analytics' | 'team' | 'settings'>('orders');
+  const [bannersCount, setBannersCount] = useState<number>(() => getStoredBanners().length);
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
@@ -1854,7 +1857,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
     if (editingAdmin.email.toLowerCase() === currentUser?.email?.toLowerCase()) {
       if (!hasAdminTabPermission(currentUser, activeTab, editAdminPermissions)) {
         const candidateTabs: AdminTabPermission[] = [
-          'orders', 'blogs', 'messages', 'subscribers', 'products', 'categories', 'coupons', 'analytics', 'settings'
+          'orders', 'banners', 'blogs', 'messages', 'subscribers', 'products', 'categories', 'coupons', 'analytics', 'settings'
         ];
         const nextAllowed = candidateTabs.find((t) => hasAdminTabPermission(currentUser, t, editAdminPermissions));
         if (nextAllowed) setActiveTab(nextAllowed);
@@ -2568,6 +2571,34 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
                     </span>
                   </button>
                 )}
+
+                {canAccess('banners') && (
+                  <button
+                    type="button"
+                    title={isSidebarCollapsed ? (t('admin.tabs.banners') || 'Slider Banners') : undefined}
+                    onClick={() => {
+                      setActiveTab('banners');
+                      setSidebarOpen(false);
+                    }}
+                    className={`w-full px-3 py-2.5 rounded-xl font-headline text-xs font-bold transition-all flex items-center group cursor-pointer relative ${
+                      isSidebarCollapsed ? 'md:justify-center md:px-0' : 'justify-between'
+                    } ${
+                      activeTab === 'banners'
+                        ? 'bg-[#fa8221] text-white shadow-sm'
+                        : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
+                    }`}
+                  >
+                    <div className={`flex items-center ${isSidebarCollapsed ? 'md:justify-center' : 'gap-2.5'}`}>
+                      <Layers className={`w-4 h-4 shrink-0 ${activeTab === 'banners' ? 'text-white' : 'text-slate-400 group-hover:text-slate-200'}`} />
+                      <span className={isSidebarCollapsed ? 'md:hidden' : 'inline'}>{t('admin.tabs.banners') || 'Slider Banners'}</span>
+                    </div>
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${isSidebarCollapsed ? 'md:hidden' : 'inline-block'} ${
+                      activeTab === 'banners' ? 'bg-white/20 text-white' : 'bg-slate-800 text-slate-300 group-hover:bg-slate-700'
+                    }`}>
+                      {bannersCount}
+                    </span>
+                  </button>
+                )}
               </div>
             </div>
           )}
@@ -3134,7 +3165,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
                   type="button"
                   onClick={() => {
                     const candidateTabs: AdminTabPermission[] = [
-                      'orders', 'blogs', 'messages', 'subscribers', 'products', 'categories', 'coupons', 'analytics', 'settings'
+                      'orders', 'banners', 'blogs', 'messages', 'subscribers', 'products', 'categories', 'coupons', 'analytics', 'settings'
                     ];
                     const nextAllowed = candidateTabs.find((t) => canAccess(t));
                     if (nextAllowed) setActiveTab(nextAllowed);
@@ -4754,6 +4785,13 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
                 </div>
               );
             })()}
+
+            {/* ========================================================
+                TAB: MARKETPLACE BANNERS & SLIDER MANAGEMENT
+               ======================================================== */}
+            {activeTab === 'banners' && (
+              <MarketplaceBannersTab onBannersCountChange={setBannersCount} />
+            )}
 
             {/* ========================================================
                 TAB: BLOGS & ARTICLES MANAGEMENT
@@ -8114,6 +8152,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       {[
                         { tab: 'coupons', label: 'Coupons & Promo Codes' },
+                        { tab: 'banners', label: 'Marketplace Banners' },
                         { tab: 'subscribers', label: 'Explorer Club (Subscribers)' },
                       ].map(({ tab, label }) => {
                         const checked = editAdminPermissions.includes(tab as AdminTabPermission);

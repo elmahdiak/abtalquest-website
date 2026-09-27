@@ -910,6 +910,7 @@ export const en = {
       categories: 'Categories & Planets',
       orders: 'Orders',
       coupons: 'Coupons',
+      banners: 'Marketplace Banners',
       subscribers: 'Subscribers',
       blog: 'Blog & Articles',
       messages: 'Messages',

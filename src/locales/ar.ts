@@ -902,6 +902,7 @@ export const ar = {
       categories: 'التصنيفات والكواكب',
       orders: 'الطلبات',
       coupons: 'كوبونات الخصم',
+      banners: 'لافتات المتجر',
       subscribers: 'المشتركون',
       blog: 'المدونة والمقالات',
       messages: 'الرسائل',

@@ -138,5 +138,47 @@ CREATE POLICY "Allow delete on blog images"
   USING (bucket_id = 'blog-images');
 
 
--- 7. REFRESH SCHEMA CACHE
+-- 7. BANNER MEDIA POLICIES (storage.objects for 'banner-media' Images & Looping Videos)
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+  'banner-media',
+  'banner-media',
+  true,
+  31457280, -- 30MB maximum file size
+  ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml', 'image/avif', 'video/mp4', 'video/webm']
+)
+ON CONFLICT (id) DO UPDATE SET
+  public = true,
+  file_size_limit = 31457280,
+  allowed_mime_types = ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml', 'image/avif', 'video/mp4', 'video/webm'];
+
+DROP POLICY IF EXISTS "Allow public read on banner media" ON storage.objects;
+DROP POLICY IF EXISTS "Allow upload on banner media" ON storage.objects;
+DROP POLICY IF EXISTS "Allow update on banner media" ON storage.objects;
+DROP POLICY IF EXISTS "Allow delete on banner media" ON storage.objects;
+
+CREATE POLICY "Allow public read on banner media"
+  ON storage.objects FOR SELECT
+  TO anon, authenticated
+  USING (bucket_id = 'banner-media');
+
+CREATE POLICY "Allow upload on banner media"
+  ON storage.objects FOR INSERT
+  TO anon, authenticated
+  WITH CHECK (bucket_id = 'banner-media');
+
+CREATE POLICY "Allow update on banner media"
+  ON storage.objects FOR UPDATE
+  TO anon, authenticated
+  USING (bucket_id = 'banner-media')
+  WITH CHECK (bucket_id = 'banner-media');
+
+CREATE POLICY "Allow delete on banner media"
+  ON storage.objects FOR DELETE
+  TO anon, authenticated
+  USING (bucket_id = 'banner-media');
+
+
+-- 8. REFRESH SCHEMA CACHE
 NOTIFY pgrst, 'reload schema';
+

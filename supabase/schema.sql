@@ -1254,7 +1254,57 @@ VALUES
 ON CONFLICT (code) DO NOTHING;
 
 -- ==============================================================================
--- 13. GRANT PERMISSIONS & RELOAD SCHEMA CACHE
+-- 13. MARKETPLACE CAROUSEL BANNERS TABLE (Images & Looping Video Slides)
+-- ==============================================================================
+CREATE TABLE IF NOT EXISTS public.marketplace_banners (
+  id TEXT PRIMARY KEY,
+  type TEXT NOT NULL DEFAULT 'image', -- 'image' or 'video'
+  media_url TEXT NOT NULL,
+  tag TEXT,
+  title TEXT NOT NULL,
+  description TEXT,
+  cta_text TEXT DEFAULT 'Explore Now',
+  cta_link TEXT DEFAULT '#marketplace',
+  planet TEXT,
+  bg_gradient TEXT DEFAULT 'from-[#016ba5] via-[#0284c7] to-[#0369a1]',
+  accent_color TEXT DEFAULT '#016ba5',
+  display_order INTEGER DEFAULT 1,
+  is_active BOOLEAN DEFAULT true,
+  duration INTEGER DEFAULT 5,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE public.marketplace_banners ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Allow public read on marketplace_banners" ON public.marketplace_banners;
+DROP POLICY IF EXISTS "Allow public insert on marketplace_banners" ON public.marketplace_banners;
+DROP POLICY IF EXISTS "Allow public update on marketplace_banners" ON public.marketplace_banners;
+DROP POLICY IF EXISTS "Allow public delete on marketplace_banners" ON public.marketplace_banners;
+
+CREATE POLICY "Allow public read on marketplace_banners"
+  ON public.marketplace_banners FOR SELECT TO anon, authenticated USING (true);
+
+CREATE POLICY "Allow public insert on marketplace_banners"
+  ON public.marketplace_banners FOR INSERT TO anon, authenticated WITH CHECK (true);
+
+CREATE POLICY "Allow public update on marketplace_banners"
+  ON public.marketplace_banners FOR UPDATE TO anon, authenticated USING (true) WITH CHECK (true);
+
+CREATE POLICY "Allow public delete on marketplace_banners"
+  ON public.marketplace_banners FOR DELETE TO anon, authenticated USING (true);
+
+-- Seed Initial Banners
+INSERT INTO public.marketplace_banners (id, type, media_url, tag, title, description, cta_text, cta_link, planet, bg_gradient, accent_color, display_order, is_active, duration)
+VALUES
+  ('banner_thinkers_1', 'image', 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=1920&q=80', 'Screen-Free Season', 'Awaken Real Curiosity with Hands-On Engineering', 'Explore the Thinkers'' Clockwork Waterwheel and screen-free mechanical kits. 100% sustainably harvested wood.', 'Shop Thinkers Kits', 'thinkers', 'thinkers', 'from-[#016ba5] via-[#0284c7] to-[#0369a1]', '#016ba5', 1, true, 5),
+  ('banner_video_mission_2', 'video', 'https://assets.mixkit.co/videos/preview/mixkit-stars-in-space-background-1610-large.mp4', 'Dynamic Video Mission', 'Explore the Infinite AbtalQuest Multiverse', 'Watch young heroes embark on STEM challenges across uncharted planets. Screen-free adventure meets cinematic wonder.', 'Explore Planetary Kits', 'solvers', 'solvers', 'from-[#0284c7] via-[#0369a1] to-[#0c4a6e]', '#0284c7', 2, true, 6),
+  ('banner_heart_coop_3', 'image', 'https://images.unsplash.com/photo-1610890716171-6b1bb98ffd09?auto=format&fit=crop&w=1920&q=80', 'Cooperative Family Play', 'Cooperative Board Games that Cultivate Empathy', 'No losers, only shared triumph. Help the whole oasis village flourish together with The Caravan of Kindness.', 'Explore Family Games', 'heart', 'heart', 'from-[#7C3AED] via-[#6D28D9] to-[#5B21B6]', '#7C3AED', 3, true, 5),
+  ('banner_brave_trail_4', 'image', 'https://images.unsplash.com/photo-1533227268428-f9ed0900fb3b?auto=format&fit=crop&w=1920&q=80', 'Outdoor Fortitude', 'Real Explorers Brave the Open Trail', 'Solid brass compasses, weather observation journals, and mindfulness sand-timers built for resilience.', 'Gear Up for Adventure', 'brave', 'brave', 'from-[#fa8221] via-[#e87313] to-[#c25e0a]', '#fa8221', 4, true, 5)
+ON CONFLICT (id) DO NOTHING;
+
+-- ==============================================================================
+-- 14. GRANT PERMISSIONS & RELOAD SCHEMA CACHE
 -- ==============================================================================
 GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated, service_role;
 GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated, service_role;
