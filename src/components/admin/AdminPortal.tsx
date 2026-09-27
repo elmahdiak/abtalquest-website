@@ -57,8 +57,11 @@ import {
   EyeOff,
   CheckSquare,
   Square,
-  MinusSquare
+  MinusSquare,
+  Video,
+  Star
 } from 'lucide-react';
+import { cn } from '../../lib/utils';
 import Badge from '../common/Badge';
 import Button from '../common/Button';
 import AbtalQuestLogo from '../common/AbtalQuestLogo';
@@ -120,6 +123,7 @@ import {
   deleteCategory,
   DEFAULT_CATEGORIES,
   formatPrice,
+  getYouTubeEmbedUrl,
   type AdminOrder,
   type ContactMessage,
   type SiteMetrics,
@@ -318,6 +322,9 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
   const [prodShortDesc, setProdShortDesc] = useState<string>('');
   const [prodFullDesc, setProdFullDesc] = useState<string>('');
   const [prodImageUrl, setProdImageUrl] = useState<string>('');
+  const [prodImages, setProdImages] = useState<string[]>([]);
+  const [newImageUrlInput, setNewImageUrlInput] = useState<string>('');
+  const [prodVideoUrl, setProdVideoUrl] = useState<string>('');
   const [prodTags, setProdTags] = useState<string>('');
   const [prodSafetyGuidelines, setProdSafetyGuidelines] = useState<string>('');
   const [uploadingProdImage, setUploadingProdImage] = useState<boolean>(false);
@@ -705,6 +712,9 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
     setProdShortDesc('');
     setProdFullDesc('');
     setProdImageUrl('');
+    setProdImages([]);
+    setNewImageUrlInput('');
+    setProdVideoUrl('');
     setProdTags('STEM, Physical Kit, Birchwood');
     setProdSafetyGuidelines('100% sustainably harvested natural birchwood\nSmooth hand-sanded edges with zero splinter hazards\nChild-safe non-toxic organic vegetable stain');
     setProdModalError(null);
@@ -732,7 +742,24 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
     setProdXpBonus(String(prod.xpBonus || 0));
     setProdShortDesc(prod.shortDescription || '');
     setProdFullDesc(prod.fullDescription || '');
-    setProdImageUrl(prod.images && prod.images.length > 0 ? prod.images[0] : (prod.imageUrl || prod.image || ''));
+
+    // Initialize multi-images (up to 6)
+    const initialImages: string[] = [];
+    if (Array.isArray(prod.images)) {
+      initialImages.push(...prod.images.filter((img): img is string => typeof img === 'string' && img.trim().length > 0 && !img.trim().startsWith('data:')));
+    }
+    if (prod.imageUrl && !initialImages.includes(prod.imageUrl.trim()) && !prod.imageUrl.trim().startsWith('data:')) {
+      initialImages.unshift(prod.imageUrl.trim());
+    }
+    if (prod.image && !initialImages.includes(prod.image.trim()) && !prod.image.trim().startsWith('data:')) {
+      initialImages.push(prod.image.trim());
+    }
+    const cleanInitial = initialImages.slice(0, 6);
+    setProdImages(cleanInitial);
+    setProdImageUrl(cleanInitial[0] || '');
+    setNewImageUrlInput('');
+    setProdVideoUrl(prod.videoUrl || (prod as any).video_url || (prod as any).video || '');
+
     setProdTags(Array.isArray(prod.tags) ? prod.tags.join(', ') : '');
     setProdSafetyGuidelines(Array.isArray(prod.safetyGuidelines) ? prod.safetyGuidelines.join('\n') : '');
     setProdModalError(null);
@@ -751,6 +778,11 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    if (prodImages.length >= 6) {
+      setProdModalError('Maximum of 6 images allowed per product. Please delete an existing image first.');
+      return;
+    }
+
     if (file.size > 10 * 1024 * 1024) {
       setProdModalError('Image file is too large. Please select an image under 10MB.');
       return;
@@ -760,13 +792,57 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
     setProdModalError(null);
     try {
       const url = await uploadProductImage(file);
+      setProdImages((prev) => [...prev, url].slice(0, 6));
       setProdImageUrl(url);
     } catch (err: any) {
       console.error('[AdminPortal] Product image upload error:', err);
       setProdModalError(err?.message || 'Failed to upload product image to Supabase Storage.');
     } finally {
       setUploadingProdImage(false);
+      e.target.value = '';
     }
+  };
+
+  const handleAddImageUrl = () => {
+    const url = newImageUrlInput.trim();
+    if (!url) return;
+    if (url.startsWith('data:')) {
+      setProdModalError('Base64 image strings cannot be saved. Please upload the image file to Supabase Storage or enter an external public image URL.');
+      return;
+    }
+    if (prodImages.length >= 6) {
+      setProdModalError('Maximum of 6 images allowed per product. Please remove an existing image before adding another.');
+      return;
+    }
+    setProdImages((prev) => [...prev, url].slice(0, 6));
+    setNewImageUrlInput('');
+    setProdModalError(null);
+  };
+
+  const handleMoveImage = (fromIndex: number, direction: 'left' | 'right') => {
+    const toIndex = direction === 'left' ? fromIndex - 1 : fromIndex + 1;
+    if (toIndex < 0 || toIndex >= prodImages.length) return;
+    setProdImages((prev) => {
+      const copy = [...prev];
+      const temp = copy[fromIndex];
+      copy[fromIndex] = copy[toIndex];
+      copy[toIndex] = temp;
+      return copy;
+    });
+  };
+
+  const handleSetPrimaryImage = (index: number) => {
+    if (index <= 0 || index >= prodImages.length) return;
+    setProdImages((prev) => {
+      const copy = [...prev];
+      const [item] = copy.splice(index, 1);
+      copy.unshift(item);
+      return copy;
+    });
+  };
+
+  const handleRemoveImage = (index: number) => {
+    setProdImages((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleSaveProduct = async (e: React.FormEvent) => {
@@ -799,6 +875,10 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
 
       const matchedCategory = categoriesList.find((c) => c.id === prodCategory || c.slug === prodCategory);
 
+      const cleanImages = prodImages.filter((img) => img.trim().length > 0 && !img.startsWith('data:')).slice(0, 6);
+      const primaryImage = cleanImages[0] || (prodImageUrl.trim() && !prodImageUrl.startsWith('data:') ? prodImageUrl.trim() : undefined);
+      const cleanVideo = prodVideoUrl.trim() || undefined;
+
       const productData: Partial<Product> = {
         title: prodTitle.trim(),
         sku: prodSku.trim() || undefined,
@@ -820,10 +900,12 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
         fullDescription: prodFullDesc.trim(),
         tags: tagsArray,
         safetyGuidelines: safetyArray,
-        images: prodImageUrl.trim() ? [prodImageUrl.trim()] : [],
-        imageUrl: prodImageUrl.trim() || undefined,
-        image: prodImageUrl.trim() || undefined,
-        image_url: prodImageUrl.trim() || undefined,
+        images: cleanImages,
+        imageUrl: primaryImage,
+        image: primaryImage,
+        image_url: primaryImage,
+        videoUrl: cleanVideo,
+        video_url: cleanVideo,
         accentColor: matchedCategory?.accentColor || '#016ba5',
         iconBg: matchedCategory?.accentColor ? `bg-[${matchedCategory.accentColor}]/10 text-[${matchedCategory.accentColor}]` : undefined,
       };
@@ -6507,20 +6589,52 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
                     </div>
                   </div>
 
-                  {/* Image Upload & URL */}
-                  <div>
-                    <label className="block text-xs font-headline font-bold text-slate-700 mb-1">
-                      Product Image (Upload or URL)
-                    </label>
-                    <div className="flex items-center gap-2 mb-2">
+                  {/* Multi-Image Gallery Management (Up to 6 images) */}
+                  <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <label className="block text-xs font-headline font-bold text-slate-800">
+                          Product Images ({prodImages.length}/6)
+                        </label>
+                        <p className="text-[10px] text-slate-500">
+                          Upload files or enter image URLs. Rearrange order with arrows.
+                        </p>
+                      </div>
+                      <span className="text-[11px] font-bold text-slate-400">
+                        {6 - prodImages.length} slots left
+                      </span>
+                    </div>
+
+                    {/* Add Image Controls: URL Input + File Upload */}
+                    <div className="flex items-center gap-2">
                       <input
                         type="text"
-                        value={prodImageUrl}
-                        onChange={(e) => setProdImageUrl(e.target.value)}
-                        placeholder="Paste image URL (https://...)"
-                        className="flex-1 px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-body text-xs focus:outline-none focus:ring-2 focus:ring-[#016ba5]"
+                        value={newImageUrlInput}
+                        onChange={(e) => setNewImageUrlInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleAddImageUrl();
+                          }
+                        }}
+                        disabled={prodImages.length >= 6}
+                        placeholder={prodImages.length >= 6 ? "Max 6 images reached" : "Paste image URL and click Add"}
+                        className="flex-1 px-3 py-2 rounded-xl bg-white border border-slate-200 text-slate-900 font-body text-xs focus:outline-none focus:ring-2 focus:ring-[#016ba5] disabled:opacity-50"
                       />
-                      <label className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-headline text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer shrink-0">
+                      <button
+                        type="button"
+                        onClick={handleAddImageUrl}
+                        disabled={!newImageUrlInput.trim() || prodImages.length >= 6}
+                        className="px-3 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 disabled:opacity-40 text-slate-800 font-headline text-xs font-bold transition-all cursor-pointer shrink-0"
+                      >
+                        Add URL
+                      </button>
+                      <label className={cn(
+                        "px-3 py-2 rounded-xl font-headline text-xs font-semibold inline-flex items-center gap-1.5 shrink-0 transition-colors",
+                        prodImages.length >= 6 || uploadingProdImage
+                          ? "bg-slate-300 text-slate-500 cursor-not-allowed"
+                          : "bg-slate-800 hover:bg-slate-700 text-white cursor-pointer"
+                      )}>
                         {uploadingProdImage ? (
                           <Loader2 className="w-3.5 h-3.5 animate-spin" />
                         ) : (
@@ -6531,31 +6645,154 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
                           type="file"
                           accept="image/*"
                           onChange={handleImageUpload}
-                          disabled={uploadingProdImage}
+                          disabled={uploadingProdImage || prodImages.length >= 6}
                           className="hidden"
                         />
                       </label>
                     </div>
 
-                    {prodImageUrl && (
-                      <div className="relative w-full h-24 rounded-xl bg-slate-100 border border-slate-200 overflow-hidden flex items-center justify-center">
-                        <img
-                          src={prodImageUrl}
-                          alt="Product Preview"
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            (e.target as HTMLElement).style.display = 'none';
-                          }}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setProdImageUrl('')}
-                          className="absolute top-1.5 right-1.5 p-1 rounded-full bg-slate-900/60 text-white hover:bg-slate-900"
-                        >
-                          <X className="w-3.5 h-3.5" />
-                        </button>
+                    {/* Uploaded Images Thumbnail Grid with Reordering & Deletion */}
+                    {prodImages.length > 0 ? (
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 pt-1">
+                        {prodImages.map((imgUrl, idx) => (
+                          <div
+                            key={idx}
+                            className="relative aspect-square rounded-xl overflow-hidden border border-slate-200 bg-white group shadow-xs"
+                          >
+                            <img
+                              src={imgUrl}
+                              alt={`Slot ${idx + 1}`}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                (e.target as HTMLElement).style.display = 'none';
+                              }}
+                            />
+
+                            {/* Badge: Cover on slot 0, slot number on other slots */}
+                            {idx === 0 ? (
+                              <span className="absolute top-1.5 left-1.5 px-2 py-0.5 rounded-md bg-amber-400 text-amber-950 font-black text-[9px] shadow-sm">
+                                ★ Primary Cover
+                              </span>
+                            ) : (
+                              <span className="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded-md bg-slate-900/70 text-white font-bold text-[9px] backdrop-blur-xs">
+                                #{idx + 1}
+                              </span>
+                            )}
+
+                            {/* Actions Overlay Bar */}
+                            <div className="absolute inset-x-0 bottom-0 p-1 bg-gradient-to-t from-black/80 via-black/50 to-transparent flex items-center justify-between gap-1">
+                              <div className="flex items-center gap-1">
+                                <button
+                                  type="button"
+                                  onClick={() => handleMoveImage(idx, 'left')}
+                                  disabled={idx === 0}
+                                  title="Move Left (Earlier in gallery)"
+                                  className="p-1 rounded bg-white/20 hover:bg-white/40 disabled:opacity-20 text-white transition-colors cursor-pointer"
+                                >
+                                  <ChevronLeft className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleMoveImage(idx, 'right')}
+                                  disabled={idx === prodImages.length - 1}
+                                  title="Move Right (Later in gallery)"
+                                  className="p-1 rounded bg-white/20 hover:bg-white/40 disabled:opacity-20 text-white transition-colors cursor-pointer"
+                                >
+                                  <ChevronRight className="w-3.5 h-3.5" />
+                                </button>
+                                {idx > 0 && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleSetPrimaryImage(idx)}
+                                    title="Set as Primary Cover Image"
+                                    className="p-1 rounded bg-amber-500/80 hover:bg-amber-500 text-white transition-colors cursor-pointer text-[10px] font-bold"
+                                  >
+                                    <Star className="w-3.5 h-3.5 fill-white" />
+                                  </button>
+                                )}
+                              </div>
+
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveImage(idx)}
+                                title="Delete image"
+                                className="p-1 rounded bg-rose-600/80 hover:bg-rose-600 text-white transition-colors cursor-pointer"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="p-4 rounded-xl border border-dashed border-slate-300 text-center text-xs text-slate-400">
+                        No images added yet. Upload files or add URLs (up to 6 images).
                       </div>
                     )}
+                  </div>
+
+                  {/* YouTube Video Embed Code / URL */}
+                  <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+                    <label className="block text-xs font-headline font-bold text-slate-800">
+                      Product Video (YouTube Embed Code or URL)
+                    </label>
+                    <p className="text-[10px] text-slate-500">
+                      Paste a YouTube watch link (https://www.youtube.com/watch?v=...), short link (https://youtu.be/...), or &lt;iframe&gt; embed code.
+                    </p>
+
+                    <div className="flex items-center gap-2">
+                      <div className="relative flex-1">
+                        <input
+                          type="text"
+                          value={prodVideoUrl}
+                          onChange={(e) => setProdVideoUrl(e.target.value)}
+                          placeholder="https://www.youtube.com/watch?v=... or <iframe ...></iframe>"
+                          className="w-full px-3 py-2 pr-8 rounded-xl bg-white border border-slate-200 text-slate-900 font-body text-xs focus:outline-none focus:ring-2 focus:ring-[#016ba5]"
+                        />
+                        {prodVideoUrl && (
+                          <button
+                            type="button"
+                            onClick={() => setProdVideoUrl('')}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 cursor-pointer"
+                            title="Clear video"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* YouTube Video Live Preview */}
+                    {(() => {
+                      const embed = getYouTubeEmbedUrl(prodVideoUrl);
+                      if (embed) {
+                        return (
+                          <div className="mt-2 space-y-1">
+                            <span className="text-[10px] font-bold text-emerald-600 flex items-center gap-1">
+                              <Video className="w-3.5 h-3.5" />
+                              Valid YouTube Link Detected — Live Preview:
+                            </span>
+                            <div className="w-full aspect-video rounded-xl overflow-hidden bg-black border border-slate-200 shadow-sm">
+                              <iframe
+                                src={embed}
+                                title="Video Preview"
+                                className="w-full h-full border-0"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                allowFullScreen
+                              />
+                            </div>
+                          </div>
+                        );
+                      }
+                      if (prodVideoUrl.trim()) {
+                        return (
+                          <p className="text-[10px] text-amber-600 font-medium">
+                            Note: Could not parse YouTube video ID from this input. Please provide a standard YouTube URL or embed iframe.
+                          </p>
+                        );
+                      }
+                      return null;
+                    })()}
                   </div>
 
                   <div>

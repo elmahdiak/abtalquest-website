@@ -16,7 +16,8 @@ import {
   ChevronRight,
   PenLine,
   MessageSquare,
-  X
+  X,
+  BookOpen
 } from 'lucide-react';
 import { formatPrice, getProductDisplayImage, type Product, type ProductReview } from '../../services/marketplaceService';
 import { useLanguage } from '../../context/LanguageContext';
@@ -48,7 +49,6 @@ export const MarketplaceProductDetailPage: React.FC<MarketplaceProductDetailPage
   const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>({});
   const [justAdded, setJustAdded] = useState<boolean>(false);
   const [copiedLink, setCopiedLink] = useState<boolean>(false);
-  const [activeInfoTab, setActiveInfoTab] = useState<'about' | 'package' | 'skills' | 'safety' | 'reviews'>('about');
   const [showReviewForm, setShowReviewForm] = useState<boolean>(false);
   const [localReviews, setLocalReviews] = useState<ProductReview[]>(product.reviews || []);
   const [selectedReviewImage, setSelectedReviewImage] = useState<string | null>(null);
@@ -59,7 +59,6 @@ export const MarketplaceProductDetailPage: React.FC<MarketplaceProductDetailPage
     setPrevProductId(product.id);
     setQuantity(1);
     setJustAdded(false);
-    setActiveInfoTab('about');
     if (product.variants && product.variants.length > 0) {
       const initial: Record<string, string> = {};
       product.variants.forEach((v) => {
@@ -442,67 +441,98 @@ export const MarketplaceProductDetailPage: React.FC<MarketplaceProductDetailPage
       </section>
 
       {/* 3. Deep-Dive Product Information Tabs */}
-      <section className="pt-6 border-t border-slate-200 dark:border-slate-800">
+      {/* 3. Deep-Dive Product Information - Seamless Continuous Vertical Scroll Sections */}
+      <div className="pt-8 border-t border-slate-200 dark:border-slate-800 space-y-12">
         
-        {/* Tabs Bar */}
-        <div className="flex items-center gap-2 overflow-x-auto border-b border-slate-200 dark:border-slate-800 pb-3 mb-8">
-          {[
-            { id: 'about', label: t('marketplace.detail_about') },
-            { id: 'package', label: t('marketplace.detail_package_includes') },
-            { id: 'skills', label: t('marketplace.detail_skills_title') },
-            { id: 'safety', label: t('marketplace.detail_safety_guarantee') },
-            { id: 'reviews', label: t('marketplace.detail_feedback_title') },
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => setActiveInfoTab(tab.id as any)}
-              className={cn(
-                "px-5 py-2.5 rounded-2xl text-xs sm:text-sm font-bold whitespace-nowrap transition-all cursor-pointer",
-                activeInfoTab === tab.id
-                  ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-md"
-                  : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
-              )}
-            >
-              {tab.label}
-            </button>
-          ))}
+        {/* Sticky Quick-Jump Navigation Bar */}
+        <div className="sticky top-20 z-20 py-3 bg-white/95 dark:bg-[#071727]/95 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800/80 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center gap-2 overflow-x-auto scrollbar-none">
+            {[
+              { id: 'section-about', label: t('marketplace.detail_about'), icon: BookOpen },
+              { id: 'section-package', label: t('marketplace.detail_package_includes'), icon: Package },
+              { id: 'section-skills', label: t('marketplace.detail_skills_title'), icon: Sparkles },
+              { id: 'section-safety', label: t('marketplace.detail_safety_guarantee'), icon: ShieldCheck },
+              { id: 'section-reviews', label: t('marketplace.detail_feedback_title'), icon: Star },
+            ].map((navItem) => {
+              const IconComp = navItem.icon;
+              return (
+                <button
+                  key={navItem.id}
+                  type="button"
+                  onClick={() => {
+                    const el = document.getElementById(navItem.id);
+                    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  }}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-2xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 shadow-xs active:scale-95"
+                >
+                  <IconComp className="w-3.5 h-3.5 opacity-70" />
+                  <span>{navItem.label}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
-        {/* Tab 1: About the Quest */}
-        {activeInfoTab === 'about' && (
-          <div className="space-y-6 max-w-4xl text-slate-700 dark:text-slate-300 leading-relaxed animate-in fade-in duration-200">
-            <div className="p-6 rounded-3xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-3">
-              <h3 className="font-headline font-bold text-lg text-slate-900 dark:text-white">
+        {/* Section 1: About This Quest Kit */}
+        <section id="section-about" className="space-y-6 max-w-4xl scroll-mt-36">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-[#016ba5]/15 text-[#016ba5] dark:text-[#38bdf8] flex items-center justify-center">
+              <BookOpen className="w-5 h-5" />
+            </div>
+            <div>
+              <h2 className="font-headline font-black text-xl sm:text-2xl text-slate-900 dark:text-white">
+                {t('marketplace.detail_about')}
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 Educational Creed & Purpose
-              </h3>
-              <p className="font-medium text-base text-slate-800 dark:text-slate-200">
-                {product.shortDescription}
-              </p>
-              <p className="text-sm">
-                {product.fullDescription}
               </p>
             </div>
-
-            {product.tags && product.tags.length > 0 && (
-              <div className="flex flex-wrap items-center gap-2 pt-2">
-                <span className="text-xs font-bold text-slate-500">Categories:</span>
-                {product.tags.map((tag) => (
-                  <span
-                    key={tag}
-                    className="px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300"
-                  >
-                    #{tag}
-                  </span>
-                ))}
-              </div>
-            )}
           </div>
-        )}
 
-        {/* Tab 2: What's in the Box */}
-        {activeInfoTab === 'package' && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-4xl animate-in fade-in duration-200">
+          <div className="p-6 sm:p-8 rounded-3xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-4 shadow-sm">
+            <h3 className="font-headline font-bold text-lg text-slate-900 dark:text-white">
+              Educational Creed & Purpose
+            </h3>
+            <p className="font-medium text-base text-slate-800 dark:text-slate-200 leading-relaxed">
+              {product.shortDescription}
+            </p>
+            <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+              {product.fullDescription}
+            </p>
+          </div>
+
+          {product.tags && product.tags.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              <span className="text-xs font-bold text-slate-500">Categories:</span>
+              {product.tags.map((tag) => (
+                <span
+                  key={tag}
+                  className="px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300"
+                >
+                  #{tag}
+                </span>
+              ))}
+            </div>
+          )}
+        </section>
+
+        {/* Section 2: Package Includes */}
+        <section id="section-package" className="space-y-6 max-w-4xl pt-10 border-t border-slate-200 dark:border-slate-800 scroll-mt-36">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+              <Package className="w-5 h-5" />
+            </div>
+            <div>
+              <h2 className="font-headline font-black text-xl sm:text-2xl text-slate-900 dark:text-white">
+                {t('marketplace.detail_package_includes')}
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                All Physical Components, Wooden Tokens & Illustrated Codex
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {[
               t('marketplace.detail_package_item_1'),
               t('marketplace.detail_package_item_2'),
@@ -511,18 +541,32 @@ export const MarketplaceProductDetailPage: React.FC<MarketplaceProductDetailPage
             ].map((item, idx) => (
               <div
                 key={idx}
-                className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-start gap-3.5 text-sm font-medium text-slate-800 dark:text-slate-200"
+                className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-start gap-3.5 text-sm font-medium text-slate-800 dark:text-slate-200 shadow-xs"
               >
                 <Package className="w-5 h-5 text-[#fa8221] shrink-0 mt-0.5" />
                 <span>{item}</span>
               </div>
             ))}
           </div>
-        )}
+        </section>
 
-        {/* Tab 3: Skills & Character Development */}
-        {activeInfoTab === 'skills' && (
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-4xl animate-in fade-in duration-200">
+        {/* Section 3: Life Skills Developed */}
+        <section id="section-skills" className="space-y-6 max-w-4xl pt-10 border-t border-slate-200 dark:border-slate-800 scroll-mt-36">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-purple-500/15 text-purple-600 dark:text-purple-400 flex items-center justify-center">
+              <Sparkles className="w-5 h-5" />
+            </div>
+            <div>
+              <h2 className="font-headline font-black text-xl sm:text-2xl text-slate-900 dark:text-white">
+                {t('marketplace.detail_skills_title')}
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Cognitive Growth & Moral Character Progression
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {product.skillsLearned.map((skill, idx) => (
               <div
                 key={idx}
@@ -542,215 +586,241 @@ export const MarketplaceProductDetailPage: React.FC<MarketplaceProductDetailPage
               </div>
             ))}
           </div>
-        )}
+        </section>
 
-        {/* Tab 4: Safety & Certifications */}
-        {activeInfoTab === 'safety' && (
-          <div className="space-y-4 max-w-4xl animate-in fade-in duration-200">
-            <div className="p-6 rounded-3xl bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800/60 mb-4">
-              <h4 className="font-headline font-bold text-base text-emerald-900 dark:text-emerald-200 flex items-center gap-2 mb-2">
-                <ShieldCheck className="w-5 h-5 text-emerald-600" />
-                <span>Certified Child Safety Standards</span>
-              </h4>
-              <p className="text-xs text-emerald-800 dark:text-emerald-300">
-                All physical learning kits undergo rigorous chemical, drop, and flammability testing before being approved for family and school use.
+        {/* Section 4: Official Child Safety & Materials Guarantee */}
+        <section id="section-safety" className="space-y-6 max-w-4xl pt-10 border-t border-slate-200 dark:border-slate-800 scroll-mt-36">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+              <ShieldCheck className="w-5 h-5" />
+            </div>
+            <div>
+              <h2 className="font-headline font-black text-xl sm:text-2xl text-slate-900 dark:text-white">
+                {t('marketplace.detail_safety_guarantee')}
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Certified Non-Toxic & Child-Safe Standards
+              </p>
+            </div>
+          </div>
+
+          <div className="p-6 rounded-3xl bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800/60 mb-4">
+            <h4 className="font-headline font-bold text-base text-emerald-900 dark:text-emerald-200 flex items-center gap-2 mb-2">
+              <ShieldCheck className="w-5 h-5 text-emerald-600" />
+              <span>Certified Child Safety Standards</span>
+            </h4>
+            <p className="text-xs text-emerald-800 dark:text-emerald-300">
+              All physical learning kits undergo rigorous chemical, drop, and flammability testing before being approved for family and school use.
+            </p>
+          </div>
+
+          <div className="space-y-3">
+            {product.safetyGuidelines.map((guide, idx) => (
+              <div
+                key={idx}
+                className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-start gap-3.5 text-xs text-slate-700 dark:text-slate-300"
+              >
+                <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                <span>{guide}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* Section 5: Parent & Educator Feedback */}
+        <section id="section-reviews" className="space-y-6 max-w-4xl pt-10 border-t border-slate-200 dark:border-slate-800 scroll-mt-36">
+          {/* Rating Summary Header */}
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-amber-500/15 text-amber-500 flex items-center justify-center">
+                <Star className="w-5 h-5 fill-amber-400 text-amber-400" />
+              </div>
+              <div>
+                <h2 className="font-headline font-black text-xl sm:text-2xl text-slate-900 dark:text-white">
+                  {t('marketplace.detail_feedback_title')}
+                </h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Verified Family & Educator Feedback
+                </p>
+              </div>
+            </div>
+
+            {!showReviewForm && (
+              <button
+                type="button"
+                onClick={() => setShowReviewForm(true)}
+                className="shrink-0 inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-[#016ba5] hover:bg-[#015786] text-white font-headline font-bold text-xs transition-all active:scale-95 cursor-pointer shadow-md"
+              >
+                <PenLine className="w-3.5 h-3.5" />
+                <span>Write a Review</span>
+              </button>
+            )}
+          </div>
+
+          {/* Rating Summary Card */}
+          <div className="p-6 rounded-3xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-start sm:items-center gap-6">
+            {/* Average Score */}
+            <div className="text-center shrink-0">
+              <div className="font-headline font-black text-5xl text-slate-900 dark:text-white leading-none">
+                {localReviews.length > 0
+                  ? (localReviews.reduce((s, r) => s + r.rating, 0) / localReviews.length).toFixed(1)
+                  : product.rating.toFixed(1)
+                }
+              </div>
+              <div className="flex items-center justify-center gap-0.5 my-1.5">
+                {[1,2,3,4,5].map((s) => (
+                  <Star
+                    key={s}
+                    className={cn(
+                      'w-4 h-4',
+                      s <= Math.round(localReviews.length > 0
+                        ? localReviews.reduce((sum, r) => sum + r.rating, 0) / localReviews.length
+                        : product.rating)
+                        ? 'fill-amber-400 text-amber-400'
+                        : 'text-slate-300 dark:text-slate-600'
+                    )}
+                  />
+                ))}
+              </div>
+              <p className="text-xs text-slate-500">
+                {localReviews.length || product.reviewsCount || 0} review{(localReviews.length || product.reviewsCount || 0) !== 1 ? 's' : ''}
               </p>
             </div>
 
-            <div className="space-y-3">
-              {product.safetyGuidelines.map((guide, idx) => (
+            {/* Rating Distribution Bars */}
+            <div className="flex-1 space-y-1.5 min-w-0">
+              {[5,4,3,2,1].map((star) => {
+                const count = localReviews.filter(r => r.rating === star).length;
+                const pct = localReviews.length > 0 ? (count / localReviews.length) * 100 : 0;
+                return (
+                  <div key={star} className="flex items-center gap-2">
+                    <span className="text-xs text-slate-500 w-4 shrink-0">{star}</span>
+                    <Star className="w-3 h-3 fill-amber-400 text-amber-400 shrink-0" />
+                    <div className="flex-1 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-amber-400 rounded-full transition-all duration-500"
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                    <span className="text-xs text-slate-400 w-4 shrink-0">{count}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Review Submission Form */}
+          {showReviewForm && (
+            <ProductReviewForm
+              productId={product.id}
+              productTitle={product.title}
+              onSubmitSuccess={(newReview) => {
+                setLocalReviews(prev => [newReview, ...prev]);
+                setShowReviewForm(false);
+              }}
+              onCancel={() => setShowReviewForm(false)}
+            />
+          )}
+
+          {/* Reviews List */}
+          {localReviews.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {localReviews.map((rev, idx) => (
                 <div
-                  key={idx}
-                  className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-start gap-3.5 text-xs text-slate-700 dark:text-slate-300"
+                  key={rev.id || idx}
+                  className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-3 shadow-sm"
                 >
-                  <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                  <span>{guide}</span>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      {/* Avatar */}
+                      {rev.avatar ? (
+                        <img src={rev.avatar} alt={rev.author} className="w-9 h-9 rounded-full object-cover border border-slate-200" />
+                      ) : (
+                        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#016ba5] to-[#fa8221] flex items-center justify-center text-white font-headline font-black text-sm shrink-0">
+                          {rev.author.charAt(0).toUpperCase()}
+                        </div>
+                      )}
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-bold text-sm text-slate-900 dark:text-white">{rev.author}</span>
+                          {rev.verifiedPurchase && (
+                            <span className="px-1.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 text-[9px] font-bold uppercase tracking-wide">✓ Verified</span>
+                          )}
+                        </div>
+                        {rev.role && <span className="text-xs text-slate-500 dark:text-slate-400">{rev.role}</span>}
+                      </div>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <div className="flex items-center gap-0.5 justify-end">
+                        {Array.from({ length: 5 }).map((_, i) => (
+                          <Star key={i} className={cn('w-3 h-3', i < rev.rating ? 'fill-amber-400 text-amber-400' : 'text-slate-300 dark:text-slate-600')} />
+                        ))}
+                      </div>
+                      {rev.date && <span className="text-[10px] text-slate-400 mt-0.5 block">{rev.date}</span>}
+                    </div>
+                  </div>
+
+                  <p className="text-xs text-slate-600 dark:text-slate-300 italic leading-relaxed">&ldquo;{rev.comment}&rdquo;</p>
+
+                  {/* Review Images */}
+                  {rev.images && rev.images.length > 0 && (
+                    <div className="flex items-center gap-2 flex-wrap pt-1">
+                      {rev.images.map((imgUrl, imgIdx) => (
+                        <button
+                          key={imgIdx}
+                          type="button"
+                          onClick={() => setSelectedReviewImage(imgUrl)}
+                          className="w-14 h-14 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 hover:scale-105 transition-transform cursor-pointer"
+                          aria-label={`View review photo ${imgIdx + 1}`}
+                        >
+                          <img src={imgUrl} alt="Review" className="w-full h-full object-cover" />
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
-          </div>
-        )}
-
-        {/* Tab 5: Parent & Educator Feedback */}
-        {activeInfoTab === 'reviews' && (
-          <div className="space-y-6 max-w-4xl animate-in fade-in duration-200">
-            {/* Rating Summary Header */}
-            <div className="p-6 rounded-3xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-start sm:items-center gap-6">
-              {/* Average Score */}
-              <div className="text-center shrink-0">
-                <div className="font-headline font-black text-5xl text-slate-900 dark:text-white leading-none">
-                  {localReviews.length > 0
-                    ? (localReviews.reduce((s, r) => s + r.rating, 0) / localReviews.length).toFixed(1)
-                    : product.rating.toFixed(1)
-                  }
-                </div>
-                <div className="flex items-center justify-center gap-0.5 my-1.5">
-                  {[1,2,3,4,5].map((s) => (
-                    <Star
-                      key={s}
-                      className={cn(
-                        'w-4 h-4',
-                        s <= Math.round(localReviews.length > 0
-                          ? localReviews.reduce((sum, r) => sum + r.rating, 0) / localReviews.length
-                          : product.rating)
-                          ? 'fill-amber-400 text-amber-400'
-                          : 'text-slate-300 dark:text-slate-600'
-                      )}
-                    />
-                  ))}
-                </div>
-                <p className="text-xs text-slate-500">
-                  {localReviews.length || product.reviewsCount || 0} review{(localReviews.length || product.reviewsCount || 0) !== 1 ? 's' : ''}
-                </p>
-              </div>
-
-              {/* Rating Distribution Bars */}
-              <div className="flex-1 space-y-1.5 min-w-0">
-                {[5,4,3,2,1].map((star) => {
-                  const count = localReviews.filter(r => r.rating === star).length;
-                  const pct = localReviews.length > 0 ? (count / localReviews.length) * 100 : 0;
-                  return (
-                    <div key={star} className="flex items-center gap-2">
-                      <span className="text-xs text-slate-500 w-4 shrink-0">{star}</span>
-                      <Star className="w-3 h-3 fill-amber-400 text-amber-400 shrink-0" />
-                      <div className="flex-1 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-amber-400 rounded-full transition-all duration-500"
-                          style={{ width: `${pct}%` }}
-                        />
-                      </div>
-                      <span className="text-xs text-slate-400 w-4 shrink-0">{count}</span>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Write Review Button */}
+          ) : (
+            <div className="text-center py-12 text-slate-500 dark:text-slate-400">
+              <MessageSquare className="w-10 h-10 mx-auto mb-3 opacity-30" />
+              <p className="font-headline font-bold text-sm">No reviews yet</p>
+              <p className="text-xs mt-1">Be the first to share your experience with this kit!</p>
               {!showReviewForm && (
                 <button
                   type="button"
                   onClick={() => setShowReviewForm(true)}
-                  className="shrink-0 inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-[#016ba5] hover:bg-[#015786] text-white font-headline font-bold text-xs transition-all active:scale-95 cursor-pointer shadow-md"
+                  className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-[#016ba5] hover:bg-[#015786] text-white font-headline font-bold text-xs transition-all active:scale-95 cursor-pointer"
                 >
                   <PenLine className="w-3.5 h-3.5" />
-                  Write a Review
+                  <span>Write the First Review</span>
                 </button>
               )}
             </div>
+          )}
 
-            {/* Review Submission Form */}
-            {showReviewForm && (
-              <ProductReviewForm
-                productId={product.id}
-                productTitle={product.title}
-                onSubmitSuccess={(newReview) => {
-                  setLocalReviews(prev => [newReview, ...prev]);
-                  setShowReviewForm(false);
-                }}
-                onCancel={() => setShowReviewForm(false)}
-              />
-            )}
-
-            {/* Reviews List */}
-            {localReviews.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {localReviews.map((rev, idx) => (
-                  <div
-                    key={rev.id || idx}
-                    className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-3 shadow-sm"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex items-center gap-3">
-                        {/* Avatar */}
-                        {rev.avatar ? (
-                          <img src={rev.avatar} alt={rev.author} className="w-9 h-9 rounded-full object-cover border border-slate-200" />
-                        ) : (
-                          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#016ba5] to-[#fa8221] flex items-center justify-center text-white font-headline font-black text-sm shrink-0">
-                            {rev.author.charAt(0).toUpperCase()}
-                          </div>
-                        )}
-                        <div>
-                          <div className="flex items-center gap-1.5">
-                            <span className="font-bold text-sm text-slate-900 dark:text-white">{rev.author}</span>
-                            {rev.verifiedPurchase && (
-                              <span className="px-1.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 text-[9px] font-bold uppercase tracking-wide">✓ Verified</span>
-                            )}
-                          </div>
-                          {rev.role && <span className="text-xs text-slate-500 dark:text-slate-400">{rev.role}</span>}
-                        </div>
-                      </div>
-                      <div className="shrink-0 text-right">
-                        <div className="flex items-center gap-0.5 justify-end">
-                          {Array.from({ length: 5 }).map((_, i) => (
-                            <Star key={i} className={cn('w-3 h-3', i < rev.rating ? 'fill-amber-400 text-amber-400' : 'text-slate-300 dark:text-slate-600')} />
-                          ))}
-                        </div>
-                        {rev.date && <span className="text-[10px] text-slate-400 mt-0.5 block">{rev.date}</span>}
-                      </div>
-                    </div>
-
-                    <p className="text-xs text-slate-600 dark:text-slate-300 italic leading-relaxed">&ldquo;{rev.comment}&rdquo;</p>
-
-                    {/* Review Images */}
-                    {rev.images && rev.images.length > 0 && (
-                      <div className="flex items-center gap-2 flex-wrap pt-1">
-                        {rev.images.map((imgUrl, imgIdx) => (
-                          <button
-                            key={imgIdx}
-                            type="button"
-                            onClick={() => setSelectedReviewImage(imgUrl)}
-                            className="w-14 h-14 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 hover:scale-105 transition-transform cursor-pointer"
-                            aria-label={`View review photo ${imgIdx + 1}`}
-                          >
-                            <img src={imgUrl} alt="Review" className="w-full h-full object-cover" />
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ))}
+          {/* Review Image Lightbox */}
+          {selectedReviewImage && (
+            <div
+              className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-sm"
+              onClick={() => setSelectedReviewImage(null)}
+            >
+              <div className="relative max-w-2xl max-h-[80vh] p-2">
+                <img src={selectedReviewImage} alt="Review" className="max-w-full max-h-[76vh] rounded-2xl object-contain" />
+                <button
+                  type="button"
+                  onClick={() => setSelectedReviewImage(null)}
+                  className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center cursor-pointer"
+                  aria-label="Close image preview"
+                >
+                  <X className="w-4 h-4" />
+                </button>
               </div>
-            ) : (
-              <div className="text-center py-12 text-slate-500 dark:text-slate-400">
-                <MessageSquare className="w-10 h-10 mx-auto mb-3 opacity-30" />
-                <p className="font-headline font-bold text-sm">No reviews yet</p>
-                <p className="text-xs mt-1">Be the first to share your experience with this kit!</p>
-                {!showReviewForm && (
-                  <button
-                    type="button"
-                    onClick={() => setShowReviewForm(true)}
-                    className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-[#016ba5] hover:bg-[#015786] text-white font-headline font-bold text-xs transition-all active:scale-95 cursor-pointer"
-                  >
-                    <PenLine className="w-3.5 h-3.5" />
-                    Write the First Review
-                  </button>
-                )}
-              </div>
-            )}
+            </div>
+          )}
+        </section>
 
-            {/* Review Image Lightbox */}
-            {selectedReviewImage && (
-              <div
-                className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-sm"
-                onClick={() => setSelectedReviewImage(null)}
-              >
-                <div className="relative max-w-2xl max-h-[80vh] p-2">
-                  <img src={selectedReviewImage} alt="Review" className="max-w-full max-h-[76vh] rounded-2xl object-contain" />
-                  <button
-                    type="button"
-                    onClick={() => setSelectedReviewImage(null)}
-                    className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center cursor-pointer"
-                    aria-label="Close image preview"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-      </section>
+      </div>
 
       {/* 4. "You May Also Like" Related Products Recommendation */}
       {relatedProducts.length > 0 && (

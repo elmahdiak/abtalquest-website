@@ -84,6 +84,7 @@ CREATE TABLE IF NOT EXISTS public.products (
   safety_guidelines TEXT[] DEFAULT '{}',
   skills_learned JSONB DEFAULT '[]'::jsonb,
   reviews JSONB DEFAULT '[]'::jsonb,
+  video_url TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -99,7 +100,7 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'products' AND column_name = 'sku') THEN
     ALTER TABLE public.products ADD COLUMN sku TEXT;
   END IF;
-  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'products' AND column_name = 'original_price') THEN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'original_price') THEN
     ALTER TABLE public.products ADD COLUMN original_price NUMERIC(10, 2);
   END IF;
   IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'products' AND column_name = 'discount_percent') THEN
@@ -125,6 +126,9 @@ BEGIN
   END IF;
   IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'products' AND column_name = 'variants') THEN
     ALTER TABLE public.products ADD COLUMN variants JSONB DEFAULT '[]'::jsonb;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'products' AND column_name = 'video_url') THEN
+    ALTER TABLE public.products ADD COLUMN video_url TEXT;
   END IF;
 END $$;
 

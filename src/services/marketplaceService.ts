@@ -113,6 +113,8 @@ export interface Product {
   image?: string;
   imageUrl?: string;
   image_url?: string;
+  videoUrl?: string;
+  video_url?: string;
   variants?: ProductVariant[];
   xpBonus: number;
   rating: number;
@@ -233,6 +235,75 @@ export const getProductDisplayImage = (product?: Partial<Product> | null): strin
     null;
 
   return resolveProductImageUrl(candidate);
+};
+
+/**
+ * Returns all valid, resolved image URLs for a product (up to 6 images)
+ * without duplicates, keeping the primary cover image first.
+ */
+export const resolveProductImages = (product?: Partial<Product> | null): string[] => {
+  if (!product) return [];
+  const list: string[] = [];
+
+  // 1. Collect all images in product.images array
+  if (Array.isArray(product.images)) {
+    for (const raw of product.images) {
+      const resolved = resolveProductImageUrl(raw);
+      if (resolved && !list.includes(resolved)) {
+        list.push(resolved);
+      }
+    }
+  }
+
+  // 2. Add primary display image at the start if not already included
+  const primary = getProductDisplayImage(product);
+  if (primary && !list.includes(primary)) {
+    list.unshift(primary);
+  }
+
+  return list.slice(0, 6);
+};
+
+/**
+ * Parses any YouTube URL, short URL, embed link, or <iframe> snippet
+ * and converts it into a clean, embeddable YouTube iframe player URL.
+ */
+export const getYouTubeEmbedUrl = (urlOrEmbed?: string | null): string | null => {
+  if (!urlOrEmbed || typeof urlOrEmbed !== 'string') return null;
+  const str = urlOrEmbed.trim();
+  if (!str) return null;
+
+  // Extract from <iframe> src attribute if full embed code is provided
+  if (str.includes('<iframe')) {
+    const srcMatch = str.match(/src=["']([^"']+)["']/i);
+    if (srcMatch && srcMatch[1]) {
+      return getYouTubeEmbedUrl(srcMatch[1]);
+    }
+  }
+
+  // If already a full embed URL, normalize
+  if (str.includes('youtube.com/embed/')) {
+    const embedMatch = str.match(/youtube\.com\/embed\/([\w-]{11})/i);
+    if (embedMatch && embedMatch[1]) {
+      return `https://www.youtube.com/embed/${embedMatch[1]}?autoplay=0&rel=0`;
+    }
+    return str;
+  }
+
+  // Standard YouTube Watch & Shorts and youtu.be short URLs
+  const regExp = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?(?:.*&)?v=|v\/|shorts\/)|youtu\.be\/)([\w-]{11})/i;
+  const match = str.match(regExp);
+
+  if (match && match[1]) {
+    return `https://www.youtube.com/embed/${match[1]}?autoplay=0&rel=0`;
+  }
+
+  // Raw 11-character video ID
+  if (/^[\w-]{11}$/.test(str)) {
+    return `https://www.youtube.com/embed/${str}?autoplay=0&rel=0`;
+  }
+
+  return null;
 };
 
 /**
@@ -734,6 +805,9 @@ interface SupabaseProductRow {
   images?: string[];
   image_url?: string;
   image?: string;
+  video_url?: string;
+  videoUrl?: string;
+  video?: string;
   variants?: ProductVariant[];
   xp_bonus: number;
   rating?: number;
@@ -771,6 +845,7 @@ const mapRowToProduct = (row: SupabaseProductRow): Product => {
   }
 
   const primaryImage = normalizedImages[0] || undefined;
+  const video = row.video_url || row.videoUrl || (row as any).video || undefined;
 
   return {
     id: row.id,
@@ -792,6 +867,9 @@ const mapRowToProduct = (row: SupabaseProductRow): Product => {
     images: normalizedImages,
     imageUrl: primaryImage,
     image: primaryImage,
+    image_url: primaryImage,
+    videoUrl: video,
+    video_url: video,
     variants: row.variants,
     xpBonus: Number(row.xp_bonus || 0),
     rating: Number(row.rating || 5.0),
@@ -1150,9 +1228,19 @@ export const createProduct = async (prod: Omit<Product, 'id'> & { id?: string })
     safety_guidelines: prod.safetyGuidelines || [],
     skills_learned: prod.skillsLearned || [],
     reviews: prod.reviews || [],
+    video_url: prod.videoUrl || (prod as any).video_url || null,
   };
 
-  const { data, error } = await supabase.from('products').insert(insertPayload).select().single();
+  let { data, error } = await supabase.from('products').insert(insertPayload).select().single();
+
+  // If video_url column is not yet in remote schema, retry without it
+  if (error && error.code === 'PGRST204' && String(error.message).includes('video_url')) {
+    const fallbackPayload = { ...insertPayload };
+    delete (fallbackPayload as any).video_url;
+    const retry = await supabase.from('products').insert(fallbackPayload).select().single();
+    data = retry.data;
+    error = retry.error;
+  }
 
   if (error) {
     console.error('[AbtalQuest Supabase] Create product failed:', error);
@@ -1240,8 +1328,20 @@ export const updateProduct = async (id: string, updates: Partial<Product>): Prom
   if (updates.safetyGuidelines !== undefined) payload.safety_guidelines = updates.safetyGuidelines;
   if (updates.skillsLearned !== undefined) payload.skills_learned = updates.skillsLearned;
   if (updates.reviews !== undefined) payload.reviews = updates.reviews;
+  if (updates.videoUrl !== undefined || (updates as any).video_url !== undefined) {
+    payload.video_url = updates.videoUrl || (updates as any).video_url || null;
+  }
 
-  const { data, error } = await supabase.from('products').update(payload).eq('id', id).select().single();
+  let { data, error } = await supabase.from('products').update(payload).eq('id', id).select().single();
+
+  // If video_url column is not yet in remote schema, retry without it
+  if (error && error.code === 'PGRST204' && String(error.message).includes('video_url')) {
+    const fallbackPayload = { ...payload };
+    delete fallbackPayload.video_url;
+    const retry = await supabase.from('products').update(fallbackPayload).eq('id', id).select().single();
+    data = retry.data;
+    error = retry.error;
+  }
 
   if (error) {
     console.error('[AbtalQuest Supabase] Update product failed:', error);
@@ -2140,6 +2240,7 @@ CREATE TABLE IF NOT EXISTS public.products (
   safety_guidelines TEXT[] DEFAULT '{}',
   skills_learned JSONB DEFAULT '[]'::jsonb,
   reviews JSONB DEFAULT '[]'::jsonb,
+  video_url TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -2177,6 +2278,9 @@ BEGIN
   END IF;
   IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'products' AND column_name = 'variants') THEN
     ALTER TABLE public.products ADD COLUMN variants JSONB DEFAULT '[]'::jsonb;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'products' AND column_name = 'video_url') THEN
+    ALTER TABLE public.products ADD COLUMN video_url TEXT;
   END IF;
 END $$;
 
