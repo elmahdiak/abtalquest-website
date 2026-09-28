@@ -95,6 +95,17 @@ export const fr = {
     point4_desc: 'Les luttes incessantes autour des appareils laissent les parents démunis, les enfants sous contrôle et la relation entre eux sous tension.',
     highlight_statement: '« Les enfants n’ont pas besoin de plus de contenus en concurrence pour leur attention. Ils ont besoin d’un chemin plus sûr menant de la technologie à une action constructive et pleine de sens. »',
   },
+  meet: {
+    eyebrow: 'DÉCOUVREZ ABTALQUEST',
+    headline: "Un système de développement comportemental où l'enfant devient le héros.",
+    subtitle: "AbtalQuest combine quêtes numériques immersives, missions dans le monde réel et accompagnement parental pour aider les enfants à développer une relation saine avec la technologie, des compétences de vie essentielles et des liens familiaux plus forts.",
+    card1_title: 'Aventure numérique',
+    card1_desc: 'Les enfants explorent des histoires passionnantes, des jeux captivants et des expériences enrichissantes.',
+    card2_title: 'Missions dans le monde réel',
+    card2_desc: 'Les expériences numériques débouchent sur des actions concrètes et stimulantes hors des écrans.',
+    card3_title: 'Liens familiaux renforcés',
+    card3_desc: 'Des quêtes partagées aident les enfants et les parents à mieux se comprendre, à dialoguer et à se rapprocher.',
+  },
   vision: {
     badge: 'Notre Charte Éducative',
     title: 'Transformer le Temps d\'Écran en Véritable Épanouissement',

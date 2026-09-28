@@ -95,6 +95,17 @@ export const en = {
     point4_desc: 'Repeated struggles over devices leave parents powerless, children controlled and the relationship between them strained.',
     highlight_statement: '“Children do not need more content competing for their attention. They need a safer path from technology to meaningful action.”',
   },
+  meet: {
+    eyebrow: 'MEET ABTALQUEST',
+    headline: 'A behavioral development system where the child becomes the hero.',
+    subtitle: 'AbtalQuest connects immersive digital quests, real-life missions and parent guidance to help children build healthier relationships with technology, essential life skills and stronger family connections.',
+    card1_title: 'Digital adventure',
+    card1_desc: 'Children explore engaging stories, games and experiences.',
+    card2_title: 'Real-world missions',
+    card2_desc: 'Digital experiences lead into meaningful actions outside the screen.',
+    card3_title: 'Stronger family bonds',
+    card3_desc: 'Shared quests help children and parents understand each other, connect and grow closer.',
+  },
   vision: {
     badge: 'Our Core Educational Creed',
     title: 'Transforming Screen Time into Meaningful Character Growth',
