@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import Layout from './components/layout/Layout';
 import Hero from './components/home/Hero';
+import FamilyProblemSection from './components/home/FamilyProblemSection';
 import HowItWorksJourney from './components/home/HowItWorksJourney';
 import OneContinuousWorld from './components/home/OneContinuousWorld';
 import ParentStoriesSection from './components/home/ParentStoriesSection';
@@ -267,7 +268,10 @@ export function App() {
             }}
           />
 
-          {/* 2. HOW IT WORKS 5-STEP JOURNEY */}
+          {/* 2. THE PROBLEM FAMILIES ARE FACING */}
+          <FamilyProblemSection />
+
+          {/* 3. HOW IT WORKS 5-STEP JOURNEY */}
           <HowItWorksJourney />
 
           {/* 3. ONE CONTINUOUS WORLD */}
