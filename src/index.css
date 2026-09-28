@@ -251,9 +251,38 @@
 
   /* Respect user accessibility motion preferences */
   @media (prefers-reduced-motion: reduce) {
-    .animate-marquee {
+    .animate-marquee,
+    .animate-float-slow,
+    .animate-float-alt {
       animation: none !important;
     }
+  }
+
+  /* Soft floating keyframes for badges and cards */
+  @keyframes floatSlow {
+    0%, 100% {
+      transform: translateY(0px);
+    }
+    50% {
+      transform: translateY(-8px);
+    }
+  }
+
+  .animate-float-slow {
+    animation: floatSlow 5s ease-in-out infinite;
+  }
+
+  @keyframes floatAlt {
+    0%, 100% {
+      transform: translateY(0px);
+    }
+    50% {
+      transform: translateY(7px);
+    }
+  }
+
+  .animate-float-alt {
+    animation: floatAlt 6s ease-in-out infinite;
   }
 }
 
