@@ -120,10 +120,22 @@ export function App() {
       } else if (
         hash === '#about' ||
         hash === '#about-us' ||
+        hash === '#team' ||
+        hash === '#team-profiles' ||
+        hash === '#hajar' ||
         hash === '#/about' ||
-        pathname === '/about'
+        pathname === '/about' ||
+        pathname === '/team'
       ) {
         setCurrentView('about');
+        if (hash === '#team' || hash === '#team-profiles' || hash === '#hajar') {
+          setTimeout(() => {
+            const teamEl = document.getElementById('team');
+            if (teamEl) {
+              teamEl.scrollIntoView({ behavior: 'smooth' });
+            }
+          }, 150);
+        }
       } else if (
         hash === '#parent-sellers' ||
         hash === '#parent-vendeurs' ||

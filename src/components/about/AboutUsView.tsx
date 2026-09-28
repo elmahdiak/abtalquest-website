@@ -8,6 +8,7 @@ import {
   ArrowLeft
 } from 'lucide-react';
 import CtaBannerSection from '../home/CtaBannerSection';
+import { TeamProfilesSection } from './TeamProfilesSection';
 import { useLanguage } from '../../context/LanguageContext';
 
 export interface AboutUsViewProps {
@@ -169,9 +170,9 @@ export const AboutUsView: React.FC<AboutUsViewProps> = ({
         </div>
       </section>
 
-      {/* 5. TEAM & PARTNERS */}
-      <section className="py-16 sm:py-20 bg-sky-50/50 dark:bg-[#0c2238]/40 border-t border-slate-100 dark:border-slate-800">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-left rtl:text-right">
+      {/* 5. TEAM & LEADERSHIP */}
+      <section id="team" className="py-16 sm:py-20 bg-sky-50/50 dark:bg-[#0c2238]/40 border-t border-slate-100 dark:border-slate-800 scroll-mt-20">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-left rtl:text-right">
           <div className="mb-10 sm:mb-12">
             <span className="font-headline text-xs sm:text-sm font-bold text-[#0284c7] uppercase tracking-wider block mb-2">
               {t('about_page.team_eyebrow')}
@@ -184,19 +185,14 @@ export const AboutUsView: React.FC<AboutUsViewProps> = ({
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-10">
-            {/* Team Profiles Placeholder */}
-            <div className="bg-white dark:bg-[#0c2238] rounded-2xl p-6 border border-slate-200/80 dark:border-slate-700/80 shadow-xs flex flex-col justify-center min-h-[140px]">
-              <span className="font-headline text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-200 block mb-1">
-                {t('about_page.team_profiles')}
-              </span>
-              <span className="font-body text-sm text-slate-400">
-                {t('about_page.coming_soon')}
-              </span>
-            </div>
+          {/* Featured Leadership Profile (Hajar Ouzif) */}
+          <div className="mb-10">
+            <TeamProfilesSection />
+          </div>
 
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-10">
             {/* Expert Advisors Placeholder */}
-            <div className="bg-white dark:bg-[#0c2238] rounded-2xl p-6 border border-slate-200/80 dark:border-slate-700/80 shadow-xs flex flex-col justify-center min-h-[140px]">
+            <div className="bg-white dark:bg-[#0c2238] rounded-2xl p-6 border border-slate-200/80 dark:border-slate-700/80 shadow-xs flex flex-col justify-center min-h-[120px]">
               <span className="font-headline text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-200 block mb-1">
                 {t('about_page.expert_advisors')}
               </span>
@@ -206,7 +202,7 @@ export const AboutUsView: React.FC<AboutUsViewProps> = ({
             </div>
 
             {/* Partners Placeholder */}
-            <div className="bg-white dark:bg-[#0c2238] rounded-2xl p-6 border border-slate-200/80 dark:border-slate-700/80 shadow-xs flex flex-col justify-center min-h-[140px]">
+            <div className="bg-white dark:bg-[#0c2238] rounded-2xl p-6 border border-slate-200/80 dark:border-slate-700/80 shadow-xs flex flex-col justify-center min-h-[120px]">
               <span className="font-headline text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-200 block mb-1">
                 {t('about_page.partners')}
               </span>

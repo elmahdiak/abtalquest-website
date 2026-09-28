@@ -110,6 +110,15 @@ export const Footer: React.FC<FooterProps> = ({ onOpenContact, onNavigate }) => 
                 </a>
               </li>
               <li>
+                <a
+                  href="#team"
+                  onClick={handleNav('about', '#team')}
+                  className="hover:text-[#016ba5] dark:hover:text-[#38bdf8] transition-colors"
+                >
+                  {t('footer.link_team')}
+                </a>
+              </li>
+              <li>
                 <button
                   type="button"
                   onClick={onOpenContact}
