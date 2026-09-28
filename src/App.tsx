@@ -275,8 +275,8 @@ export function App() {
           {/* 3. MEET ABTALQUEST */}
           <MeetAbtalQuestSection />
 
-          {/* 4. HOW IT WORKS 5-STEP JOURNEY */}
-          <HowItWorksJourney />
+          {/* 4. HOW IT WORKS 6-STEP JOURNEY */}
+          <HowItWorksJourney onExploreClick={() => setWaitlistModalOpen(true)} />
 
           {/* 3. ONE CONTINUOUS WORLD */}
           <OneContinuousWorld onJoinQuestClick={() => setWaitlistModalOpen(true)} />

@@ -1,12 +1,20 @@
 import React from 'react';
 import { 
   Compass, 
-  BookOpen, 
+  Map, 
+  Footprints, 
+  Network, 
   Sprout, 
-  Star, 
-  RotateCw 
+  RefreshCw, 
+  ArrowRight,
+  Sparkles
 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
+
+export interface HowItWorksJourneyProps {
+  onExploreClick?: () => void;
+  className?: string;
+}
 
 export interface StepItem {
   number: string;
@@ -15,7 +23,10 @@ export interface StepItem {
   icon: React.ReactNode;
 }
 
-export const HowItWorksJourney: React.FC = () => {
+export const HowItWorksJourney: React.FC<HowItWorksJourneyProps> = ({ 
+  onExploreClick,
+  className = '' 
+}) => {
   const { t } = useLanguage();
 
   const steps: StepItem[] = [
@@ -23,91 +34,132 @@ export const HowItWorksJourney: React.FC = () => {
       number: '01',
       title: t('how_it_works.step1_title'),
       description: t('how_it_works.step1_desc'),
-      icon: <Compass className="w-6 h-6 text-[#0284c7]" />,
+      icon: <Compass className="w-6 h-6" />,
     },
     {
       number: '02',
       title: t('how_it_works.step2_title'),
       description: t('how_it_works.step2_desc'),
-      icon: <BookOpen className="w-6 h-6 text-[#0284c7]" />,
+      icon: <Map className="w-6 h-6" />,
     },
     {
       number: '03',
       title: t('how_it_works.step3_title'),
       description: t('how_it_works.step3_desc'),
-      icon: <Sprout className="w-6 h-6 text-[#0284c7]" />,
+      icon: <Footprints className="w-6 h-6" />,
     },
     {
       number: '04',
       title: t('how_it_works.step4_title'),
       description: t('how_it_works.step4_desc'),
-      icon: <Star className="w-6 h-6 text-[#0284c7]" />,
+      icon: <Network className="w-6 h-6" />,
     },
     {
       number: '05',
       title: t('how_it_works.step5_title'),
       description: t('how_it_works.step5_desc'),
-      icon: <RotateCw className="w-6 h-6 text-[#0284c7]" />,
+      icon: <Sprout className="w-6 h-6" />,
+    },
+    {
+      number: '06',
+      title: t('how_it_works.step6_title'),
+      description: t('how_it_works.step6_desc'),
+      icon: <RefreshCw className="w-6 h-6" />,
     },
   ];
 
-  return (
-    <section id="how-it-works" className="py-20 sm:py-28 bg-white dark:bg-[#071727] relative overflow-hidden border-b border-slate-100 dark:border-slate-800">
-      {/* Background ambient lighting */}
-      <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-full max-w-6xl h-96 bg-gradient-to-b from-[#EBF5FB]/70 via-transparent to-transparent pointer-events-none -z-10" />
+  const handleExplore = () => {
+    if (onExploreClick) {
+      onExploreClick();
+    } else {
+      const el = document.getElementById('continuous-world');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+  };
 
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+  return (
+    <section 
+      id="how-it-works" 
+      className={`py-20 sm:py-28 bg-white dark:bg-[#071727] relative overflow-hidden border-b border-slate-100 dark:border-slate-800 ${className}`}
+    >
+      {/* Background ambient lighting */}
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-full max-w-6xl h-96 bg-gradient-to-b from-[#EBF5FB]/70 via-transparent to-transparent pointer-events-none -z-10" />
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Section Header */}
-        <div className="text-center max-w-2xl mx-auto mb-16 sm:mb-20">
-          <span className="font-headline text-xs sm:text-sm font-bold text-[#0284c7] uppercase tracking-wider block mb-3">
-            {t('how_it_works.eyebrow')}
-          </span>
+        <div className="text-center max-w-3xl mx-auto mb-16 sm:mb-20">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-sky-50 dark:bg-sky-950/70 border border-sky-200/80 dark:border-sky-800/80 shadow-2xs text-xs font-headline font-black text-[#016ba5] dark:text-[#38bdf8] uppercase tracking-widest mb-4">
+            <Sparkles className="w-3.5 h-3.5 text-[#016ba5] dark:text-[#38bdf8] shrink-0" />
+            <span>{t('how_it_works.eyebrow')}</span>
+          </div>
+
           <h2 className="font-headline text-3xl sm:text-4xl lg:text-5xl font-black text-[#0F2A4A] dark:text-white tracking-tight leading-tight mb-4">
             {t('how_it_works.title')}
           </h2>
-          <p className="font-body text-base text-[#475569] dark:text-slate-300 leading-relaxed font-normal">
+
+          <p className="font-body text-base sm:text-lg text-[#475569] dark:text-slate-300 leading-relaxed font-normal max-w-2xl mx-auto">
             {t('how_it_works.subtitle')}
           </p>
         </div>
 
-        {/* 5-Step Connected Timeline */}
-        <div className="relative">
+        {/* 6-Step Horizontal Process Flow */}
+        <div className="relative mb-16 sm:mb-20">
           
-          {/* Subtle vertical connecting line */}
-          <div className="hidden md:block absolute left-[54px] rtl:left-auto rtl:right-[54px] top-8 bottom-12 w-0.5 bg-gradient-to-b from-sky-200 via-sky-300 to-sky-100 dark:from-sky-900 dark:via-sky-800 dark:to-transparent" />
+          {/* Horizontal connecting dashed line spanning across steps on desktop */}
+          <div className="hidden lg:block absolute top-[52px] left-[7%] right-[7%] h-0.5 border-t-2 border-dashed border-sky-300/80 dark:border-sky-800/80 z-0 pointer-events-none" />
 
-          <div className="space-y-8 sm:space-y-10">
-            {steps.map((step) => (
+          {/* Steps Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-6 sm:gap-6 lg:gap-4 relative z-10">
+            {steps.map((step, idx) => (
               <div 
                 key={step.number}
-                className="group relative flex flex-col md:flex-row items-start gap-4 sm:gap-6 bg-slate-50/60 dark:bg-[#0c2238]/60 hover:bg-white dark:hover:bg-[#0c2238] p-6 sm:p-7 rounded-3xl border border-slate-100 dark:border-slate-700/60 hover:border-sky-200 dark:hover:border-sky-700 hover:shadow-card-soft transition-all duration-300"
+                className="group relative flex flex-col items-center text-center bg-slate-50/70 dark:bg-[#0c2238]/60 hover:bg-white dark:hover:bg-[#0c2238] p-5 sm:p-6 rounded-3xl border border-slate-100 dark:border-slate-800 hover:border-sky-200 dark:hover:border-sky-700 hover:shadow-card-soft transition-all duration-300 select-none"
               >
                 {/* Step Number in Orange Accent */}
-                <div className="flex items-center gap-3 md:flex-col md:items-center md:justify-center shrink-0">
-                  <span className="font-headline font-black text-xl sm:text-2xl text-[#fa8221] tracking-tight">
-                    {step.number}
-                  </span>
+                <span className="font-headline font-black text-xs sm:text-sm text-[#fa8221] tracking-wider mb-3">
+                  {step.number}
+                </span>
 
-                  {/* Circular Icon in soft sky circle */}
-                  <div className="w-13 h-13 sm:w-14 sm:h-14 rounded-full bg-sky-100 dark:bg-sky-950/80 border border-sky-200/80 dark:border-sky-800 flex items-center justify-center shadow-xs group-hover:scale-105 group-hover:bg-sky-200/70 transition-all duration-300">
-                    {step.icon}
+                {/* Circular / Rounded Icon Node */}
+                <div className="w-14 h-14 rounded-2xl bg-white dark:bg-slate-900 border-2 border-sky-200 dark:border-sky-800 flex items-center justify-center text-[#016ba5] dark:text-[#38bdf8] shadow-xs group-hover:scale-110 group-hover:border-[#fa8221] group-hover:text-[#fa8221] transition-all duration-300 mb-4 shrink-0">
+                  {step.icon}
+                </div>
+
+                {/* Step Title */}
+                <h3 className="font-headline text-lg sm:text-xl font-black text-[#0F2A4A] dark:text-white tracking-tight mb-2 group-hover:text-[#016ba5] dark:group-hover:text-[#38bdf8] transition-colors leading-snug">
+                  {step.title}
+                </h3>
+
+                {/* Step Description */}
+                <p className="font-body text-xs sm:text-sm text-[#475569] dark:text-slate-300 leading-relaxed font-normal">
+                  {step.description}
+                </p>
+
+                {/* Arrow connector for mobile / tablet */}
+                {idx < steps.length - 1 && (
+                  <div className="block lg:hidden mt-4 text-sky-400 dark:text-sky-600">
+                    <ArrowRight className="w-4 h-4 mx-auto rotate-90 sm:rotate-0 rtl:sm:rotate-180" />
                   </div>
-                </div>
-
-                {/* Step Content */}
-                <div className="flex-1 pt-1 text-left rtl:text-right">
-                  <h3 className="font-headline text-2xl font-black text-[#0F2A4A] dark:text-white tracking-tight mb-2 group-hover:text-[#016ba5] dark:group-hover:text-[#38bdf8] transition-colors">
-                    {step.title}
-                  </h3>
-                  <p className="font-body text-base text-[#475569] dark:text-slate-300 leading-relaxed font-normal max-w-2xl">
-                    {step.description}
-                  </p>
-                </div>
+                )}
               </div>
             ))}
           </div>
 
+        </div>
+
+        {/* Bottom Prominent Blue Call-to-Action Button */}
+        <div className="text-center flex justify-center">
+          <button
+            type="button"
+            onClick={handleExplore}
+            className="inline-flex items-center justify-center gap-2.5 px-8 py-4 rounded-full bg-[#016ba5] hover:bg-[#015786] active:bg-[#00466c] text-white font-headline font-bold text-sm sm:text-base tracking-wide shadow-[0_8px_25px_rgba(1,107,165,0.35)] hover:shadow-[0_10px_30px_rgba(1,107,165,0.45)] transform hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 cursor-pointer group"
+          >
+            <span>{t('how_it_works.cta_explore')}</span>
+            <ArrowRight className="w-4 h-4 rtl-flip transition-transform duration-200 group-hover:translate-x-1 rtl:group-hover:-translate-x-1" />
+          </button>
         </div>
 
       </div>
