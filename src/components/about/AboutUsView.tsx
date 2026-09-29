@@ -173,7 +173,7 @@ export const AboutUsView: React.FC<AboutUsViewProps> = ({
 
       {/* 5. TEAM & LEADERSHIP */}
       <section id="team" className="py-16 sm:py-20 bg-sky-50/50 dark:bg-[#0c2238]/40 border-t border-slate-100 dark:border-slate-800 scroll-mt-20">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-left rtl:text-right">
+        <div className="max-w-6xl xl:max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-left rtl:text-right">
           <div className="mb-10 sm:mb-12">
             <span className="font-headline text-xs sm:text-sm font-bold text-[#0284c7] uppercase tracking-wider block mb-2">
               {t('about_page.team_eyebrow')}
