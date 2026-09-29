@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import CtaBannerSection from '../home/CtaBannerSection';
 import { TeamProfilesSection } from './TeamProfilesSection';
+import { PartnersEcosystemSection } from '../common/PartnersEcosystemSection';
 import { useLanguage } from '../../context/LanguageContext';
 
 export interface AboutUsViewProps {
@@ -201,15 +202,25 @@ export const AboutUsView: React.FC<AboutUsViewProps> = ({
               </span>
             </div>
 
-            {/* Partners Placeholder */}
-            <div className="bg-white dark:bg-[#0c2238] rounded-2xl p-6 border border-slate-200/80 dark:border-slate-700/80 shadow-xs flex flex-col justify-center min-h-[120px]">
-              <span className="font-headline text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-200 block mb-1">
-                {t('about_page.partners')}
+            {/* Institutional Ecosystem Link Card */}
+            <a
+              href="#partners"
+              onClick={(e) => {
+                e.preventDefault();
+                document.getElementById('partners')?.scrollIntoView({ behavior: 'smooth' });
+              }}
+              className="bg-white dark:bg-[#0c2238] rounded-2xl p-6 border border-slate-200/80 dark:border-slate-700/80 shadow-xs hover:border-[#fa8221]/50 hover:shadow-sm transition-all duration-200 flex flex-col justify-center min-h-[120px] group cursor-pointer"
+            >
+              <div className="flex items-center justify-between">
+                <span className="font-headline text-xs font-bold uppercase tracking-wider text-[#fa8221] dark:text-[#ff983d] block mb-1">
+                  {t('partners_ecosystem.eyebrow')}
+                </span>
+                <ArrowRight className="w-4 h-4 text-[#fa8221] rtl-flip group-hover:translate-x-1 transition-transform" />
+              </div>
+              <span className="font-body text-sm text-slate-600 dark:text-slate-300 font-medium">
+                {t('partners_ecosystem.col_supported')}, {t('partners_ecosystem.col_backed')} &amp; {t('partners_ecosystem.col_recognized')}
               </span>
-              <span className="font-body text-sm text-slate-400">
-                {t('about_page.coming_soon')}
-              </span>
-            </div>
+            </a>
           </div>
 
           {/* Contact Button */}
@@ -227,7 +238,10 @@ export const AboutUsView: React.FC<AboutUsViewProps> = ({
         </div>
       </section>
 
-      {/* 6. BOTTOM CTA BANNER */}
+      {/* 6. PARTNERS, BACKERS & RECOGNITION SECTION */}
+      <PartnersEcosystemSection id="partners" />
+
+      {/* 7. BOTTOM CTA BANNER */}
       <CtaBannerSection onDownloadClick={onOpenWaitlist} />
 
     </div>

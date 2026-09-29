@@ -19,6 +19,7 @@ import WatchDemoModal from './components/common/WatchDemoModal';
 import WaitlistModal from './components/common/WaitlistModal';
 import FloatingCartButton from './components/common/FloatingCartButton';
 import ParentVendorsPage from './components/vendors/ParentVendorsPage';
+import PartnersEcosystemSection from './components/common/PartnersEcosystemSection';
 import { SafetyStandardsView, type SafetyStandardTab } from './components/compliance/SafetyStandardsView';
 import { subscribeToAuthChanges, signOutUser } from './services/authService';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
@@ -160,6 +161,26 @@ export function App() {
             }
           }, 150);
         }
+      } else if (
+        hash === '#partners' ||
+        hash === '#partners-ecosystem' ||
+        hash === '#backed-by' ||
+        hash === '#supported-by' ||
+        hash === '#recognized-by' ||
+        hash === '#ecosystem'
+      ) {
+        // Scroll to partners on current page or navigate to about page
+        setTimeout(() => {
+          const el = document.getElementById('partners') || document.getElementById('partners-ecosystem');
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth' });
+          } else {
+            setCurrentView('about');
+            setTimeout(() => {
+              document.getElementById('partners')?.scrollIntoView({ behavior: 'smooth' });
+            }, 100);
+          }
+        }, 100);
       } else if (
         hash === '#parent-sellers' ||
         hash === '#parent-vendeurs' ||
@@ -314,10 +335,13 @@ export function App() {
           {/* 4. HOW IT WORKS 6-STEP JOURNEY */}
           <HowItWorksJourney onExploreClick={() => setWaitlistModalOpen(true)} />
 
-          {/* 3. ONE CONTINUOUS WORLD */}
+          {/* 5. ONE CONTINUOUS WORLD */}
           <OneContinuousWorld onJoinQuestClick={() => setWaitlistModalOpen(true)} />
 
-          {/* 4. PARENT STORIES */}
+          {/* 6. PARTNERS, BACKERS & RECOGNITION */}
+          <PartnersEcosystemSection id="partners-ecosystem" />
+
+          {/* 7. PARENT STORIES */}
           <ParentStoriesSection />
 
           {/* 5. COMMON QUESTIONS ACCORDIONS */}
