@@ -124,6 +124,12 @@ export const en = {
     khalil_badge: 'CO-FOUNDER & PRODUCT LEADERSHIP',
     khalil_photo_badge: 'AbtalQuest Product Leadership',
     khalil_bio: 'Khalil Dadsi is the Co-Founder and Chief Product Officer of AbtalQuest, bringing expertise as a Certified Public Speaker, Business Analyst, and Product Lead. Combining a unique background in English Studies with deep expertise in product strategy, product development, and game design, he leads the platform’s vision by crafting engaging, user-centered experiences that seamlessly blend learning with gamification. Driven by a passion for innovation and leadership, Khalil is dedicated to building scalable EdTech solutions that create meaningful impact in young people\'s lives.',
+    elmahdi_name: 'ElMahdi Akarkaou',
+    elmahdi_role: 'Co-Founder & Chief Marketing Officer (CMO)',
+    elmahdi_tag: 'Brand Strategy & Growth Architecture',
+    elmahdi_badge: 'CO-FOUNDER & GROWTH LEADERSHIP',
+    elmahdi_photo_badge: 'AbtalQuest Growth Leadership',
+    elmahdi_bio: 'ElMahdi Akarkaou is the Co-Founder and Chief Marketing Officer of AbtalQuest, leading brand strategy, growth marketing, and product positioning from concept to launch. With extensive experience in content strategy, social media growth, and pre-launch audience building, he focuses on creating a strong market presence and enduring traction. Passionate about entrepreneurship, EdTech innovation, and community engagement, ElMahdi is dedicated to building impactful, scalable brands that resonate deeply with families.',
   },
   vision: {
     badge: 'Our Core Educational Creed',

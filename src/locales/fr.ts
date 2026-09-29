@@ -124,6 +124,12 @@ export const fr = {
     khalil_badge: 'CO-FONDATEUR & LEADERSHIP PRODUIT',
     khalil_photo_badge: 'Direction Produit AbtalQuest',
     khalil_bio: "Khalil Dadsi est le Co-Fondateur et Directeur Produit (CPO) d'AbtalQuest, fort d'une solide expertise en tant que conférencier certifié, analyste d'affaires et responsable produit. Alliant un parcours enrichissant en études anglophones à une maîtrise approfondie de la stratégie produit, du développement agile et du game design, il pilote la vision de la plateforme en créant des expériences captivantes et centrées sur l'utilisateur, fusionnant harmonieusement apprentissage et gamification. Porté par une passion vive pour l'innovation et le leadership, Khalil se consacre à bâtir des solutions EdTech évolutives générant un impact significatif et durable dans la vie des jeunes générations.",
+    elmahdi_name: 'ElMahdi Akarkaou',
+    elmahdi_role: 'Co-Fondateur & Directeur Marketing (CMO)',
+    elmahdi_tag: 'Stratégie de Marque & Architecture de Croissance',
+    elmahdi_badge: 'CO-FONDATEUR & LEADERSHIP CROISSANCE',
+    elmahdi_photo_badge: 'Direction Croissance AbtalQuest',
+    elmahdi_bio: "ElMahdi Akarkaou est le Co-Fondateur et Directeur Marketing (CMO) d'AbtalQuest, pilotant la stratégie de marque, le marketing de croissance et le positionnement du produit du concept jusqu'au lancement. Fort d'une solide expérience en stratégie de contenu, acquisition d'audience et dynamisation des réseaux sociaux, il s'attache à forger une présence sur le marché remarquable et un impact durable. Passionné d'entrepreneuriat, d'innovation EdTech et d'engagement communautaire, ElMahdi se consacre à bâtir des marques évolutives et fédératrices qui résonnent profondément auprès des familles.",
   },
   vision: {
     badge: 'Notre Charte Éducative',

@@ -126,14 +126,34 @@ export function App() {
         hash === '#khalil' ||
         hash === '#team-khalil' ||
         hash === '#dadsi' ||
+        hash === '#elmahdi' ||
+        hash === '#team-elmahdi' ||
+        hash === '#akarkaou' ||
         hash === '#/about' ||
         pathname === '/about' ||
         pathname === '/team'
       ) {
         setCurrentView('about');
-        if (hash === '#team' || hash === '#team-profiles' || hash === '#hajar' || hash === '#khalil' || hash === '#team-khalil' || hash === '#dadsi') {
+        if (
+          hash === '#team' || 
+          hash === '#team-profiles' || 
+          hash === '#hajar' || 
+          hash === '#khalil' || 
+          hash === '#team-khalil' || 
+          hash === '#dadsi' ||
+          hash === '#elmahdi' ||
+          hash === '#team-elmahdi' ||
+          hash === '#akarkaou'
+        ) {
           setTimeout(() => {
-            const targetId = (hash === '#khalil' || hash === '#team-khalil' || hash === '#dadsi') ? 'team-khalil' : 'team';
+            let targetId = 'team';
+            if (hash === '#khalil' || hash === '#team-khalil' || hash === '#dadsi') {
+              targetId = 'team-khalil';
+            } else if (hash === '#elmahdi' || hash === '#team-elmahdi' || hash === '#akarkaou') {
+              targetId = 'team-elmahdi';
+            } else if (hash === '#hajar') {
+              targetId = 'team-hajar';
+            }
             const targetEl = document.getElementById(targetId) || document.getElementById('team');
             if (targetEl) {
               targetEl.scrollIntoView({ behavior: 'smooth' });
