@@ -639,6 +639,12 @@ export const fr = {
     step6_title: 'Progresser',
     step6_desc: 'Le parcours évolue au fur et à mesure que l’enfant grandit et découvre davantage.',
     cta_explore: 'DÉCOUVRIR LE FONCTIONNEMENT',
+    step_label: 'Étape',
+    step_of: 'sur 6',
+    pause_auto: 'Mettre en pause le défilement',
+    play_auto: 'Reprendre le défilement',
+    scroll_prev: 'Étape précédente',
+    scroll_next: 'Étape suivante',
   },
   continuous_world: {
     eyebrow: 'UN MONDE CONTINU',

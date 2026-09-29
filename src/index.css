@@ -231,10 +231,24 @@
     }
   }
 
+  @keyframes marqueeScrollRtl {
+    0% {
+      transform: translateX(0%);
+    }
+    100% {
+      transform: translateX(100%);
+    }
+  }
+
   .animate-marquee {
     display: flex;
     animation: marqueeScroll 45s linear infinite;
     will-change: transform;
+  }
+
+  /* Support for Right-To-Left (Arabic) flow */
+  [dir="rtl"] .animate-marquee {
+    animation-name: marqueeScrollRtl;
   }
 
   /* Smooth pause on hover across container & individual tracks */
@@ -242,11 +256,6 @@
   .animate-marquee:hover,
   .animate-marquee-paused {
     animation-play-state: paused !important;
-  }
-
-  /* Support for Right-To-Left (Arabic) flow */
-  [dir="rtl"] .animate-marquee {
-    animation-direction: reverse;
   }
 
   /* Respect user accessibility motion preferences */

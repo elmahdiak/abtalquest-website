@@ -631,6 +631,12 @@ export const ar = {
     step6_title: 'تقدّم مستمر',
     step6_desc: 'تتطور الرحلة وتتسع مع نمو الطفل واكتشافه لمزيد من الآفاق.',
     cta_explore: 'اكتشف كيف يعمل',
+    step_label: 'المرحلة',
+    step_of: 'من 6',
+    pause_auto: 'إيقاف التمرير التلقائي مؤقتاً',
+    play_auto: 'تشغيل التمرير التلقائي',
+    scroll_prev: 'المرحلة السابقة',
+    scroll_next: 'المرحلة التالية',
   },
   continuous_world: {
     eyebrow: 'عالم متصل ومستمر',

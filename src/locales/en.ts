@@ -639,6 +639,12 @@ export const en = {
     step6_title: 'Progress',
     step6_desc: 'The journey evolves as the child grows and discovers more.',
     cta_explore: 'EXPLORE HOW IT WORKS',
+    step_label: 'Step',
+    step_of: 'of 6',
+    pause_auto: 'Pause auto-scroll',
+    play_auto: 'Resume auto-scroll',
+    scroll_prev: 'Previous step',
+    scroll_next: 'Next step',
   },
   continuous_world: {
     eyebrow: 'ONE CONTINUOUS WORLD',

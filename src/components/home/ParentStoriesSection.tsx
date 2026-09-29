@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Star, Sparkles, Pause, Play } from 'lucide-react';
+import React from 'react';
+import { Star, Sparkles } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 
 export interface ParentStory {
@@ -111,7 +111,6 @@ export const ParentStoriesSection: React.FC<ParentStoriesSectionProps> = ({
   stories = DEFAULT_PARENT_STORIES,
 }) => {
   const { t } = useLanguage();
-  const [isPaused, setIsPaused] = useState(false);
 
   return (
     <section 
@@ -124,46 +123,17 @@ export const ParentStoriesSection: React.FC<ParentStoriesSectionProps> = ({
 
       {/* Section Header */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-10 sm:mb-14 relative z-10">
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-          <div className="max-w-2xl text-left rtl:text-right">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#EBF5FB] dark:bg-[#016ba5]/20 border border-[#016ba5]/30 text-[#016ba5] dark:text-[#38BDF8] font-headline text-xs font-bold uppercase tracking-wider mb-3">
-              <Sparkles className="w-3.5 h-3.5 text-[#fa8221]" />
-              <span>{t('parent_stories.eyebrow')}</span>
-            </div>
-            <h2 className="font-headline text-3xl sm:text-4xl lg:text-5xl font-black text-[#0F2A4A] dark:text-white tracking-tight mb-4">
-              {t('parent_stories.title')}
-            </h2>
-            <p className="font-body text-base text-slate-600 dark:text-slate-300 leading-relaxed font-normal">
-              {t('parent_stories.subtitle')}
-            </p>
+        <div className="text-center max-w-3xl mx-auto">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#EBF5FB] dark:bg-[#016ba5]/20 border border-[#016ba5]/30 text-[#016ba5] dark:text-[#38BDF8] font-headline text-xs font-bold uppercase tracking-wider mb-3.5 shadow-2xs">
+            <Sparkles className="w-3.5 h-3.5 text-[#fa8221]" />
+            <span>{t('parent_stories.eyebrow')}</span>
           </div>
-
-          {/* Marquee Controls & Accessibility Status */}
-          <div className="flex items-center gap-3 shrink-0">
-            <div className="hidden sm:flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white dark:bg-[#0A1C36] border border-slate-200/80 dark:border-[#1E3A60] text-xs font-body text-slate-500 dark:text-slate-400 shadow-xs">
-              <span className="w-2 h-2 rounded-full bg-[#22C55E] animate-pulse" />
-              <span>{t('parent_stories.hover_to_pause')}</span>
-            </div>
-            <button
-              type="button"
-              onClick={() => setIsPaused((prev) => !prev)}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-headline font-bold bg-white dark:bg-[#0A1C36] hover:bg-slate-50 dark:hover:bg-[#0E2548] text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-[#1E3A60] shadow-xs transition-colors cursor-pointer"
-              aria-label={isPaused ? t('parent_stories.resume_scroll') : t('parent_stories.pause_scroll')}
-              title={isPaused ? t('parent_stories.resume_scroll') : t('parent_stories.pause_scroll')}
-            >
-              {isPaused ? (
-                <>
-                  <Play className="w-3.5 h-3.5 text-[#fa8221] fill-[#fa8221]" />
-                  <span>{t('parent_stories.resume_scroll')}</span>
-                </>
-              ) : (
-                <>
-                  <Pause className="w-3.5 h-3.5 text-[#016ba5] dark:text-[#38BDF8]" />
-                  <span>{t('parent_stories.pause_scroll')}</span>
-                </>
-              )}
-            </button>
-          </div>
+          <h2 className="font-headline text-3xl sm:text-4xl lg:text-5xl font-black text-[#0F2A4A] dark:text-white tracking-tight mb-4 leading-tight">
+            {t('parent_stories.title')}
+          </h2>
+          <p className="font-body text-base sm:text-lg text-slate-600 dark:text-slate-300 leading-relaxed font-normal">
+            {t('parent_stories.subtitle')}
+          </p>
         </div>
       </div>
 
@@ -178,23 +148,15 @@ export const ParentStoriesSection: React.FC<ParentStoriesSectionProps> = ({
         {/* Marquee Track (Double clone for continuous infinite loop) */}
         <div className="flex w-max select-none py-2">
           {/* Primary Track Set */}
-          <div 
-            className={`flex shrink-0 items-stretch gap-6 pr-6 animate-marquee group-hover:[animation-play-state:paused] group-focus-within:[animation-play-state:paused] ${
-              isPaused ? 'animate-marquee-paused' : ''
-            }`}
-            style={isPaused ? { animationPlayState: 'paused' } : undefined}
-          >
+          <div className="flex shrink-0 items-stretch gap-6 pe-6 animate-marquee group-hover:[animation-play-state:paused] group-focus-within:[animation-play-state:paused]">
             {stories.map((story) => (
               <StoryCard key={`primary-${story.id}`} story={story} />
             ))}
           </div>
 
-          {/* Duplicate Track Set (Exact replica for seamless right-to-left loop) */}
+          {/* Duplicate Track Set (Exact replica for seamless infinite loop) */}
           <div 
-            className={`flex shrink-0 items-stretch gap-6 pr-6 animate-marquee group-hover:[animation-play-state:paused] group-focus-within:[animation-play-state:paused] ${
-              isPaused ? 'animate-marquee-paused' : ''
-            }`}
-            style={isPaused ? { animationPlayState: 'paused' } : undefined}
+            className="flex shrink-0 items-stretch gap-6 pe-6 animate-marquee group-hover:[animation-play-state:paused] group-focus-within:[animation-play-state:paused]"
             aria-hidden="true"
           >
             {stories.map((story) => (

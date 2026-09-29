@@ -104,9 +104,14 @@ const config: Config = {
           '0%': { transform: 'translateX(0%)' },
           '100%': { transform: 'translateX(-100%)' },
         },
+        'marquee-rtl': {
+          '0%': { transform: 'translateX(0%)' },
+          '100%': { transform: 'translateX(100%)' },
+        },
       },
       animation: {
         marquee: 'marquee 45s linear infinite',
+        'marquee-rtl': 'marquee-rtl 45s linear infinite',
       },
     },
   },
