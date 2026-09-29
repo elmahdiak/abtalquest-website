@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Star, 
   Heart, 
@@ -7,10 +7,6 @@ import {
   Check, 
   Sparkles, 
   AlertCircle,
-  Brain,
-  Compass,
-  Wrench,
-  Heart as HeartIcon,
   Flame,
 } from 'lucide-react';
 import { formatPrice, getProductDisplayImage, type Product } from '../../services/marketplaceService';
@@ -38,14 +34,30 @@ export const MarketplaceProductCard: React.FC<MarketplaceProductCardProps> = ({
 }) => {
   const { t, language } = useLanguage();
   const [justAdded, setJustAdded] = useState(false);
-  const [loadedUrl, setLoadedUrl] = useState<string | null>(null);
-  const [errorUrl, setErrorUrl] = useState<string | null>(null);
 
-  // Prioritizes: product.image_url -> product.image -> product.images[0] -> product.imageUrl
-  // and resolves any Supabase Storage relative paths to full public CDN URLs
-  const displayImage = getProductDisplayImage(product);
-  const isLoaded = Boolean(displayImage && loadedUrl === displayImage);
-  const isError = Boolean(displayImage && errorUrl === displayImage);
+  // Directly retrieve and resolve high-resolution product photography
+  const primaryImage = getProductDisplayImage(product);
+  const [activeImage, setActiveImage] = useState<string | null>(primaryImage);
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [hasError, setHasError] = useState(false);
+
+  useEffect(() => {
+    const nextImg = getProductDisplayImage(product);
+    setActiveImage(nextImg);
+    setIsLoaded(false);
+    setHasError(false);
+  }, [product]);
+
+  const handleImageError = () => {
+    // If the image fails, seamlessly fallback to verified real product photography
+    const fallbackPhoto = 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80';
+    if (activeImage !== fallbackPhoto) {
+      setActiveImage(fallbackPhoto);
+      setIsLoaded(false);
+    } else {
+      setHasError(true);
+    }
+  };
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -64,58 +76,35 @@ export const MarketplaceProductCard: React.FC<MarketplaceProductCardProps> = ({
       onClick={() => onSelectProduct(product)}
       className="group relative flex flex-col justify-between bg-white dark:bg-slate-800/90 rounded-2xl sm:rounded-3xl border border-slate-200/90 dark:border-slate-700/80 shadow-sm hover:shadow-xl hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-300 overflow-hidden cursor-pointer"
     >
-      {/* Visual Top Preview Container */}
-      <div className="relative w-full pt-[65%] sm:pt-[70%] bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 overflow-hidden">
+      {/* Visual Top Preview Container: clean neutral background without abstract spheres */}
+      <div className="relative w-full pt-[65%] sm:pt-[70%] bg-slate-100 dark:bg-slate-850 overflow-hidden">
         
-        {/* Soft radial glow with planet's accent color */}
-        <div 
-          className="absolute inset-0 opacity-20 group-hover:opacity-35 transition-opacity duration-300"
-          style={{ backgroundColor: product.accentColor || '#016ba5' }}
-        />
-
-        {/* Product Image preview (covers the card's header area) */}
-        {displayImage && !isError && (
+        {/* Real Product Image Preview (directly visible without opacity-0 trap) */}
+        {activeImage && !hasError ? (
           <img
-            key={displayImage}
-            src={displayImage}
+            key={activeImage}
+            src={activeImage}
             alt={product.title}
-            loading="lazy"
+            loading={trendingRank && trendingRank <= 4 ? "eager" : "lazy"}
             decoding="async"
-            onLoad={() => setLoadedUrl(displayImage)}
-            onError={() => setErrorUrl(displayImage)}
-            className={cn(
-              "absolute inset-0 w-full h-full object-cover transition-all duration-500 group-hover:scale-105",
-              isLoaded ? "opacity-100" : "opacity-0"
-            )}
+            onLoad={() => setIsLoaded(true)}
+            onError={handleImageError}
+            className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
           />
-        )}
-
-        {/* Loading skeleton placeholder while displayImage is loading */}
-        {displayImage && !isError && !isLoaded && (
-          <div className="absolute inset-0 bg-slate-200/60 dark:bg-slate-700/60 animate-pulse pointer-events-none" />
-        )}
-
-        {/* Soft vignette overlay on image for contrast with badges */}
-        {displayImage && !isError && isLoaded && (
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-slate-950/30 pointer-events-none" />
-        )}
-
-        {/* Central Graphic / Icon Symbol (Shown ONLY as fallback if no image or image error) */}
-        {(!displayImage || isError) && (
-          <div className="absolute inset-0 flex items-center justify-center p-2 sm:p-4 md:p-6 transition-transform duration-300 group-hover:scale-105">
-            <div className={cn(
-              "w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-md sm:shadow-lg transition-transform",
-              product.iconBg || 'bg-blue-600 text-white'
-            )}>
-              {product.category === 'thinkers' && <Brain className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 stroke-[1.75]" />}
-              {product.category === 'brave' && <Compass className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 stroke-[1.75]" />}
-              {product.category === 'solvers' && <Wrench className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 stroke-[1.75]" />}
-              {product.category === 'heart' && <HeartIcon className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 stroke-[1.75]" />}
-              {!['thinkers', 'brave', 'solvers', 'heart'].includes(product.category) && (
-                <Sparkles className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 stroke-[1.75]" />
-              )}
-            </div>
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center bg-slate-100 dark:bg-slate-800 text-slate-400 p-4 text-center">
+            <span className="text-xs font-semibold">{product.title}</span>
           </div>
+        )}
+
+        {/* Clean, lightweight skeleton loader ONLY while actively fetching image */}
+        {activeImage && !hasError && !isLoaded && (
+          <div className="absolute inset-0 bg-slate-200/70 dark:bg-slate-700/70 animate-pulse pointer-events-none transition-opacity duration-300" />
+        )}
+
+        {/* Soft vignette overlay on real image for badge contrast */}
+        {activeImage && !hasError && (
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/65 via-transparent to-slate-950/20 pointer-events-none" />
         )}
 
         {/* Top Badges (Trending Rank, Bestseller, New, Discount) */}

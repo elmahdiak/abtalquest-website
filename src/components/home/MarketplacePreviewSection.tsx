@@ -3,10 +3,7 @@ import {
   ShoppingBag, 
   Star, 
   Check, 
-  ArrowRight, 
-  BookOpen, 
-  Puzzle, 
-  Compass 
+  ArrowRight
 } from 'lucide-react';
 import Badge from '../common/Badge';
 import Button from '../common/Button';
@@ -31,9 +28,7 @@ interface PreviewProduct {
   rating: number;
   reviewsCount: number;
   xpReward: number;
-  icon: React.ReactNode;
-  gradient: string;
-  badgeBg: string;
+  image: string;
 }
 
 export const MarketplacePreviewSection: React.FC<MarketplacePreviewSectionProps> = ({
@@ -57,9 +52,7 @@ export const MarketplacePreviewSection: React.FC<MarketplacePreviewSectionProps>
       rating: 4.9,
       reviewsCount: 142,
       xpReward: 350,
-      icon: <BookOpen className="w-8 h-8 text-[#016ba5]" />,
-      gradient: 'from-[#016ba5]/15 to-transparent',
-      badgeBg: 'bg-[#016ba5]/10 text-[#016ba5]',
+      image: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=800&q=80',
     },
     {
       id: 'prod-1',
@@ -71,9 +64,7 @@ export const MarketplacePreviewSection: React.FC<MarketplacePreviewSectionProps>
       rating: 4.8,
       reviewsCount: 98,
       xpReward: 400,
-      icon: <Compass className="w-8 h-8 text-[#fa8221]" />,
-      gradient: 'from-[#fa8221]/15 to-transparent',
-      badgeBg: 'bg-[#fa8221]/10 text-[#fa8221]',
+      image: 'https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?auto=format&fit=crop&w=800&q=80',
     },
     {
       id: 'prod-2',
@@ -85,9 +76,7 @@ export const MarketplacePreviewSection: React.FC<MarketplacePreviewSectionProps>
       rating: 5.0,
       reviewsCount: 215,
       xpReward: 500,
-      icon: <Puzzle className="w-8 h-8 text-[#22C55E]" />,
-      gradient: 'from-[#22C55E]/15 to-transparent',
-      badgeBg: 'bg-[#22C55E]/10 text-[#16a34a]',
+      image: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80',
     },
   ];
 
@@ -198,26 +187,26 @@ export const MarketplacePreviewSection: React.FC<MarketplacePreviewSectionProps>
                 key={product.id}
                 className="group relative bg-white dark:bg-[#0F2F4E] rounded-3xl p-6 sm:p-7 border-2 border-slate-200/80 dark:border-slate-700 hover:border-[#7C3AED]/40 dark:hover:border-[#7C3AED]/50 transition-all duration-300 hover:-translate-y-1.5 shadow-sm hover:shadow-xl flex flex-col justify-between overflow-hidden"
               >
-                {/* Gradient banner */}
-                <div className={`absolute top-0 left-0 right-0 h-28 bg-gradient-to-b ${product.gradient} pointer-events-none rounded-t-3xl`} />
-
                 <div>
-                  {/* Top Badges */}
-                  <div className="flex items-center justify-between gap-2 mb-4 relative z-10">
-                    <span className="text-[11px] font-bold font-gamification text-[#7C3AED] bg-[#7C3AED]/10 px-2.5 py-1 rounded-full">
-                      +{product.xpReward} XP
-                    </span>
-                    <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md">
-                      {product.categoryLabel}
-                    </span>
-                  </div>
-
-                  {/* Illustrated Product Icon Area */}
-                  <div className="relative mb-5 flex items-center justify-center">
-                    <div className="w-24 h-24 rounded-3xl bg-slate-50 dark:bg-[#0A2540] border border-slate-100 dark:border-slate-700 shadow-sm flex items-center justify-center group-hover:scale-105 transition-transform duration-300">
-                      <div className={`w-16 h-16 rounded-2xl ${product.badgeBg} flex items-center justify-center shadow-inner`}>
-                        {product.icon}
-                      </div>
+                  {/* Real Product Photography Preview */}
+                  <div className="relative w-full h-48 sm:h-52 rounded-2xl overflow-hidden mb-4 bg-slate-100 dark:bg-slate-800 shadow-inner">
+                    <img
+                      src={product.image}
+                      alt={product.title}
+                      loading="lazy"
+                      decoding="async"
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950/40 via-transparent to-transparent pointer-events-none" />
+                    
+                    {/* Top Badges Overlay */}
+                    <div className="absolute top-2.5 left-2.5 right-2.5 flex items-center justify-between gap-2 z-10">
+                      <span className="text-[11px] font-bold font-gamification text-[#7C3AED] bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm px-2.5 py-1 rounded-full shadow-sm">
+                        +{product.xpReward} XP
+                      </span>
+                      <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-200 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm px-2.5 py-0.5 rounded-md shadow-sm">
+                        {product.categoryLabel}
+                      </span>
                     </div>
                   </div>
 

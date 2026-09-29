@@ -4,11 +4,7 @@ import {
   ChevronLeft, 
   ChevronRight, 
   Maximize2, 
-  X, 
-  Brain, 
-  Compass, 
-  Wrench, 
-  Heart as HeartIcon,
+  X,
   Video
 } from 'lucide-react';
 import { 
@@ -156,20 +152,6 @@ export const MarketplaceImageGallery: React.FC<MarketplaceImageGalleryProps> = (
 
   const currentMedia = mediaItems[activeIndex] || mediaItems[0];
 
-  const renderProductIcon = (sizeClass = "w-24 h-24") => {
-    switch (product.category) {
-      case 'thinkers':
-        return <Brain className={cn(sizeClass, "stroke-[1.5]")} />;
-      case 'brave':
-        return <Compass className={cn(sizeClass, "stroke-[1.5]")} />;
-      case 'solvers':
-        return <Wrench className={cn(sizeClass, "stroke-[1.5]")} />;
-      case 'heart':
-      default:
-        return <HeartIcon className={cn(sizeClass, "stroke-[1.5]")} />;
-    }
-  };
-
   return (
     <div className={cn("flex flex-col gap-3.5", className)}>
       
@@ -179,12 +161,6 @@ export const MarketplaceImageGallery: React.FC<MarketplaceImageGalleryProps> = (
         onTouchEnd={currentMedia?.type === 'video' ? undefined : handleTouchEnd}
         className="relative w-full aspect-square sm:aspect-[4/3] rounded-3xl bg-slate-100 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 flex items-center justify-center overflow-hidden shadow-inner group select-none touch-pan-y"
       >
-        {/* Glow ambient background based on product accent color */}
-        <div
-          className="absolute inset-0 opacity-15 dark:opacity-25 blur-3xl pointer-events-none transition-all duration-700"
-          style={{ backgroundColor: product.accentColor || '#016ba5' }}
-        />
-
         {/* Dynamic Viewport Canvas */}
         <div className="relative z-10 w-full h-full flex items-center justify-center">
           {currentMedia ? (
@@ -210,22 +186,17 @@ export const MarketplaceImageGallery: React.FC<MarketplaceImageGalleryProps> = (
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center text-center p-6 gap-3">
-                  <div className={cn(
-                    "w-32 h-32 rounded-3xl flex items-center justify-center shadow-lg",
-                    product.iconBg || 'bg-[#016ba5]/15 text-[#016ba5]'
-                  )}>
-                    {renderProductIcon("w-16 h-16")}
-                  </div>
-                  <span className="text-xs font-bold text-slate-500">{product.title}</span>
+                  <img
+                    src="https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80"
+                    alt={product.title}
+                    className="w-full h-full max-h-full max-w-full object-contain rounded-2xl"
+                  />
                 </div>
               )
             )
           ) : (
-            <div className={cn(
-              "w-36 h-36 rounded-3xl flex items-center justify-center shadow-lg",
-              product.iconBg || 'bg-[#016ba5]/15 text-[#016ba5]'
-            )}>
-              {renderProductIcon("w-20 h-20")}
+            <div className="flex items-center justify-center p-6 text-slate-400">
+              <span className="text-sm font-semibold">{product.title}</span>
             </div>
           )}
         </div>

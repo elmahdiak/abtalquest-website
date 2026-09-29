@@ -234,7 +234,20 @@ export const getProductDisplayImage = (product?: Partial<Product> | null): strin
     product.imageUrl ||
     null;
 
-  return resolveProductImageUrl(candidate);
+  const resolved = resolveProductImageUrl(candidate);
+  if (resolved) return resolved;
+
+  // Real product photography fallback based on category
+  const fallbackByCat: Record<string, string> = {
+    thinkers: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80',
+    brave: 'https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?auto=format&fit=crop&w=800&q=80',
+    solvers: 'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?auto=format&fit=crop&w=800&q=80',
+    heart: 'https://images.unsplash.com/photo-1632516643720-e7f5d7d6ecc9?auto=format&fit=crop&w=800&q=80',
+    books: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=800&q=80',
+    games: 'https://images.unsplash.com/photo-1606167668584-78701c57f13d?auto=format&fit=crop&w=800&q=80',
+  };
+
+  return fallbackByCat[product.category || ''] || 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80';
 };
 
 /**
@@ -842,6 +855,18 @@ const mapRowToProduct = (row: SupabaseProductRow): Product => {
     if (!normalizedImages.includes(trimmed)) {
       normalizedImages.unshift(trimmed);
     }
+  }
+
+  if (normalizedImages.length === 0) {
+    const fallbackMap: Record<string, string> = {
+      thinkers: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80',
+      brave: 'https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?auto=format&fit=crop&w=800&q=80',
+      solvers: 'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?auto=format&fit=crop&w=800&q=80',
+      heart: 'https://images.unsplash.com/photo-1632516643720-e7f5d7d6ecc9?auto=format&fit=crop&w=800&q=80',
+      books: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=800&q=80',
+      games: 'https://images.unsplash.com/photo-1606167668584-78701c57f13d?auto=format&fit=crop&w=800&q=80',
+    };
+    normalizedImages.push(fallbackMap[row.category || ''] || 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80');
   }
 
   const primaryImage = normalizedImages[0] || undefined;
