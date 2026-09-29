@@ -185,7 +185,7 @@ export const AboutUsView: React.FC<AboutUsViewProps> = ({
             </p>
           </div>
 
-          {/* Featured Leadership Profile (Hajar Ouzif) */}
+          {/* Featured Leadership Profiles (Hajar Ouzif & Khalil Dadsi) */}
           <div className="mb-10">
             <TeamProfilesSection />
           </div>

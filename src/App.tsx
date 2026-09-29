@@ -123,16 +123,20 @@ export function App() {
         hash === '#team' ||
         hash === '#team-profiles' ||
         hash === '#hajar' ||
+        hash === '#khalil' ||
+        hash === '#team-khalil' ||
+        hash === '#dadsi' ||
         hash === '#/about' ||
         pathname === '/about' ||
         pathname === '/team'
       ) {
         setCurrentView('about');
-        if (hash === '#team' || hash === '#team-profiles' || hash === '#hajar') {
+        if (hash === '#team' || hash === '#team-profiles' || hash === '#hajar' || hash === '#khalil' || hash === '#team-khalil' || hash === '#dadsi') {
           setTimeout(() => {
-            const teamEl = document.getElementById('team');
-            if (teamEl) {
-              teamEl.scrollIntoView({ behavior: 'smooth' });
+            const targetId = (hash === '#khalil' || hash === '#team-khalil' || hash === '#dadsi') ? 'team-khalil' : 'team';
+            const targetEl = document.getElementById(targetId) || document.getElementById('team');
+            if (targetEl) {
+              targetEl.scrollIntoView({ behavior: 'smooth' });
             }
           }, 150);
         }
