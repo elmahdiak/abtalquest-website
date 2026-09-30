@@ -122,7 +122,7 @@ export const MarketplaceConfirmationModal: React.FC<MarketplaceConfirmationModal
 
           <div className="flex justify-between items-center text-xs font-body pt-2 border-t border-slate-200 dark:border-slate-700">
             <span className="text-slate-500 dark:text-slate-400">
-              {direction === 'rtl' ? 'قاعدة البيانات والتوافق:' : 'Database & Compliance:'}
+              {direction === 'rtl' ? 'الأمان والتوثيق:' : 'Security & Verification:'}
             </span>
             <span className="inline-flex items-center gap-1 font-semibold text-emerald-600 dark:text-emerald-400 text-[11px]">
               <Database className="w-3 h-3" />

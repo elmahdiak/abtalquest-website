@@ -5,6 +5,7 @@ import FamilyProblemSection from './components/home/FamilyProblemSection';
 import MeetAbtalQuestSection from './components/home/MeetAbtalQuestSection';
 import HowItWorksJourney from './components/home/HowItWorksJourney';
 import OneContinuousWorld from './components/home/OneContinuousWorld';
+import ForParentsSection from './components/home/ForParentsSection';
 import ParentStoriesSection from './components/home/ParentStoriesSection';
 import CommonQuestionsSection from './components/home/CommonQuestionsSection';
 import CtaBannerSection from './components/home/CtaBannerSection';
@@ -83,6 +84,15 @@ export function App() {
         setCurrentView('home');
         setTimeout(() => {
           const el = document.getElementById('how-it-works');
+          el?.scrollIntoView({ behavior: 'smooth' });
+        }, 100);
+      } else if (
+        hash === '#for-parents' ||
+        hash === '#parents'
+      ) {
+        setCurrentView('home');
+        setTimeout(() => {
+          const el = document.getElementById('for-parents');
           el?.scrollIntoView({ behavior: 'smooth' });
         }, 100);
       } else if (
@@ -338,7 +348,10 @@ export function App() {
           {/* 5. ONE CONTINUOUS WORLD */}
           <OneContinuousWorld onJoinQuestClick={() => setWaitlistModalOpen(true)} />
 
-          {/* 6. PARTNERS, BACKERS & RECOGNITION */}
+          {/* 6. FOR PARENTS */}
+          <ForParentsSection onDiscoverClick={() => setWaitlistModalOpen(true)} />
+
+          {/* 7. PARTNERS, BACKERS & RECOGNITION */}
           <PartnersEcosystemSection id="partners-ecosystem" />
 
           {/* 7. PARENT STORIES */}

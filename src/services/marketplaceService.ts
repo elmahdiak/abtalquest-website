@@ -129,6 +129,135 @@ export interface Product {
   reviews: ProductReview[];
 }
 
+export interface AgeFilterBracket {
+  id: string; // '5-6' | '7-10' | '11-12' | '13+'
+  label: string; // '5–6 yo' | '7–10 yo' | '11–12 yo' | '+13 yo'
+  range: [number, number];
+  desc: string;
+}
+
+export const AGE_FILTER_BRACKETS: AgeFilterBracket[] = [
+  { id: '5-6', label: '5–6 yo', range: [5, 6], desc: 'Early learning, tactile discovery & picture narrative' },
+  { id: '7-10', label: '7–10 yo', range: [7, 10], desc: 'Trail navigation, resilience & collaborative play' },
+  { id: '11-12', label: '11–12 yo', range: [11, 12], desc: 'Mechanical gear ratios, algorithmic logic & STEM' },
+  { id: '13+', label: '+13 yo', range: [13, 99], desc: 'Hydraulic robotics, physics & complex engineering' },
+];
+
+/**
+ * Intelligent age matcher supporting precise developmental brackets:
+ * '5-6', '7-10', '11-12', '13+' (and '+13')
+ * while gracefully supporting legacy and custom age ranges.
+ */
+export const matchesAgeFilter = (
+  product: { ageGroup?: string; ageLabel?: string },
+  selectedBracket: string
+): boolean => {
+  if (!selectedBracket || selectedBracket === 'all') return true;
+
+  const bracketClean = selectedBracket.replace(/\s*yo$/i, '').trim();
+  const prodAgeGroup = (product.ageGroup || '').trim();
+  const prodAgeLabel = (product.ageLabel || '').trim();
+
+  const norm = (s: string) =>
+    s
+      .replace(/[\u2013\u2014]/g, '-')
+      .replace(/\s+/g, '')
+      .replace(/^ages?/i, '')
+      .replace(/yo$/i, '')
+      .toLowerCase();
+
+  const targetNorm = norm(bracketClean);
+  const prodGroupNorm = norm(prodAgeGroup);
+  const prodLabelNorm = norm(prodAgeLabel);
+
+  // 1. Direct exact or normalized equality
+  if (targetNorm === prodGroupNorm || targetNorm === prodLabelNorm) {
+    return true;
+  }
+
+  // 2. Handle +13 vs 13+
+  if (
+    (targetNorm === '+13' || targetNorm === '13+') &&
+    (prodGroupNorm === '+13' || prodGroupNorm === '13+' || prodLabelNorm.includes('13+') || prodLabelNorm.includes('+13'))
+  ) {
+    return true;
+  }
+
+  // 3. Parse bracket range [bMin, bMax]
+  let bMin = 0;
+  let bMax = 99;
+  if (targetNorm.includes('+') || targetNorm.startsWith('>') || targetNorm === '13+' || targetNorm === '+13') {
+    const num = parseInt(targetNorm.replace(/[^0-9]/g, ''), 10);
+    bMin = isNaN(num) ? 13 : num;
+    bMax = 99;
+  } else if (targetNorm.includes('-')) {
+    const parts = targetNorm.split('-').map((p) => parseInt(p, 10));
+    bMin = isNaN(parts[0]) ? 0 : parts[0];
+    bMax = isNaN(parts[1]) ? bMin : parts[1];
+  }
+
+  // 4. Parse product age range from ageGroup or ageLabel
+  const combinedProd = `${prodAgeGroup} ${prodAgeLabel}`;
+  const prodNumbers = combinedProd.match(/\d+/g)?.map(Number) || [];
+  if (prodNumbers.length === 0) return true; // If unassigned, allow through
+
+  const pMin = prodNumbers[0];
+  const pMax = prodNumbers.length > 1 ? prodNumbers[1] : (combinedProd.includes('+') ? 99 : prodNumbers[0]);
+
+  // Check numeric range overlap
+  return Math.max(bMin, pMin) <= Math.min(bMax, pMax);
+};
+
+export const formatAgeBracket = (bracketId: string, language: string = 'en'): string => {
+  if (bracketId === 'all') {
+    if (language === 'ar') return 'جميع الأعمار';
+    if (language === 'fr') return 'Tous les Âges';
+    return 'All Ages';
+  }
+
+  const normId = bracketId.replace(/\s*yo$/i, '').trim();
+
+  if (language === 'ar') {
+    switch (normId) {
+      case '5-6':
+      case '5–6': return '٥–٦ سنوات (5–6 yo)';
+      case '7-10':
+      case '7–10': return '٧–١٠ سنوات (7–10 yo)';
+      case '11-12':
+      case '11–12': return '١١–١٢ سنة (11–12 yo)';
+      case '13+':
+      case '+13': return '+١٣ سنة (+13 yo)';
+      default: return bracketId;
+    }
+  }
+
+  if (language === 'fr') {
+    switch (normId) {
+      case '5-6':
+      case '5–6': return '5–6 ans';
+      case '7-10':
+      case '7–10': return '7–10 ans';
+      case '11-12':
+      case '11–12': return '11–12 ans';
+      case '13+':
+      case '+13': return '+13 ans';
+      default: return bracketId;
+    }
+  }
+
+  switch (normId) {
+    case '5-6':
+    case '5–6': return '5–6 yo';
+    case '7-10':
+    case '7–10': return '7–10 yo';
+    case '11-12':
+    case '11–12': return '11–12 yo';
+    case '13+':
+    case '+13': return '+13 yo';
+    default: return bracketId;
+  }
+};
+
 export interface OrderItemInput {
   productId: string;
   productTitle: string;
@@ -331,8 +460,8 @@ export const DEFAULT_PRODUCTS: Product[] = [
     category: 'thinkers',
     planetName: "Thinkers' Planet",
     productType: 'Physical Kit',
-    ageGroup: '9-11',
-    ageLabel: 'Ages 9–11',
+    ageGroup: '11-12',
+    ageLabel: '11–12 yo',
     price: 320,
     originalPrice: 420,
     discountPercent: 24,
@@ -394,8 +523,8 @@ export const DEFAULT_PRODUCTS: Product[] = [
     category: 'thinkers',
     planetName: "Thinkers' Planet",
     productType: 'Storybook',
-    ageGroup: '6-8',
-    ageLabel: 'Ages 6–8',
+    ageGroup: '5-6',
+    ageLabel: '5–6 yo',
     price: 190,
     originalPrice: 240,
     discountPercent: 21,
@@ -451,7 +580,7 @@ export const DEFAULT_PRODUCTS: Product[] = [
     planetName: 'Brave Planet',
     productType: 'Physical Kit',
     ageGroup: '7-10',
-    ageLabel: 'Ages 7–10',
+    ageLabel: '7–10 yo',
     price: 299,
     originalPrice: 399,
     discountPercent: 25,
@@ -506,8 +635,8 @@ export const DEFAULT_PRODUCTS: Product[] = [
     category: 'brave',
     planetName: 'Brave Planet',
     productType: 'Learning Tool',
-    ageGroup: '6-8',
-    ageLabel: 'Ages 6–8',
+    ageGroup: '7-10',
+    ageLabel: '7–10 yo',
     price: 160,
     originalPrice: 200,
     discountPercent: 20,
@@ -562,8 +691,8 @@ export const DEFAULT_PRODUCTS: Product[] = [
     category: 'solvers',
     planetName: "Solvers' Planet",
     productType: 'Physical Kit',
-    ageGroup: '12+',
-    ageLabel: 'Ages 12+',
+    ageGroup: '13+',
+    ageLabel: '+13 yo',
     price: 480,
     originalPrice: 620,
     discountPercent: 23,
@@ -618,8 +747,8 @@ export const DEFAULT_PRODUCTS: Product[] = [
     category: 'solvers',
     planetName: "Solvers' Planet",
     productType: 'Family Game',
-    ageGroup: '9-11',
-    ageLabel: 'Ages 9–11',
+    ageGroup: '11-12',
+    ageLabel: '11–12 yo',
     price: 220,
     originalPrice: 280,
     discountPercent: 21,
@@ -675,7 +804,7 @@ export const DEFAULT_PRODUCTS: Product[] = [
     planetName: 'Heart Planet',
     productType: 'Family Game',
     ageGroup: '7-10',
-    ageLabel: 'Ages 7–10',
+    ageLabel: '7–10 yo',
     price: 349,
     originalPrice: 449,
     discountPercent: 22,
@@ -730,8 +859,8 @@ export const DEFAULT_PRODUCTS: Product[] = [
     category: 'heart',
     planetName: 'Heart Planet',
     productType: 'Physical Kit',
-    ageGroup: '6-8',
-    ageLabel: 'Ages 6–8',
+    ageGroup: '5-6',
+    ageLabel: '5–6 yo',
     price: 210,
     originalPrice: 270,
     discountPercent: 22,
@@ -945,7 +1074,7 @@ export const checkSupabaseHealth = async (): Promise<SupabaseHealth> => {
     return {
       connected: true,
       tableReady: true,
-      message: 'Supabase Live Connected',
+      message: 'Cloud Database Connected',
       productCount: data?.length ?? 0,
     };
   } catch (err: unknown) {
@@ -1229,8 +1358,8 @@ export const createProduct = async (prod: Omit<Product, 'id'> & { id?: string })
     category: prod.category,
     planet_name: prod.planetName || "Thinkers' Planet",
     product_type: prod.productType || 'Physical Kit',
-    age_group: prod.ageGroup || '9-11',
-    age_label: prod.ageLabel || `Ages ${prod.ageGroup || '9-11'}`,
+    age_group: prod.ageGroup || '7-10',
+    age_label: prod.ageLabel || '7–10 yo',
     price: prod.price,
     original_price: prod.originalPrice || null,
     discount_percent: prod.discountPercent || 0,

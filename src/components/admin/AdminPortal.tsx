@@ -315,8 +315,8 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
   const [prodCategory, setProdCategory] = useState<string>('thinkers');
   const [prodPlanetName, setProdPlanetName] = useState<string>("Thinkers' Planet");
   const [prodProductType, setProdProductType] = useState<string>('Physical Kit');
-  const [prodAgeGroup, setProdAgeGroup] = useState<string>('9-11');
-  const [prodAgeLabel, setProdAgeLabel] = useState<string>('Ages 9–11');
+  const [prodAgeGroup, setProdAgeGroup] = useState<string>('7-10');
+  const [prodAgeLabel, setProdAgeLabel] = useState<string>('7–10 yo');
   const [prodPrice, setProdPrice] = useState<string>('299');
   const [prodOriginalPrice, setProdOriginalPrice] = useState<string>('');
   const [prodDiscountPercent, setProdDiscountPercent] = useState<string>('0');
@@ -705,8 +705,8 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
     setProdCategory(categoriesList[0]?.id || 'thinkers');
     setProdPlanetName(categoriesList[0]?.planetName || "Thinkers' Planet");
     setProdProductType('Physical Kit');
-    setProdAgeGroup('9-11');
-    setProdAgeLabel('Ages 9–11');
+    setProdAgeGroup('7-10');
+    setProdAgeLabel('7–10 yo');
     setProdPrice('299');
     setProdOriginalPrice('399');
     setProdDiscountPercent('25');
@@ -2847,7 +2847,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
                   <div className="flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                     <span className="text-[11px] font-headline font-bold text-slate-300">
-                      Supabase Live
+                      Cloud Sync Live
                     </span>
                   </div>
                   <span className="text-[10px] font-mono text-slate-400">v2.4</span>
@@ -2859,7 +2859,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
                 </div>
               </>
             ) : (
-              <div className="flex items-center justify-center p-2.5 rounded-xl bg-slate-800/60 border border-slate-700/60" title="Supabase Live v2.4 • AbtalQuest Enterprise Portal">
+              <div className="flex items-center justify-center p-2.5 rounded-xl bg-slate-800/60 border border-slate-700/60" title="Cloud Sync Live v2.4 • AbtalQuest Enterprise Portal">
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
               </div>
             )}
@@ -3229,7 +3229,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
                       {dbHealth?.ordersTableExists ? (
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                          Supabase Live
+                          Live Sync Active
                         </span>
                       ) : (
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-300">
@@ -3464,7 +3464,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
                                   <span className="font-bold text-slate-900 block">{order.id}</span>
                                   {order.isSupabaseSaved ? (
                                     <span
-                                      title="Synced to Supabase Cloud"
+                                      title="Synced to Cloud Database"
                                       className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200"
                                     >
                                       Cloud
@@ -3623,7 +3623,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
                         </h2>
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-blue-50 text-[#016ba5] border border-blue-200">
                           <span className="w-1.5 h-1.5 rounded-full bg-[#016ba5] animate-pulse" />
-                          {t('admin.products.liveSync') || 'Live Supabase Sync'}
+                          {t('admin.products.liveSync') || 'Live Cloud Sync'}
                         </span>
                       </div>
                       <p className="font-body text-xs text-slate-500 mt-1">
@@ -4241,7 +4241,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
                           Moteur de Réductions
                         </Badge>
                         <Badge variant="success" size="sm" pulse>
-                          Supabase Live ({couponsList.length})
+                          Live Sync ({couponsList.length})
                         </Badge>
                       </div>
                       <h2 className="font-headline text-xl sm:text-2xl font-black text-slate-900 dark:text-white">
@@ -4852,7 +4852,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
                     <div className="flex items-center gap-2 mb-1">
                       {blogsDbHealth?.tableReady ? (
                         <Badge variant="success" size="sm" pulse>
-                          Supabase Live ({blogsDbHealth.count})
+                          Live Sync ({blogsDbHealth.count})
                         </Badge>
                       ) : blogsDbHealth && !blogsDbHealth.tableReady ? (
                         <Badge variant="warning" size="sm">
@@ -4860,7 +4860,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
                         </Badge>
                       ) : (
                         <Badge variant="primary" size="sm">
-                          Supabase Synced
+                          Cloud Synced
                         </Badge>
                       )}
                       <span className="font-body text-xs text-slate-400">Public Parenting Resources</span>
@@ -6518,14 +6518,22 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
                       <select
                         value={prodAgeGroup}
                         onChange={(e) => {
-                          setProdAgeGroup(e.target.value);
-                          setProdAgeLabel(`Ages ${e.target.value}`);
+                          const val = e.target.value;
+                          setProdAgeGroup(val);
+                          const labelMap: Record<string, string> = {
+                            '5-6': '5–6 yo',
+                            '7-10': '7–10 yo',
+                            '11-12': '11–12 yo',
+                            '13+': '+13 yo',
+                          };
+                          setProdAgeLabel(labelMap[val] || `${val} yo`);
                         }}
                         className="w-full px-3 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-body text-xs focus:outline-none focus:ring-2 focus:ring-[#016ba5]"
                       >
-                        <option value="6-8">Ages 6–8</option>
-                        <option value="9-11">Ages 9–11</option>
-                        <option value="12+">Ages 12+</option>
+                        <option value="5-6">5–6 yo</option>
+                        <option value="7-10">7–10 yo</option>
+                        <option value="11-12">11–12 yo</option>
+                        <option value="13+">+13 yo</option>
                       </select>
                     </div>
                   </div>

@@ -43,7 +43,6 @@ export const MarketplaceHeader: React.FC<MarketplaceHeaderProps> = ({
   cartSubtotal,
   user,
   onOpenAuth,
-  isLiveSupabase,
 }) => {
   const { t, direction, language } = useLanguage();
   const [isSearchFocused, setIsSearchFocused] = useState(false);
@@ -95,19 +94,6 @@ export const MarketplaceHeader: React.FC<MarketplaceHeaderProps> = ({
               <span className="hidden sm:inline">{t('marketplace.taxonomy_btn')}</span>
               <span className="inline sm:hidden">{t('marketplace.taxonomy_btn')}</span>
             </button>
-
-            {/* Live DB / Offline indicator pill */}
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80 text-slate-600 dark:text-slate-300">
-              <span
-                className={cn(
-                  'w-2 h-2 rounded-full',
-                  isLiveSupabase ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'
-                )}
-              />
-              <span className="hidden sm:inline">
-                {isLiveSupabase ? t('marketplace.supabase_live') : t('marketplace.supabase_offline')}
-              </span>
-            </div>
 
             {/* Mobile Actions: Wishlist & Cart Shortcuts */}
             <div className="flex md:hidden items-center gap-1.5 sm:gap-2">

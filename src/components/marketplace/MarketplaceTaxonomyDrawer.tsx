@@ -64,9 +64,26 @@ export const MarketplaceTaxonomyDrawer: React.FC<MarketplaceTaxonomyDrawerProps>
   ];
 
   const ageGroups = [
-    { id: '6-8', name: 'Ages 6–8', desc: 'Empathy, tactile senses, and narrative courage' },
-    { id: '9-11', name: 'Ages 9–11', desc: 'Mechanical gear ratios, trail bearings, and sequencing' },
-    { id: '12+', name: 'Ages 12+', desc: '4-axis hydraulics and Pascal fluid dynamics' },
+    { 
+      id: '5-6', 
+      name: t('marketplace.age_bracket_5_6') || '5–6 yo', 
+      desc: t('marketplace.age_bracket_5_6_desc') || 'Early learning, tactile discovery & picture narrative' 
+    },
+    { 
+      id: '7-10', 
+      name: t('marketplace.age_bracket_7_10') || '7–10 yo', 
+      desc: t('marketplace.age_bracket_7_10_desc') || 'Trail navigation, resilience & collaborative play' 
+    },
+    { 
+      id: '11-12', 
+      name: t('marketplace.age_bracket_11_12') || '11–12 yo', 
+      desc: t('marketplace.age_bracket_11_12_desc') || 'Mechanical gear ratios, algorithmic logic & STEM' 
+    },
+    { 
+      id: '13+', 
+      name: t('marketplace.age_bracket_13_plus') || '+13 yo', 
+      desc: t('marketplace.age_bracket_13_plus_desc') || 'Hydraulic robotics, physics & complex engineering' 
+    },
   ];
 
   return (
@@ -206,18 +223,18 @@ export const MarketplaceTaxonomyDrawer: React.FC<MarketplaceTaxonomyDrawerProps>
             {/* Department 2: Age Categories */}
             <div>
               <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-3">
-                Age Groups
+                {t('marketplace.age_filter_label') || 'Age Groups'}
               </span>
               <div className="space-y-2">
                 {ageGroups.map((group) => {
-                  const isSelected = activeAge === group.id;
+                  const isSelected = activeAge === group.id || (group.id === '13+' && (activeAge === '+13' || activeAge === '13+'));
 
                   return (
                     <button
                       key={group.id}
                       type="button"
                       onClick={() => {
-                        onSelectCategory({ age: group.id });
+                        onSelectCategory({ age: isSelected ? 'all' : group.id });
                         onClose();
                       }}
                       className={cn(

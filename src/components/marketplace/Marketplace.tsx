@@ -21,6 +21,7 @@ import {
   rankProductsByPopularity,
   recordProductView,
   getProductViewCounts,
+  matchesAgeFilter,
 } from '../../services/marketplaceService';
 import { supabase, isSupabaseConfigured } from '../../supabaseClient';
 import { incrementCouponUsage, type Coupon } from '../../services/couponService';
@@ -38,7 +39,6 @@ import { PayzoneHostedModal } from './PayzoneHostedModal';
 import { MarketplaceConfirmationModal } from './MarketplaceConfirmationModal';
 import { MarketplaceFooter } from './MarketplaceFooter';
 import { PersonalProductGuide } from './PersonalProductGuide';
-import { FamilyBundleSection } from './FamilyBundleSection';
 import { ParentSellerSection } from './ParentSellerSection';
 
 export interface MarketplaceProps {
@@ -486,8 +486,8 @@ export const Marketplace: React.FC<MarketplaceProps> = ({
         }
       }
 
-      // Age filter
-      if (selectedAge !== 'all' && product.ageGroup !== selectedAge) {
+      // Age filter using smart developmental bracket matching
+      if (selectedAge !== 'all' && !matchesAgeFilter(product, selectedAge)) {
         return false;
       }
 
@@ -523,6 +523,29 @@ export const Marketplace: React.FC<MarketplaceProps> = ({
     const { rankedProducts } = rankProductsByPopularity(products, adminOrders, viewCounts);
     return rankedProducts.slice(0, 10);
   }, [products, adminOrders]);
+
+  // Product counts per developmental age bracket
+  const ageCounts = useMemo(() => {
+    const counts: Record<string, number> = {
+      'all': products.length,
+      '5-6': 0,
+      '7-10': 0,
+      '11-12': 0,
+      '13+': 0,
+    };
+    for (const prod of products) {
+      if (matchesAgeFilter(prod, '5-6')) counts['5-6']++;
+      if (matchesAgeFilter(prod, '7-10')) counts['7-10']++;
+      if (matchesAgeFilter(prod, '11-12')) counts['11-12']++;
+      if (matchesAgeFilter(prod, '13+')) counts['13+']++;
+    }
+    return counts;
+  }, [products]);
+
+  // Age selection handler with toggle capability
+  const handleSelectAge = useCallback((age: string) => {
+    setSelectedAge((prev) => (prev === age ? 'all' : age));
+  }, []);
 
   // Clear single or all filters
   const handleClearFilter = useCallback((key: 'planet' | 'age' | 'type' | 'search' | 'all') => {
@@ -759,6 +782,8 @@ export const Marketplace: React.FC<MarketplaceProps> = ({
               search: searchTerm,
             }}
             onClearFilter={handleClearFilter}
+            onSelectAge={handleSelectAge}
+            ageCounts={ageCounts}
             onSelectProduct={handleSelectProduct}
             onAddToCart={handleAddToCart}
             onToggleWishlist={handleToggleWishlist}
@@ -774,14 +799,7 @@ export const Marketplace: React.FC<MarketplaceProps> = ({
             cartIds={cart.map((c) => c.id)}
           />
 
-          {/* 7. Family Bundle / Better Together Starter matching PDF Page 10 */}
-          <FamilyBundleSection
-            products={products}
-            onAddToCart={handleAddToCart}
-            onSelectProduct={handleSelectProduct}
-          />
-
-          {/* 8. Parent Seller Section matching PDF Page 14/15 */}
+          {/* 7. Parent Seller Section matching PDF Page 14/15 */}
           <ParentSellerSection
             user={user}
             onOpenAuth={onOpenAuth}

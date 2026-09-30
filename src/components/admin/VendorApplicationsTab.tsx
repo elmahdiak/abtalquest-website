@@ -218,7 +218,7 @@ export const VendorApplicationsTab: React.FC<VendorApplicationsTabProps> = ({
             {isSupabaseConfigured() && dbHealth?.tableExists && (
               <span className="hidden lg:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-headline font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                Supabase Sync
+                Cloud Sync Live
               </span>
             )}
           </div>
