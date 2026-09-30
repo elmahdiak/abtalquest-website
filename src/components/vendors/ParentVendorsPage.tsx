@@ -361,7 +361,10 @@ export const ParentVendorsPage: React.FC<ParentVendorsPageProps> = ({ onNavigate
               <span>{t.badge}</span>
             </div>
 
-            <h1 className="font-headline text-2xl sm:text-4xl lg:text-5xl font-black tracking-tight leading-tight mb-4 drop-shadow-sm">
+            <h1 
+              className="font-headline text-2xl sm:text-4xl lg:text-5xl font-extrabold sm:font-black tracking-tight leading-tight mb-4 text-[#fa8221] dark:text-[#ff983d] !text-[#fa8221] drop-shadow-[0_2px_14px_rgba(250,130,33,0.35)]"
+              style={{ color: '#fa8221' }}
+            >
               {t.heroTitle}
             </h1>
 

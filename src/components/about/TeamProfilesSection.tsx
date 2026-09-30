@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { Sparkles, ExternalLink, ChevronDown, ChevronUp } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import { cn } from '../../lib/utils';
@@ -30,11 +30,8 @@ export const TeamProfilesSection: React.FC<TeamProfilesSectionProps> = ({
   className = '',
   showHeader = false 
 }) => {
-  const { t, language } = useLanguage();
-  const isRtl = language === 'ar';
+  const { t } = useLanguage();
   const [expandedBios, setExpandedBios] = useState<Record<string, boolean>>({});
-  const [activeMobileIndex, setActiveMobileIndex] = useState(0);
-  const scrollTrackRef = useRef<HTMLDivElement>(null);
 
   const toggleBio = (id: string) => {
     setExpandedBios(prev => ({
@@ -97,27 +94,6 @@ export const TeamProfilesSection: React.FC<TeamProfilesSectionProps> = ({
     },
   ];
 
-  const handleMobileScroll = () => {
-    const el = scrollTrackRef.current;
-    if (!el) return;
-    const cardWidth = el.scrollWidth / teamMembers.length;
-    const scrollLeft = Math.abs(el.scrollLeft);
-    const index = Math.round(scrollLeft / cardWidth);
-    setActiveMobileIndex(Math.min(Math.max(index, 0), teamMembers.length - 1));
-  };
-
-  const scrollToCard = (index: number) => {
-    const el = scrollTrackRef.current;
-    if (!el) return;
-    const cardWidth = el.clientWidth * 0.85;
-    const rtlMultiplier = isRtl ? -1 : 1;
-    el.scrollTo({
-      left: index * cardWidth * rtlMultiplier,
-      behavior: 'smooth',
-    });
-    setActiveMobileIndex(index);
-  };
-
   return (
     <div className={cn("w-full", className)}>
       {showHeader && (
@@ -136,16 +112,11 @@ export const TeamProfilesSection: React.FC<TeamProfilesSectionProps> = ({
       )}
 
       {/* 
-        Unified 3-Column Desktop Grid / Mobile Horizontal Swipe Carousel
-        - Desktop (lg:): Clean 3-column side-by-side layout
-        - Tablet (md:): 2-3 column responsive grid
-        - Mobile (<sm): Space-saving swipe track with snap points
+        Unified 3-Column Desktop Grid / 100% Width Vertical Single-Column Mobile Stack
+        - Desktop & Tablet (md:): Clean 3-column side-by-side executive cards
+        - Mobile (<md): Single-column 100% width vertical stack (zero horizontal scroll)
       */}
-      <div 
-        ref={scrollTrackRef}
-        onScroll={handleMobileScroll}
-        className="flex sm:grid sm:grid-cols-2 lg:grid-cols-3 overflow-x-auto sm:overflow-visible snap-x snap-mandatory gap-5 sm:gap-6 lg:gap-7 pb-4 sm:pb-0 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-none scroll-smooth"
-      >
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-6 lg:gap-7 w-full">
         {teamMembers.map((member) => {
           const isExpanded = Boolean(expandedBios[member.id]);
 
@@ -153,7 +124,7 @@ export const TeamProfilesSection: React.FC<TeamProfilesSectionProps> = ({
             <div
               key={member.id}
               id={member.id}
-              className="flex-none snap-center w-[85vw] max-w-[340px] sm:w-auto sm:max-w-none group relative rounded-2xl bg-white/95 dark:bg-slate-900/90 backdrop-blur-sm border border-slate-200/90 dark:border-slate-800 shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between overflow-hidden scroll-mt-28"
+              className="w-full group relative rounded-2xl bg-white/95 dark:bg-slate-900/90 backdrop-blur-sm border border-slate-200/90 dark:border-slate-800 shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between overflow-hidden scroll-mt-28"
             >
               {/* Subtle top ambient warmth glow matching member's accent */}
               <div className={cn("absolute top-0 left-0 right-0 h-28 bg-gradient-to-b opacity-30 dark:opacity-20 pointer-events-none rounded-t-2xl", member.accentGlow)} />
@@ -269,24 +240,6 @@ export const TeamProfilesSection: React.FC<TeamProfilesSectionProps> = ({
             </div>
           );
         })}
-      </div>
-
-      {/* Mobile Swipe Pagination Indicator Dots (<sm only) */}
-      <div className="flex sm:hidden items-center justify-center gap-2 mt-3">
-        {teamMembers.map((member, idx) => (
-          <button
-            key={`dot-${member.id}`}
-            type="button"
-            onClick={() => scrollToCard(idx)}
-            aria-label={`Go to slide ${idx + 1}`}
-            className={cn(
-              "h-1.5 rounded-full transition-all duration-300 cursor-pointer",
-              activeMobileIndex === idx
-                ? "w-6 bg-[#016ba5] dark:bg-[#38bdf8]"
-                : "w-2 bg-slate-300 dark:bg-slate-700 hover:bg-slate-400"
-            )}
-          />
-        ))}
       </div>
     </div>
   );

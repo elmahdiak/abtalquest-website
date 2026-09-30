@@ -126,38 +126,6 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   return (
     <>
-      {/* Top Universal Safety Reassurance Ticker */}
-      <div className="bg-[#016ba5] text-white text-xs py-1.5 px-3 sm:px-4 font-body border-b border-[#015786] transition-all overflow-hidden w-full">
-        <div className="max-w-7xl mx-auto flex items-center justify-between min-w-0">
-          <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1">
-            <span className="inline-flex items-center justify-center p-0.5 bg-emerald-500/20 rounded-full text-emerald-300 flex-shrink-0">
-              <ShieldCheck className="w-3.5 h-3.5" />
-            </span>
-            <span className="font-medium tracking-wide text-[11px] sm:text-xs truncate sm:whitespace-normal">
-              <strong className="text-amber-300">{t('nav.safety_ticker_bold_1')}</strong> • <strong className="text-emerald-300">{t('nav.safety_ticker_bold_2')}</strong> • {t('nav.safety_ticker_tail')}
-            </span>
-          </div>
-
-          <div className="hidden sm:flex items-center gap-4 text-[11px] opacity-90 flex-shrink-0">
-            <button
-              type="button"
-              onClick={() => onOpenContact?.()}
-              className="hover:underline hover:text-amber-300 flex items-center gap-1 transition-colors"
-            >
-              <MessageSquare className="w-3 h-3" />
-              <span>{t('nav.contact_support')}</span>
-            </button>
-            <span className="text-white/40">|</span>
-            <a
-              href="#coppa-compliance"
-              className="text-white/80 hover:text-amber-300 hover:underline transition-colors"
-            >
-              {t('nav.compliance_notice')}
-            </a>
-          </div>
-        </div>
-      </div>
-
       {/* Main Sticky Header with Semi-Transparent Frosted Glass Effect */}
       <header
         className={cn(

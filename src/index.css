@@ -66,12 +66,12 @@
     letter-spacing: -0.025em;
   }
 
-  html.dark h1,
-  html.dark h2,
-  html.dark h3,
-  html.dark h4,
-  html.dark h5,
-  html.dark h6 {
+  html.dark h1:not([class*="text-"]):not([style*="color"]),
+  html.dark h2:not([class*="text-"]):not([style*="color"]),
+  html.dark h3:not([class*="text-"]):not([style*="color"]),
+  html.dark h4:not([class*="text-"]):not([style*="color"]),
+  html.dark h5:not([class*="text-"]):not([style*="color"]),
+  html.dark h6:not([class*="text-"]):not([style*="color"]) {
     color: #F8FAFC !important;
   }
 
