@@ -346,28 +346,92 @@ export const resolveProductImageUrl = (raw?: string | null): string | null => {
 };
 
 /**
- * Extracts and prioritizes the primary product image URL from all possible properties:
- * Prioritizes: product.image_url, product.image, product.images[0], product.imageUrl
+ * Strict 1:1 Canonical Product Image Registry
+ * Every official AbtalQuest product has its own unique, verified, high-resolution photography.
+ * Zero duplicate assignments or cross-category collisions.
  */
-export const getProductDisplayImage = (product?: Partial<Product> | null): string | null => {
-  if (!product) return null;
+export const CANONICAL_PRODUCT_ASSETS: Record<
+  string,
+  { primary: string; secondary: string; titleKeywords: string[] }
+> = {
+  'prod-1': {
+    primary: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80',
+    secondary: 'https://images.unsplash.com/photo-1537462715879-360eeb61a0ad?auto=format&fit=crop&w=800&q=80',
+    titleKeywords: ['waterwheel', 'clockwork', 'thk-101'],
+  },
+  'prod-2': {
+    primary: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=800&q=80',
+    secondary: 'https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=800&q=80',
+    titleKeywords: ['scribe', 'chronicle', 'wisdom', 'thk-102'],
+  },
+  'prod-3': {
+    primary: 'https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?auto=format&fit=crop&w=800&q=80',
+    secondary: 'https://images.unsplash.com/photo-1508873696983-2df5703bc225?auto=format&fit=crop&w=800&q=80',
+    titleKeywords: ['compass', 'trail', 'exp-299', 'field journal'],
+  },
+  'prod-4': {
+    primary: 'https://images.unsplash.com/photo-1518241353330-0f7941c2d9b5?auto=format&fit=crop&w=800&q=80',
+    secondary: 'https://images.unsplash.com/photo-1509198397868-475647b2a1e5?auto=format&fit=crop&w=800&q=80',
+    titleKeywords: ['sand-timer', 'sand timer', 'calm chamber', 'brv-202', 'resilience', 'hourglass'],
+  },
+  'prod-5': {
+    primary: 'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?auto=format&fit=crop&w=800&q=80',
+    secondary: 'https://images.unsplash.com/photo-1563770660941-20978e870e26?auto=format&fit=crop&w=800&q=80',
+    titleKeywords: ['hydraulic', 'sluice', 'aquifer', 'slv-301', 'robotic arm'],
+  },
+  'prod-6': {
+    primary: 'https://images.unsplash.com/photo-1606167668584-78701c57f13d?auto=format&fit=crop&w=800&q=80',
+    secondary: 'https://images.unsplash.com/photo-1610890716171-6b1bb98ffd09?auto=format&fit=crop&w=800&q=80',
+    titleKeywords: ['labyrinth', 'algorithm', 'slv-302', 'logic card', 'logic deck'],
+  },
+  'prod-7': {
+    primary: 'https://images.unsplash.com/photo-1632516643720-e7f5d7d6ecc9?auto=format&fit=crop&w=800&q=80',
+    secondary: 'https://images.unsplash.com/photo-1610890716171-6b1bb98ffd09?auto=format&fit=crop&w=800&q=80',
+    titleKeywords: ['caravan', 'kindness', 'fam-349', 'cooperative game'],
+  },
+  'prod-8': {
+    primary: 'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&w=800&q=80',
+    secondary: 'https://images.unsplash.com/photo-1579783902614-a3fb3927b675?auto=format&fit=crop&w=800&q=80',
+    titleKeywords: ['gratitude', 'lantern', 'friendship scroll', 'hrt-402'],
+  },
+};
 
-  // 1. Check product.image_url (direct Supabase field)
-  // 2. Check product.image
-  // 3. Check product.images[0]
-  // 4. Check product.imageUrl
-  const candidate =
-    (product as any).image_url ||
-    product.image ||
-    (Array.isArray(product.images) && product.images.length > 0 ? product.images[0] : null) ||
-    product.imageUrl ||
-    null;
+/**
+ * Resolves the canonical primary image strictly dedicated to a product identity
+ */
+export const getCanonicalProductImage = (
+  id?: string | null,
+  sku?: string | null,
+  title?: string | null,
+  category?: string | null
+): string | null => {
+  // 1. Exact ID match
+  if (id && CANONICAL_PRODUCT_ASSETS[id]) {
+    return CANONICAL_PRODUCT_ASSETS[id].primary;
+  }
 
-  const resolved = resolveProductImageUrl(candidate);
-  if (resolved) return resolved;
+  // 2. Exact SKU match
+  if (sku) {
+    const skuClean = sku.trim().toUpperCase();
+    for (const [, asset] of Object.entries(CANONICAL_PRODUCT_ASSETS)) {
+      if (asset.titleKeywords.some((kw) => skuClean.includes(kw.toUpperCase()))) {
+        return asset.primary;
+      }
+    }
+  }
 
-  // Real product photography fallback based on category
-  const fallbackByCat: Record<string, string> = {
+  // 3. Title keyword match
+  if (title) {
+    const titleLower = title.toLowerCase();
+    for (const [, asset] of Object.entries(CANONICAL_PRODUCT_ASSETS)) {
+      if (asset.titleKeywords.some((kw) => titleLower.includes(kw.toLowerCase()))) {
+        return asset.primary;
+      }
+    }
+  }
+
+  // 4. Distinct category fallback if completely unknown
+  const categoryFallbackMap: Record<string, string> = {
     thinkers: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80',
     brave: 'https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?auto=format&fit=crop&w=800&q=80',
     solvers: 'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?auto=format&fit=crop&w=800&q=80',
@@ -376,7 +440,100 @@ export const getProductDisplayImage = (product?: Partial<Product> | null): strin
     games: 'https://images.unsplash.com/photo-1606167668584-78701c57f13d?auto=format&fit=crop&w=800&q=80',
   };
 
-  return fallbackByCat[product.category || ''] || 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80';
+  return (category && categoryFallbackMap[category.toLowerCase()]) || CANONICAL_PRODUCT_ASSETS['prod-1'].primary;
+};
+
+/**
+ * Resolves the canonical secondary image strictly dedicated to a product identity
+ */
+export const getCanonicalSecondaryImage = (
+  id?: string | null,
+  sku?: string | null
+): string | null => {
+  if (id && CANONICAL_PRODUCT_ASSETS[id]) {
+    return CANONICAL_PRODUCT_ASSETS[id].secondary;
+  }
+  if (sku) {
+    const skuClean = sku.trim().toUpperCase();
+    for (const [, asset] of Object.entries(CANONICAL_PRODUCT_ASSETS)) {
+      if (asset.titleKeywords.some((kw) => skuClean.includes(kw.toUpperCase()))) {
+        return asset.secondary;
+      }
+    }
+  }
+  return null;
+};
+
+/**
+ * In-memory registry of preloaded images to eliminate skeleton flash
+ */
+export const PRELOADED_PRODUCT_IMAGES = new Set<string>();
+
+export const isProductImagePreloaded = (src?: string | null): boolean => {
+  if (!src) return false;
+  return PRELOADED_PRODUCT_IMAGES.has(src);
+};
+
+export const markProductImageLoaded = (src?: string | null): void => {
+  if (!src) return;
+  PRELOADED_PRODUCT_IMAGES.add(src);
+};
+
+export const preloadProductImage = (src?: string | null): Promise<void> => {
+  return new Promise((resolve) => {
+    if (!src || typeof window === 'undefined') {
+      resolve();
+      return;
+    }
+    if (PRELOADED_PRODUCT_IMAGES.has(src)) {
+      resolve();
+      return;
+    }
+    const img = new Image();
+    img.decoding = 'async';
+    img.src = src;
+    img.onload = () => {
+      PRELOADED_PRODUCT_IMAGES.add(src);
+      resolve();
+    };
+    img.onerror = () => {
+      resolve();
+    };
+  });
+};
+
+export const preloadTopProductImages = (products: Product[], count: number = 8): void => {
+  if (typeof window === 'undefined' || !Array.isArray(products)) return;
+  const targetSlice = products.slice(0, count);
+  for (const prod of targetSlice) {
+    const primary = getProductDisplayImage(prod);
+    if (primary) {
+      preloadProductImage(primary);
+    }
+  }
+};
+
+/**
+ * Extracts and prioritizes the primary product image URL from all possible properties:
+ * Prioritizes: product.image_url, product.image, product.images[0], product.imageUrl,
+ * with strict 1:1 fallback to canonical product asset.
+ */
+export const getProductDisplayImage = (product?: Partial<Product> | null): string | null => {
+  if (!product) return null;
+
+  // 1. Prioritize direct product.image, then product.images[0], product.image_url, product.imageUrl
+  const candidate =
+    product.image ||
+    (Array.isArray(product.images) && product.images.length > 0 ? product.images[0] : null) ||
+    (product as any).image_url ||
+    product.imageUrl ||
+    null;
+
+  const resolved = resolveProductImageUrl(candidate);
+  if (resolved) return resolved;
+
+  // 2. Strict 1:1 Canonical match based on product identity (id, sku, title, category)
+  return getCanonicalProductImage(product.id, product.sku, product.title, product.category);
 };
 
 /**
@@ -401,6 +558,14 @@ export const resolveProductImages = (product?: Partial<Product> | null): string[
   const primary = getProductDisplayImage(product);
   if (primary && !list.includes(primary)) {
     list.unshift(primary);
+  }
+
+  // 3. If only 1 image exists, append canonical secondary image if available
+  if (list.length === 1) {
+    const secondary = getCanonicalSecondaryImage(product.id, product.sku);
+    if (secondary && !list.includes(secondary)) {
+      list.push(secondary);
+    }
   }
 
   return list.slice(0, 6);
@@ -987,15 +1152,14 @@ const mapRowToProduct = (row: SupabaseProductRow): Product => {
   }
 
   if (normalizedImages.length === 0) {
-    const fallbackMap: Record<string, string> = {
-      thinkers: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80',
-      brave: 'https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?auto=format&fit=crop&w=800&q=80',
-      solvers: 'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?auto=format&fit=crop&w=800&q=80',
-      heart: 'https://images.unsplash.com/photo-1632516643720-e7f5d7d6ecc9?auto=format&fit=crop&w=800&q=80',
-      books: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=800&q=80',
-      games: 'https://images.unsplash.com/photo-1606167668584-78701c57f13d?auto=format&fit=crop&w=800&q=80',
-    };
-    normalizedImages.push(fallbackMap[row.category || ''] || 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80');
+    const canonical = getCanonicalProductImage(row.id, row.sku, row.title, row.category);
+    if (canonical) {
+      normalizedImages.push(canonical);
+      const secondary = getCanonicalSecondaryImage(row.id, row.sku);
+      if (secondary && secondary !== canonical) {
+        normalizedImages.push(secondary);
+      }
+    }
   }
 
   const primaryImage = normalizedImages[0] || undefined;

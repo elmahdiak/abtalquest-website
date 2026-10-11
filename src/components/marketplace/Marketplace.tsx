@@ -22,6 +22,9 @@ import {
   recordProductView,
   getProductViewCounts,
   matchesAgeFilter,
+  preloadTopProductImages,
+  getProductDisplayImage,
+  preloadProductImage,
 } from '../../services/marketplaceService';
 import { supabase, isSupabaseConfigured } from '../../supabaseClient';
 import { incrementCouponUsage, type Coupon } from '../../services/couponService';
@@ -59,6 +62,13 @@ export const Marketplace: React.FC<MarketplaceProps> = ({
   const [isFromSupabase, setIsFromSupabase] = useState<boolean>(false);
   const [_supabaseStatus, setSupabaseStatus] = useState<SupabaseHealth | null>(null);
   const [adminOrders, setAdminOrders] = useState<AdminOrder[]>([]);
+
+  // Eagerly preload top product images for instant rendering without flashing
+  useEffect(() => {
+    if (products && products.length > 0) {
+      preloadTopProductImages(products, 8);
+    }
+  }, [products]);
 
   // Search, taxonomy, and filtering state
   const [searchTerm, setSearchTerm] = useState('');
@@ -524,6 +534,16 @@ export const Marketplace: React.FC<MarketplaceProps> = ({
     return rankedProducts.slice(0, 10);
   }, [products, adminOrders]);
 
+  // Eagerly preload trending product images immediately as soon as ranked
+  useEffect(() => {
+    if (trendingProducts && trendingProducts.length > 0) {
+      trendingProducts.forEach((p) => {
+        const img = getProductDisplayImage(p);
+        if (img) preloadProductImage(img);
+      });
+    }
+  }, [trendingProducts]);
+
   // Product counts per developmental age bracket
   const ageCounts = useMemo(() => {
     const counts: Record<string, number> = {
@@ -739,8 +759,8 @@ export const Marketplace: React.FC<MarketplaceProps> = ({
           />
         </main>
       ) : (
-        <main className="max-w-7xl 2xl:max-w-[1600px] mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-10 space-y-8 sm:space-y-12 flex-1 w-full">
-          {/* 1. Promotional Banners Carousel */}
+        <main className="flex-1 w-full flex flex-col">
+          {/* 1. Full-Width Edge-to-Edge Hero Banner Carousel */}
           <MarketplaceBannerCarousel
             onFilterPlanet={(planet) => {
               setSelectedPlanet(planet);
@@ -748,7 +768,9 @@ export const Marketplace: React.FC<MarketplaceProps> = ({
             }}
           />
 
-          {/* 3. 🔥 Trending Now Section */}
+          {/* Catalog Content Container */}
+          <div className="max-w-7xl 2xl:max-w-[1600px] mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-10 space-y-8 sm:space-y-12 flex-1 w-full">
+            {/* 3. 🔥 Trending Now Section */}
           {trendingProducts.length > 0 && !searchTerm.trim() && (
             <MarketplaceTrendingCarousel
               products={trendingProducts}
@@ -804,8 +826,9 @@ export const Marketplace: React.FC<MarketplaceProps> = ({
             user={user}
             onOpenAuth={onOpenAuth}
           />
-        </main>
-      )}
+        </div>
+      </main>
+    )}
 
       {/* 5. Slide-Out Taxonomy Drawer */}
       <MarketplaceTaxonomyDrawer

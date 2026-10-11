@@ -39,11 +39,23 @@ export const ScrollToTopButton: React.FC<ScrollToTopButtonProps> = ({
     onClick?.();
   }, [onClick]);
 
+  // Detect if a modal or drawer is open (via body overflow hidden) to avoid any collision
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  useEffect(() => {
+    const checkModalState = () => {
+      setIsModalOpen(document.body.style.overflow === 'hidden');
+    };
+    checkModalState();
+    const observer = new MutationObserver(checkModalState);
+    observer.observe(document.body, { attributes: true, attributeFilter: ['style'] });
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <div
       className={cn(
         "fixed right-4 bottom-4 sm:right-6 sm:bottom-6 z-50 transition-all duration-300 ease-out",
-        isVisible
+        isVisible && !isModalOpen
           ? "opacity-100 translate-y-0 scale-100 pointer-events-auto"
           : "opacity-0 translate-y-4 scale-90 pointer-events-none",
         className

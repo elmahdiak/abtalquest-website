@@ -9,7 +9,7 @@ import {
   ArrowRight
 } from 'lucide-react';
 import type { Product } from '../../services/marketplaceService';
-import { formatPrice } from '../../services/marketplaceService';
+import { formatPrice, getProductDisplayImage } from '../../services/marketplaceService';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 import { useLanguage } from '../../context/LanguageContext';
 import { cn } from '../../lib/utils';
@@ -163,7 +163,7 @@ export const MarketplaceHeader: React.FC<MarketplaceHeaderProps> = ({
               <div className="absolute top-full left-0 right-0 mt-1.5 bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 overflow-hidden z-40 animate-in fade-in-50 duration-150">
                 <div className="p-2 border-b border-slate-100 dark:border-slate-700/60 bg-slate-50 dark:bg-slate-800/50 flex items-center justify-between text-xs font-semibold text-slate-500 dark:text-slate-400 px-3">
                   <span>{t('marketplace.quick_results')}</span>
-                  <span>{quickResults.length} matches</span>
+                  <span>{t('marketplace.matches_count', { count: quickResults.length })}</span>
                 </div>
 
                 {quickResults.length > 0 ? (
@@ -178,12 +178,21 @@ export const MarketplaceHeader: React.FC<MarketplaceHeaderProps> = ({
                         }}
                         className="w-full text-start p-3 hover:bg-slate-50 dark:hover:bg-slate-700/40 flex items-center gap-3 transition-colors group cursor-pointer"
                       >
-                        <div className={cn(
-                          "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 text-base font-bold",
-                          product.iconBg || 'bg-blue-100 text-blue-700'
-                        )}>
-                          {product.title.charAt(0)}
-                        </div>
+                        {(() => {
+                          const thumb = getProductDisplayImage(product);
+                          return (
+                            <div className={cn(
+                              "w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center shrink-0 text-base font-bold border border-slate-200/80 dark:border-slate-700/80 shadow-sm",
+                              !thumb && (product.iconBg || 'bg-blue-100 text-blue-700')
+                            )}>
+                              {thumb ? (
+                                <img src={thumb} alt={product.title} className="w-full h-full object-cover" />
+                              ) : (
+                                product.title.charAt(0)
+                              )}
+                            </div>
+                          );
+                        })()}
 
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-semibold text-slate-900 dark:text-white truncate group-hover:text-[#016ba5] dark:group-hover:text-[#0284c7] transition-colors">

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
   Star, 
   Heart, 
@@ -9,7 +9,13 @@ import {
   AlertCircle,
   Flame,
 } from 'lucide-react';
-import { formatPrice, getProductDisplayImage, type Product } from '../../services/marketplaceService';
+import { 
+  formatPrice, 
+  getProductDisplayImage, 
+  getCanonicalProductImage,
+  markProductImageLoaded,
+  type Product 
+} from '../../services/marketplaceService';
 import { useLanguage } from '../../context/LanguageContext';
 import { cn } from '../../lib/utils';
 
@@ -21,6 +27,7 @@ export interface MarketplaceProductCardProps {
   isWishlisted: boolean;
   isInCart?: boolean;
   trendingRank?: number;
+  priority?: boolean;
 }
 
 export const MarketplaceProductCard: React.FC<MarketplaceProductCardProps> = ({
@@ -31,32 +38,51 @@ export const MarketplaceProductCard: React.FC<MarketplaceProductCardProps> = ({
   isWishlisted,
   isInCart = false,
   trendingRank,
+  priority = false,
 }) => {
   const { t, language } = useLanguage();
   const [justAdded, setJustAdded] = useState(false);
 
-  // Directly retrieve and resolve high-resolution product photography
+  // Synchronously determine primary image directly during render - eliminates stale state & array index shifts
   const primaryImage = getProductDisplayImage(product);
-  const [activeImage, setActiveImage] = useState<string | null>(primaryImage);
-  const [isLoaded, setIsLoaded] = useState(false);
-  const [hasError, setHasError] = useState(false);
 
-  useEffect(() => {
-    const nextImg = getProductDisplayImage(product);
-    setActiveImage(nextImg);
-    setIsLoaded(false);
-    setHasError(false);
-  }, [product]);
+  // Scoped error/fallback states tied strictly to product.id so state never bleeds across index shifts
+  const [fallbackState, setFallbackState] = useState<{ id: string; src: string } | null>(null);
+  const [errorState, setErrorState] = useState<{ id: string } | null>(null);
+
+  const activeImage =
+    (fallbackState?.id === product.id ? fallbackState.src : null) ||
+    primaryImage;
+
+  const hasError = errorState?.id === product.id;
+
+  const handleImageLoad = () => {
+    if (activeImage) {
+      markProductImageLoaded(activeImage);
+    }
+  };
 
   const handleImageError = () => {
-    // If the image fails, seamlessly fallback to verified real product photography
-    const fallbackPhoto = 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80';
-    if (activeImage !== fallbackPhoto) {
-      setActiveImage(fallbackPhoto);
-      setIsLoaded(false);
-    } else {
-      setHasError(true);
+    // 1. Try secondary product image if available
+    if (Array.isArray(product.images) && product.images.length > 1) {
+      const nextSecondary = product.images.find(
+        (img) => typeof img === 'string' && img.trim().length > 0 && img !== activeImage
+      );
+      if (nextSecondary) {
+        setFallbackState({ id: product.id, src: nextSecondary });
+        return;
+      }
     }
+
+    // 2. Fall back to dedicated canonical image for this exact product
+    const canonical = getCanonicalProductImage(product.id, product.sku, product.title, product.category);
+    if (canonical && canonical !== activeImage) {
+      setFallbackState({ id: product.id, src: canonical });
+      return;
+    }
+
+    // 3. Mark hasError for this specific product ID to display clean, branded fallback placeholder
+    setErrorState({ id: product.id });
   };
 
   const handleAddToCart = (e: React.MouseEvent) => {
@@ -79,27 +105,29 @@ export const MarketplaceProductCard: React.FC<MarketplaceProductCardProps> = ({
       {/* Visual Top Preview Container: clean neutral background without abstract spheres */}
       <div className="relative w-full pt-[65%] sm:pt-[70%] bg-slate-100 dark:bg-slate-850 overflow-hidden">
         
-        {/* Real Product Image Preview (directly visible without opacity-0 trap) */}
+        {/* Real Product Image Preview with Eager / Priority Optimization */}
         {activeImage && !hasError ? (
           <img
-            key={activeImage}
+            key={`${product.id}-${activeImage}`}
+            ref={(node) => {
+              if (node && node.complete && node.naturalWidth > 0 && activeImage) {
+                markProductImageLoaded(activeImage);
+              }
+            }}
             src={activeImage}
             alt={product.title}
-            loading={trendingRank && trendingRank <= 4 ? "eager" : "lazy"}
-            decoding="async"
-            onLoad={() => setIsLoaded(true)}
+            loading={priority || trendingRank !== undefined ? "eager" : "lazy"}
+            fetchPriority={priority || trendingRank !== undefined ? "high" : "auto"}
+            decoding={priority || trendingRank !== undefined ? "sync" : "async"}
+            onLoad={handleImageLoad}
             onError={handleImageError}
             className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
           />
         ) : (
-          <div className="absolute inset-0 flex items-center justify-center bg-slate-100 dark:bg-slate-800 text-slate-400 p-4 text-center">
-            <span className="text-xs font-semibold">{product.title}</span>
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-100 dark:bg-slate-800 p-4 text-center">
+            <span className="text-xs font-bold text-slate-800 dark:text-slate-200 line-clamp-2 px-2">{product.title}</span>
+            <span className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold mt-1">{product.planetName}</span>
           </div>
-        )}
-
-        {/* Clean, lightweight skeleton loader ONLY while actively fetching image */}
-        {activeImage && !hasError && !isLoaded && (
-          <div className="absolute inset-0 bg-slate-200/70 dark:bg-slate-700/70 animate-pulse pointer-events-none transition-opacity duration-300" />
         )}
 
         {/* Soft vignette overlay on real image for badge contrast */}
@@ -219,7 +247,7 @@ export const MarketplaceProductCard: React.FC<MarketplaceProductCardProps> = ({
         {/* Parents requested indicator matching PDF */}
         <div className="mb-2 sm:mb-2.5 flex items-center gap-1 text-[11px] font-bold text-slate-500 dark:text-slate-400">
           <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#fa8221]" />
-          <span>{((product as any).requestedCount || (product.reviewsCount ? product.reviewsCount * 4 + 18 : 188))} parents requested</span>
+          <span>{t('marketplace.parents_requested', { count: ((product as any).requestedCount || (product.reviewsCount ? product.reviewsCount * 4 + 18 : 188)) })}</span>
         </div>
 
         {/* Stock status indicator */}
@@ -273,7 +301,7 @@ export const MarketplaceProductCard: React.FC<MarketplaceProductCardProps> = ({
             className="w-full inline-flex items-center justify-center gap-1 py-1.5 sm:py-2 px-1 sm:px-3 rounded-lg sm:rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-100 text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-all active:scale-95 cursor-pointer min-h-[34px] sm:min-h-[38px]"
           >
             <Eye className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />
-            <span className="truncate">VIEW PRODUCT</span>
+            <span className="truncate">{t('marketplace.btn_view_product') || 'VIEW PRODUCT'}</span>
           </button>
 
           <button
@@ -289,12 +317,12 @@ export const MarketplaceProductCard: React.FC<MarketplaceProductCardProps> = ({
             {justAdded ? (
               <>
                 <Check className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />
-                <span className="truncate">Added!</span>
+                <span className="truncate">{t('marketplace.added_label') || 'Added!'}</span>
               </>
             ) : isInCart ? (
               <>
                 <Check className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />
-                <span className="truncate">In Cart</span>
+                <span className="truncate">{t('marketplace.in_cart_label') || 'In Cart'}</span>
               </>
             ) : (
               <>

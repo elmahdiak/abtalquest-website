@@ -64,11 +64,11 @@ export const MarketplaceCartDrawer: React.FC<MarketplaceCartDrawerProps> = ({
   const progressPercent = Math.min(100, Math.round((subtotal / freeShippingThreshold) * 100));
 
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-[70] overflow-hidden bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="absolute inset-0" onClick={onClose} />
 
       <div className={cn(
-        "fixed inset-y-0 max-w-full flex z-50",
+        "fixed inset-y-0 max-w-full flex z-[70]",
         direction === 'rtl' ? 'left-0' : 'right-0'
       )}>
         <div 

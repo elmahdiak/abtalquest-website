@@ -63,10 +63,23 @@ export const FloatingCartButton: React.FC<FloatingCartButtonProps> = ({
 
   const itemCount = cartCountOverride !== undefined ? cartCountOverride : internalCount;
 
+  // Detect if a modal or drawer is open (via body overflow hidden) to avoid any collision
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  useEffect(() => {
+    const checkModalState = () => {
+      setIsModalOpen(document.body.style.overflow === 'hidden');
+    };
+    checkModalState();
+    const observer = new MutationObserver(checkModalState);
+    observer.observe(document.body, { attributes: true, attributeFilter: ['style'] });
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <div
       className={cn(
         "fixed right-4 bottom-20 sm:right-6 sm:bottom-24 z-50 transition-all duration-300 ease-out",
+        isModalOpen ? "opacity-0 pointer-events-none scale-90 translate-y-4" : "opacity-100 pointer-events-auto scale-100 translate-y-0",
         className
       )}
     >

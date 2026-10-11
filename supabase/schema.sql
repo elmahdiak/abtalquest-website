@@ -441,19 +441,23 @@ SET role = 'super_admin', is_super_admin = TRUE, full_name = 'ElMahdi Ak';
 -- 5. SEED DATA: 8 Official AbtalQuest Products
 -- ==============================================================================
 INSERT INTO public.products (
-  id, title, category, planet_name, product_type, age_group, age_label,
-  price, xp_bonus, rating, reviews_count, short_description, full_description,
-  icon_bg, accent_color, tags, safety_guidelines, skills_learned, reviews
+  id, sku, title, category, planet_name, product_type, age_group, age_label,
+  price, original_price, discount_percent, xp_bonus, rating, reviews_count, short_description, full_description,
+  icon_bg, accent_color, tags, safety_guidelines, skills_learned, reviews,
+  images, image_url
 ) VALUES
 (
   'prod-1',
+  'AQ-THK-101',
   'Thinkers'' Clockwork Waterwheel Kit',
   'thinkers',
   'Thinkers'' Planet',
   'Physical Kit',
-  '9-11',
-  'Ages 9–11',
-  29.99,
+  '11-12',
+  '11–12 yo',
+  320.00,
+  420.00,
+  24,
   400,
   4.9,
   42,
@@ -488,17 +492,25 @@ INSERT INTO public.products (
       "date": "Feb 18, 2026",
       "comment": "Top-tier craftsmanship. The gears turn with a satisfying smooth click. Wonderful addition to our science and values lessons."
     }
-  ]'::jsonb
+  ]'::jsonb,
+  ARRAY[
+    'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1537462715879-360eeb61a0ad?auto=format&fit=crop&w=800&q=80'
+  ],
+  'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80'
 ),
 (
   'prod-2',
+  'AQ-THK-102',
   'The Scribe of Wisdom Illustrated Chronicle',
   'thinkers',
   'Thinkers'' Planet',
   'Storybook',
-  '6-8',
-  'Ages 6–8',
-  18.50,
+  '5-6',
+  '5–6 yo',
+  190.00,
+  240.00,
+  21,
   250,
   4.8,
   38,
@@ -526,17 +538,25 @@ INSERT INTO public.products (
       "date": "Jan 29, 2026",
       "comment": "The narrative voice is poetic yet thoroughly engaging. The dialogue between characters demonstrates genuine respect and humility."
     }
-  ]'::jsonb
+  ]'::jsonb,
+  ARRAY[
+    'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=800&q=80'
+  ],
+  'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=800&q=80'
 ),
 (
   'prod-3',
-  'Mount Sabr Trail Compass & Weather Journal',
+  'AQ-EXP-299',
+  'Explorer Mission Kit: Trail Compass & Field Journal',
   'brave',
   'Brave Planet',
-  'Quest Gear',
-  '6-8',
-  'Ages 6–8',
-  24.00,
+  'Physical Kit',
+  '7-10',
+  '7–10 yo',
+  299.00,
+  399.00,
+  25,
   350,
   5.0,
   64,
@@ -564,17 +584,25 @@ INSERT INTO public.products (
       "date": "March 10, 2026",
       "comment": "Unbelievable build quality. We took it into the Rocky Mountains; my daughter tracked our entire 4-mile loop and proudly filled her journal."
     }
-  ]'::jsonb
+  ]'::jsonb,
+  ARRAY[
+    'https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1508873696983-2df5703bc225?auto=format&fit=crop&w=800&q=80'
+  ],
+  'https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?auto=format&fit=crop&w=800&q=80'
 ),
 (
   'prod-4',
+  'AQ-BRV-202',
   'The Resilience Sand-Timer & Calm Chamber',
   'brave',
   'Brave Planet',
   'Learning Tool',
-  '6-8',
-  'Ages 6–8',
-  16.00,
+  '7-10',
+  '7–10 yo',
+  160.00,
+  200.00,
+  20,
   200,
   4.7,
   29,
@@ -602,17 +630,25 @@ INSERT INTO public.products (
       "date": "Feb 5, 2026",
       "comment": "I prescribe this to families dealing with emotional dysregulation. Having a concrete, beautiful anchor transforms temper tantrums into self-calming."
     }
-  ]'::jsonb
+  ]'::jsonb,
+  ARRAY[
+    'https://images.unsplash.com/photo-1518241353330-0f7941c2d9b5?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1509198397868-475647b2a1e5?auto=format&fit=crop&w=800&q=80'
+  ],
+  'https://images.unsplash.com/photo-1518241353330-0f7941c2d9b5?auto=format&fit=crop&w=800&q=80'
 ),
 (
   'prod-5',
+  'AQ-SLV-301',
   'Hydraulic Aquifer Robotic Sluice Arm',
   'solvers',
   'Solvers'' Planet',
   'Physical Kit',
-  '12+',
-  'Ages 12+',
-  36.50,
+  '13+',
+  '+13 yo',
+  480.00,
+  620.00,
+  23,
   500,
   4.9,
   51,
@@ -640,17 +676,25 @@ INSERT INTO public.products (
       "date": "March 12, 2026",
       "comment": "Remarkably accurate kinematic linkages for a wood and syringe kit. It teaches fluid power far better than an animated computer app ever could."
     }
-  ]'::jsonb
+  ]'::jsonb,
+  ARRAY[
+    'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1563770660941-20978e870e26?auto=format&fit=crop&w=800&q=80'
+  ],
+  'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?auto=format&fit=crop&w=800&q=80'
 ),
 (
   'prod-6',
+  'AQ-SLV-302',
   'Labyrinth Logic Algorithm Card Deck',
   'solvers',
   'Solvers'' Planet',
   'Family Game',
-  '9-11',
-  'Ages 9–11',
-  22.00,
+  '11-12',
+  '11–12 yo',
+  220.00,
+  280.00,
+  21,
   320,
   4.8,
   33,
@@ -678,17 +722,25 @@ INSERT INTO public.products (
       "date": "Feb 22, 2026",
       "comment": "The finest unplugged computational thinking game on the market. It intuitively grounds concepts like recursion and condition checks in cooperative narrative."
     }
-  ]'::jsonb
+  ]'::jsonb,
+  ARRAY[
+    'https://images.unsplash.com/photo-1606167668584-78701c57f13d?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1610890716171-6b1bb98ffd09?auto=format&fit=crop&w=800&q=80'
+  ],
+  'https://images.unsplash.com/photo-1606167668584-78701c57f13d?auto=format&fit=crop&w=800&q=80'
 ),
 (
   'prod-7',
-  'The Caravan of Kindness Cooperative Game',
+  'AQ-FAM-349',
+  'Family Quest: The Caravan of Kindness Cooperative Game',
   'heart',
   'Heart Planet',
   'Family Game',
-  '6-8',
-  'Ages 6–8',
-  34.00,
+  '7-10',
+  '7–10 yo',
+  349.00,
+  449.00,
+  22,
   450,
   5.0,
   77,
@@ -716,17 +768,25 @@ INSERT INTO public.products (
       "date": "March 15, 2026",
       "comment": "Our Friday game night used to end in sibling squabbles over Monopoly. Caravan of Kindness has them clapping and scheming together to help the villagers. Simply priceless."
     }
-  ]'::jsonb
+  ]'::jsonb,
+  ARRAY[
+    'https://images.unsplash.com/photo-1632516643720-e7f5d7d6ecc9?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1610890716171-6b1bb98ffd09?auto=format&fit=crop&w=800&q=80'
+  ],
+  'https://images.unsplash.com/photo-1632516643720-e7f5d7d6ecc9?auto=format&fit=crop&w=800&q=80'
 ),
 (
   'prod-8',
+  'AQ-HRT-402',
   'The Gratitude Lantern & Friendship Scroll Craft',
   'heart',
   'Heart Planet',
   'Physical Kit',
-  '6-8',
-  'Ages 6–8',
-  19.99,
+  '5-6',
+  '5–6 yo',
+  210.00,
+  270.00,
+  22,
   280,
   4.9,
   45,
@@ -754,11 +814,23 @@ INSERT INTO public.products (
       "date": "Jan 14, 2026",
       "comment": "My grandson gifted me one of the completed scrolls with a message that melted my heart. It now sits by my reading desk as a constant reminder of our bond."
     }
-  ]'::jsonb
+  ]'::jsonb,
+  ARRAY[
+    'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1579783902614-a3fb3927b675?auto=format&fit=crop&w=800&q=80'
+  ],
+  'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&w=800&q=80'
 )
 ON CONFLICT (id) DO UPDATE SET
+  sku = EXCLUDED.sku,
   title = EXCLUDED.title,
   price = EXCLUDED.price,
+  original_price = EXCLUDED.original_price,
+  discount_percent = EXCLUDED.discount_percent,
+  age_group = EXCLUDED.age_group,
+  age_label = EXCLUDED.age_label,
+  images = EXCLUDED.images,
+  image_url = EXCLUDED.image_url,
   short_description = EXCLUDED.short_description,
   full_description = EXCLUDED.full_description,
   skills_learned = EXCLUDED.skills_learned,

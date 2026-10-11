@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { Flame, ChevronLeft, ChevronRight, TrendingUp } from 'lucide-react';
-import { type Product } from '../../services/marketplaceService';
+import { type Product, getProductDisplayImage, preloadProductImage } from '../../services/marketplaceService';
 import { MarketplaceProductCard } from './MarketplaceProductCard';
 import { useLanguage } from '../../context/LanguageContext';
 import { cn } from '../../lib/utils';
@@ -68,6 +68,18 @@ export const MarketplaceTrendingCarousel: React.FC<MarketplaceTrendingCarouselPr
       window.removeEventListener('resize', checkScrollBoundaries);
     };
   }, [checkScrollBoundaries, products.length]);
+
+  // Eagerly preload all trending products photography on mount and whenever trending items update
+  useEffect(() => {
+    if (products && products.length > 0) {
+      products.forEach((prod) => {
+        const img = getProductDisplayImage(prod);
+        if (img) {
+          preloadProductImage(img);
+        }
+      });
+    }
+  }, [products]);
 
   // Smooth scroll by ~1 card width on navigation button click
   const scrollByAmount = (direction: 'prev' | 'next') => {
@@ -164,7 +176,7 @@ export const MarketplaceTrendingCarousel: React.FC<MarketplaceTrendingCarouselPr
         >
           {products.map((product, idx) => (
             <div
-              key={product.id || idx}
+              key={`trending-slot-${product.id || idx}`}
               /* 
                 Math for Teaser Effect:
                 On mobile: gap is 12px (2 gaps = 24px). Width = calc((100% - 24px) / 2.25)
@@ -174,8 +186,10 @@ export const MarketplaceTrendingCarousel: React.FC<MarketplaceTrendingCarouselPr
               className="flex-none snap-start w-[calc((100%-24px)/2.25)] sm:w-[calc((100%-32px)/2.25)] select-none transition-transform"
             >
               <MarketplaceProductCard
+                key={`trending-card-${product.id}`}
                 product={product}
                 trendingRank={idx + 1}
+                priority={true}
                 onSelectProduct={onSelectProduct}
                 onAddToCart={onAddToCart}
                 onToggleWishlist={onToggleWishlist}

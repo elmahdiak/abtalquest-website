@@ -214,7 +214,7 @@ export const MarketplaceProductGrid: React.FC<MarketplaceProductGridProps> = ({
           {/* Sort selector */}
           <div className="flex items-center gap-1.5">
             <label htmlFor="grid-sort" className="text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">
-              Sort:
+              {t('marketplace.sort_label') || 'Sort:'}
             </label>
             <div className="relative">
               <select
@@ -223,10 +223,10 @@ export const MarketplaceProductGrid: React.FC<MarketplaceProductGridProps> = ({
                 onChange={(e) => onSortChange(e.target.value as any)}
                 className="py-1.5 sm:py-2 px-2.5 sm:px-3 pr-7 sm:pr-8 rounded-xl text-xs font-bold bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 outline-none focus:border-[#016ba5] cursor-pointer shadow-sm"
               >
-                <option value="featured">Featured</option>
-                <option value="price-asc">Price: Low to High</option>
-                <option value="price-desc">Price: High to Low</option>
-                <option value="xp-desc">Most XP Bonus</option>
+                <option value="featured">{t('marketplace.sort_featured') || 'Featured'}</option>
+                <option value="price-asc">{t('marketplace.sort_price_asc') || 'Price: Low to High'}</option>
+                <option value="price-desc">{t('marketplace.sort_price_desc') || 'Price: High to Low'}</option>
+                <option value="xp-desc">{t('marketplace.sort_xp_desc') || 'Most XP Bonus'}</option>
               </select>
             </div>
           </div>
@@ -255,10 +255,11 @@ export const MarketplaceProductGrid: React.FC<MarketplaceProductGridProps> = ({
       ) : products.length > 0 ? (
         /* Product Cards Grid: 2 cols on mobile, 3 on tablet, 4 on laptop, 5 on desktop */
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2.5 sm:gap-4 md:gap-5 lg:gap-6">
-          {products.map((product) => (
+          {products.map((product, index) => (
             <MarketplaceProductCard
               key={product.id}
               product={product}
+              priority={index < 8}
               onSelectProduct={onSelectProduct}
               onAddToCart={onAddToCart}
               onToggleWishlist={onToggleWishlist}

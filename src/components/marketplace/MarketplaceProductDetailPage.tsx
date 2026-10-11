@@ -167,12 +167,12 @@ export const MarketplaceProductDetailPage: React.FC<MarketplaceProductDetailPage
             {copiedLink ? (
               <>
                 <Check className="w-3.5 h-3.5 text-emerald-500" />
-                <span className="text-emerald-600 dark:text-emerald-400 font-bold">Link Copied!</span>
+                <span className="text-emerald-600 dark:text-emerald-400 font-bold">{t('marketplace.link_copied')}</span>
               </>
             ) : (
               <>
                 <Share2 className="w-3.5 h-3.5 text-[#016ba5] dark:text-[#38bdf8]" />
-                <span>Share</span>
+                <span>{t('marketplace.share_label')}</span>
               </>
             )}
           </button>
@@ -289,7 +289,7 @@ export const MarketplaceProductDetailPage: React.FC<MarketplaceProductDetailPage
 
             {/* Stock Level Banner */}
             <div className="text-xs font-semibold flex items-center justify-between">
-              <span className="text-slate-500 dark:text-slate-400">Availability:</span>
+              <span className="text-slate-500 dark:text-slate-400">{t('marketplace.availability_label')}</span>
               {product.inStock !== false ? (
                 product.stockCount && product.stockCount < 5 ? (
                   <span className="text-amber-600 font-bold">
@@ -381,7 +381,7 @@ export const MarketplaceProductDetailPage: React.FC<MarketplaceProductDetailPage
               </div>
 
               <div className="text-xs font-bold text-slate-500 flex items-center justify-between">
-                <span>Total Due:</span>
+                <span>{t('marketplace.total_due_label')}</span>
                 <span className="text-slate-900 dark:text-white font-extrabold">
                   = {totalPrice} (+{totalXp} XP)
                 </span>
@@ -403,7 +403,7 @@ export const MarketplaceProductDetailPage: React.FC<MarketplaceProductDetailPage
                 {justAdded ? (
                   <>
                     <Check className="w-5 h-5" />
-                    <span>Added to Cart!</span>
+                    <span>{t('marketplace.added_to_cart_msg')}</span>
                   </>
                 ) : (
                   <>
@@ -432,7 +432,7 @@ export const MarketplaceProductDetailPage: React.FC<MarketplaceProductDetailPage
             {/* Fast Tracked Delivery Guarantee */}
             <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 text-[11px] text-slate-600 dark:text-slate-300 flex items-center gap-2">
               <Truck className="w-4 h-4 text-[#016ba5] shrink-0" />
-              <span>Fast 24–48h tracked courier delivery across all Moroccan cities.</span>
+              <span>{t('marketplace.fast_delivery_note')}</span>
             </div>
 
           </div>
