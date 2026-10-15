@@ -1,11 +1,10 @@
 import React from 'react';
-import { Check, Database, CreditCard, Banknote, ShieldCheck } from 'lucide-react';
+import { Check, Database, Banknote, ShieldCheck } from 'lucide-react';
 import Badge from '../common/Badge';
 import Button from '../common/Button';
 import type { OrderConfirmation } from '../../services/marketplaceService';
 import { formatPrice } from '../../services/marketplaceService';
 import { useLanguage } from '../../context/LanguageContext';
-import { cn } from '../../lib/utils';
 
 export interface MarketplaceConfirmationModalProps {
   orderConfirmation: OrderConfirmation | null;
@@ -19,8 +18,6 @@ export const MarketplaceConfirmationModal: React.FC<MarketplaceConfirmationModal
   const { t, direction, language } = useLanguage();
 
   if (!orderConfirmation) return null;
-
-  const isPayzone = orderConfirmation.paymentMethod === 'payzone';
 
   return (
     <div 
@@ -48,15 +45,11 @@ export const MarketplaceConfirmationModal: React.FC<MarketplaceConfirmationModal
           {t('marketplace.order_confirmed_desc')}
         </p>
 
-        {/* Payment Specific Notification Box */}
-        <div className="p-3.5 rounded-2xl bg-blue-50/80 dark:bg-[#071D33] border border-blue-100 dark:border-blue-900/50 text-left mb-5 flex items-start gap-2.5">
-          {isPayzone ? (
-            <CreditCard className="w-4 h-4 text-[#016ba5] dark:text-[#38BDF8] flex-shrink-0 mt-0.5" />
-          ) : (
-            <Banknote className="w-4 h-4 text-emerald-600 dark:text-emerald-400 flex-shrink-0 mt-0.5" />
-          )}
+        {/* Payment Specific Notification Box: Exclusive COD */}
+        <div className="p-3.5 rounded-2xl bg-emerald-50/80 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/50 text-left mb-5 flex items-start gap-2.5">
+          <Banknote className="w-4 h-4 text-emerald-600 dark:text-emerald-400 flex-shrink-0 mt-0.5" />
           <p className="text-[11px] font-body text-slate-700 dark:text-slate-300 leading-relaxed">
-            {isPayzone ? t('marketplace.order_payzone_note') : t('marketplace.order_cod_note')}
+            {t('marketplace.order_cod_note')}
           </p>
         </div>
 
@@ -71,40 +64,17 @@ export const MarketplaceConfirmationModal: React.FC<MarketplaceConfirmationModal
           <div className="flex justify-between items-center text-xs font-body">
             <span className="text-slate-500 dark:text-slate-400">{t('marketplace.order_payment_method_label')}</span>
             <span className="font-headline font-bold text-xs text-slate-800 dark:text-slate-100 flex items-center gap-1">
-              {isPayzone ? (
-                <>
-                  <CreditCard className="w-3.5 h-3.5 text-[#016ba5] dark:text-[#38BDF8]" />
-                  Payzone / CMI
-                </>
-              ) : (
-                <>
-                  <Banknote className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                  Cash on Delivery (COD)
-                </>
-              )}
+              <Banknote className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+              {t('marketplace.checkout_cod_title')}
             </span>
           </div>
 
           <div className="flex justify-between items-center text-xs font-body">
             <span className="text-slate-500 dark:text-slate-400">{t('marketplace.order_payment_status_label')}</span>
-            <span className={cn(
-              "px-2 py-0.5 rounded-full text-[10px] font-bold",
-              isPayzone
-                ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300"
-                : "bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300"
-            )}>
-              {isPayzone ? t('marketplace.order_status_paid') : t('marketplace.order_status_pending_cod')}
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300">
+              {t('marketplace.order_status_pending_cod')}
             </span>
           </div>
-
-          {orderConfirmation.paymentRef && (
-            <div className="flex justify-between items-center text-xs font-body">
-              <span className="text-slate-500 dark:text-slate-400">{t('marketplace.order_payment_ref_label')}</span>
-              <strong className="font-mono text-[11px] text-[#016ba5] dark:text-[#38BDF8] tracking-wider">
-                {orderConfirmation.paymentRef}
-              </strong>
-            </div>
-          )}
 
           <div className="flex justify-between items-center text-xs font-body">
             <span className="text-slate-500 dark:text-slate-400">{t('marketplace.order_total_paid')}</span>

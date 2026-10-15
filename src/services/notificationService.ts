@@ -144,15 +144,14 @@ export async function fetchAdminNotifications(
     const notifId = `order_${order.id}`;
     if (!dismissedIds.has(notifId)) {
       const isFailed = order.status === 'cancelled' || order.paymentStatus === 'failed';
-      const isPayzone = order.paymentMethod === 'payzone';
       
       notifications.push({
         id: notifId,
         type: isFailed ? 'payment_failed' : 'order',
         title: isFailed
-          ? `Échec de paiement: #${order.id.slice(0, 8)}`
+          ? `Échec de commande: #${order.id.slice(0, 8)}`
           : `Nouvelle commande: #${order.id.slice(0, 8)}`,
-        message: `${order.customerName} a passé commande (${order.items.length} article${order.items.length > 1 ? 's' : ''}) • ${order.totalAmount} MAD via ${isPayzone ? 'Carte (Payzone)' : 'Paiement à la livraison'}`,
+        message: `${order.customerName} a passé commande (${order.items.length} article${order.items.length > 1 ? 's' : ''}) • ${order.totalAmount} MAD (Paiement à la livraison)`,
         timestamp: order.createdAt || new Date().toISOString(),
         isRead: readIds.has(notifId),
         linkTab: 'orders',
@@ -270,12 +269,11 @@ export function setupRealtimeNotificationSubscriptions(
       (payload) => {
         const row = payload.new as any;
         if (row) {
-          const isPayzone = row.payment_method === 'payzone';
           const notif: AdminNotification = {
             id: `order_${row.id}`,
             type: 'order',
             title: `Nouvelle commande #${String(row.id).slice(0, 8)}`,
-            message: `${row.customer_name || 'Un client'} a passé commande • ${row.total_amount || 0} MAD (${isPayzone ? 'Payzone' : 'Paiement à la livraison'})`,
+            message: `${row.customer_name || 'Un client'} a passé commande • ${row.total_amount || 0} MAD (Paiement à la livraison)`,
             timestamp: row.created_at || new Date().toISOString(),
             isRead: false,
             linkTab: 'orders',

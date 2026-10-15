@@ -38,7 +38,6 @@ import { MarketplaceTaxonomyDrawer } from './MarketplaceTaxonomyDrawer';
 import { MarketplaceWishlistDrawer } from './MarketplaceWishlistDrawer';
 import { MarketplaceCartDrawer } from './MarketplaceCartDrawer';
 import { MarketplaceCheckoutModal, type CheckoutFormData } from './MarketplaceCheckoutModal';
-import { PayzoneHostedModal } from './PayzoneHostedModal';
 import { MarketplaceConfirmationModal } from './MarketplaceConfirmationModal';
 import { MarketplaceFooter } from './MarketplaceFooter';
 import { PersonalProductGuide } from './PersonalProductGuide';
@@ -169,24 +168,6 @@ export const Marketplace: React.FC<MarketplaceProps> = ({
     country: 'Morocco',
   });
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
-  const [isPayzoneModalOpen, setIsPayzoneModalOpen] = useState(false);
-  const [pendingPayzoneInput, setPendingPayzoneInput] = useState<{
-    userId?: string;
-    customerName: string;
-    customerEmail: string;
-    shippingAddress: string;
-    city: string;
-    postalCode: string;
-    country: string;
-    items: any[];
-    subtotal: number;
-    shippingCost: number;
-    totalAmount: number;
-    totalXp: number;
-    cndpConsent: boolean;
-    couponCode?: string;
-    discountAmount?: number;
-  } | null>(null);
 
   // Auto-fill user credentials when signed in
   useEffect(() => {
@@ -592,7 +573,6 @@ export const Marketplace: React.FC<MarketplaceProps> = ({
   // Checkout submission
   const handleSubmitOrder = async (
     e: React.FormEvent,
-    paymentMethod: 'cod' | 'payzone' = 'cod',
     cndpConsent: boolean = true,
     appliedCoupon?: Coupon | null,
     discountAmount: number = 0
@@ -645,14 +625,6 @@ export const Marketplace: React.FC<MarketplaceProps> = ({
       discountAmount: discountAmount > 0 ? discountAmount : undefined,
     };
 
-    if (paymentMethod === 'payzone') {
-      // Direct user to hosted 3D Secure / CMI simulation gateway
-      setPendingPayzoneInput(baseOrderPayload);
-      setIsCheckoutOpen(false);
-      setIsPayzoneModalOpen(true);
-      return;
-    }
-
     // Cash on Delivery flow: immediate persistence
     setSubmittingOrder(true);
     try {
@@ -676,44 +648,6 @@ export const Marketplace: React.FC<MarketplaceProps> = ({
     } catch (err) {
       console.error('Failed to submit order:', err);
       alert('Could not record order. Please verify your connection.');
-    } finally {
-      setSubmittingOrder(false);
-    }
-  };
-
-  // Payzone Tokenized Success Handler
-  const handlePayzoneSuccess = async (result: {
-    token: string;
-    paymentRef: string;
-    cardBrand: string;
-    last4: string;
-  }) => {
-    if (!pendingPayzoneInput) return;
-    setSubmittingOrder(true);
-
-    try {
-      const confirmation = await placeOrder({
-        ...pendingPayzoneInput,
-        paymentMethod: 'payzone',
-        paymentStatus: 'paid',
-        paymentToken: result.token,
-        paymentRef: result.paymentRef,
-      });
-
-      // Increment coupon usage if promo applied
-      if (pendingPayzoneInput.couponCode) {
-        incrementCouponUsage(pendingPayzoneInput.couponCode).catch((err) => {
-          console.warn('Coupon increment error:', err);
-        });
-      }
-
-      persistCart([]);
-      setIsPayzoneModalOpen(false);
-      setPendingPayzoneInput(null);
-      setOrderConfirmation(confirmation);
-    } catch (err) {
-      console.error('Failed to finalize Payzone order:', err);
-      alert('Transaction authorized but could not record order. Please contact support.');
     } finally {
       setSubmittingOrder(false);
     }
@@ -877,19 +811,6 @@ export const Marketplace: React.FC<MarketplaceProps> = ({
         formErrors={formErrors}
         submittingOrder={submittingOrder}
         onSubmitOrder={handleSubmitOrder}
-      />
-
-      {/* 8.5 Payzone Hosted 3D Secure / CMI Modal */}
-      <PayzoneHostedModal
-        isOpen={isPayzoneModalOpen}
-        onClose={() => {
-          setIsPayzoneModalOpen(false);
-          setIsCheckoutOpen(true);
-        }}
-        orderTotal={pendingPayzoneInput?.totalAmount || cartSubtotal}
-        customerName={pendingPayzoneInput?.customerName || formData.name}
-        customerEmail={pendingPayzoneInput?.customerEmail || formData.email}
-        onPaymentSuccess={handlePayzoneSuccess}
       />
 
       {/* 9. Order Confirmation Modal */}
