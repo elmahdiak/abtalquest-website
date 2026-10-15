@@ -31,7 +31,7 @@ export const Layout: React.FC<LayoutProps> = ({
   whatsappPosition,
 }) => {
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50/50 dark:bg-[#071727] text-slate-800 dark:text-slate-100 font-body selection:bg-[#fa8221]/20 selection:text-[#fa8221] w-full max-w-full overflow-x-hidden transition-colors duration-200">
+    <div className="min-h-screen flex flex-col bg-slate-50/50 dark:bg-[#071727] text-slate-800 dark:text-slate-100 font-body selection:bg-[#fa8221]/20 selection:text-[#fa8221] w-full max-w-full overflow-x-clip transition-colors duration-200">
       <Navbar 
         currentView={currentView} 
         onViewChange={onViewChange}
@@ -41,7 +41,7 @@ export const Layout: React.FC<LayoutProps> = ({
         onOpenContact={onOpenContact}
         onOpenWaitlist={onOpenWaitlist}
       />
-      <main className="flex-1 w-full max-w-full flex flex-col overflow-x-hidden">
+      <main className="flex-1 w-full max-w-full flex flex-col overflow-x-clip">
         {children}
       </main>
       {currentView !== 'marketplace' && (

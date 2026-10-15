@@ -18,6 +18,7 @@ import AbtalQuestLogo from '../common/AbtalQuestLogo';
 import { cn } from '../../lib/utils';
 import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { loadCartFromSupabase } from '../../services/marketplaceService';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 
 export interface NavItem {
@@ -53,8 +54,45 @@ export const Navbar: React.FC<NavbarProps> = ({
   const { language, direction, setLanguage, t } = useLanguage();
   const [languageMenuOpen, setLanguageMenuOpen] = useState(false);
   const [downloadModalOpen, setDownloadModalOpen] = useState(false);
+  const [cartCount, setCartCount] = useState<number>(0);
   
   const languageMenuRef = useRef<HTMLDivElement>(null);
+
+  // Sync cart count from Supabase/storage for sticky header indicator
+  useEffect(() => {
+    let isMounted = true;
+    const calculateCount = (cartObj: Record<string, number>) => {
+      return Object.values(cartObj).reduce((sum, qty) => sum + (Number(qty) || 0), 0);
+    };
+
+    const updateCount = async () => {
+      try {
+        const cart = await loadCartFromSupabase();
+        if (isMounted) setCartCount(calculateCount(cart));
+      } catch {
+        // Fallback
+      }
+    };
+
+    void updateCount();
+
+    const handleCartUpdate = (e: any) => {
+      if (e?.detail && typeof e.detail === 'object') {
+        setCartCount(calculateCount(e.detail));
+      } else {
+        void updateCount();
+      }
+    };
+
+    window.addEventListener('abtalquest_cart_updated', handleCartUpdate);
+    window.addEventListener('storage', updateCount);
+
+    return () => {
+      isMounted = false;
+      window.removeEventListener('abtalquest_cart_updated', handleCartUpdate);
+      window.removeEventListener('storage', updateCount);
+    };
+  }, []);
 
   const navItems: NavItem[] = [
     { id: 'home', label: t('nav.home'), href: '#universe' },
@@ -130,10 +168,10 @@ export const Navbar: React.FC<NavbarProps> = ({
       <header
         className={cn(
           'sticky top-0 z-50 w-full transition-all duration-300',
-          'bg-white/80 dark:bg-[#0A2540]/90 backdrop-blur-md supports-[backdrop-filter]:bg-white/75 supports-[backdrop-filter]:dark:bg-[#0A2540]/85 border-b',
+          'bg-white/95 dark:bg-[#0A2540]/95 backdrop-blur-md shadow-sm border-b',
           isScrolled
-            ? 'border-slate-200/90 dark:border-slate-700/80 shadow-sm py-2.5 sm:py-3'
-            : 'border-slate-200/60 dark:border-slate-800/80 py-3 sm:py-4'
+            ? 'border-slate-200/90 dark:border-slate-700/80 shadow-md py-2 sm:py-2.5'
+            : 'border-slate-200/60 dark:border-slate-800/80 py-2.5 sm:py-3'
         )}
       >
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
@@ -346,6 +384,32 @@ export const Navbar: React.FC<NavbarProps> = ({
                   <UserIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 )}
               </button>
+
+              {/* 3b. Sticky Quick Cart Shortcut across all non-marketplace pages */}
+              {currentView !== 'marketplace' && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onViewChange?.('marketplace');
+                    window.location.hash = '#marketplace';
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  className={cn(
+                    'w-8 h-8 sm:w-10 sm:h-10 rounded-full border flex items-center justify-center transition-all duration-200 relative cursor-pointer',
+                    'border-slate-200/80 dark:border-slate-700 bg-white/70 dark:bg-slate-800/80 hover:bg-white dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 hover:text-[#fa8221] hover:border-[#fa8221]/40',
+                    'shadow-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-[#fa8221]'
+                  )}
+                  aria-label="Quest Cart"
+                  title={t('marketplace.cart_pill_label') || 'Quest Cart'}
+                >
+                  <ShoppingBag className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#fa8221]" />
+                  {cartCount > 0 && (
+                    <span className="absolute -top-1 -right-1 min-w-[16px] h-[16px] sm:min-w-[18px] sm:h-[18px] flex items-center justify-center text-[9px] sm:text-[10px] font-black text-white bg-[#fa8221] rounded-full px-1 shadow-sm">
+                      {cartCount > 99 ? '99+' : cartCount}
+                    </span>
+                  )}
+                </button>
+              )}
 
               {/* 4. Prominent Pill-Shaped CTA Button (#fa8221 Secondary Orange, Montserrat, Right Arrow) */}
               <button
