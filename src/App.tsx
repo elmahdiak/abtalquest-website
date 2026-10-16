@@ -3,7 +3,7 @@ import Layout from './components/layout/Layout';
 import Hero from './components/home/Hero';
 import FamilyProblemSection from './components/home/FamilyProblemSection';
 import MeetAbtalQuestSection from './components/home/MeetAbtalQuestSection';
-import HowItWorksJourney from './components/home/HowItWorksJourney';
+import HowItWorksView from './components/how-it-works/HowItWorksView';
 import OneContinuousWorld from './components/home/OneContinuousWorld';
 import ForParentsSection from './components/home/ForParentsSection';
 import ParentStoriesSection from './components/home/ParentStoriesSection';
@@ -26,7 +26,7 @@ import { subscribeToAuthChanges, signOutUser } from './services/authService';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 
 export function App() {
-  const [currentView, setCurrentView] = useState<'home' | 'marketplace' | 'admin' | 'safety-standards' | 'about' | 'blog' | 'parent-sellers'>('home');
+  const [currentView, setCurrentView] = useState<'home' | 'how-it-works' | 'marketplace' | 'admin' | 'safety-standards' | 'about' | 'blog' | 'parent-sellers'>('home');
   const [activeSafetyTab, setActiveSafetyTab] = useState<SafetyStandardTab>('privacy-kids');
 
   // User Authentication & Modals State
@@ -79,13 +79,12 @@ export function App() {
         setCurrentView('home');
       } else if (
         hash === '#how-it-works' ||
-        hash === '#howitworks'
+        hash === '#howitworks' ||
+        hash === '#/how-it-works' ||
+        pathname === '/how-it-works'
       ) {
-        setCurrentView('home');
-        setTimeout(() => {
-          const el = document.getElementById('how-it-works');
-          el?.scrollIntoView({ behavior: 'smooth' });
-        }, 100);
+        setCurrentView('how-it-works');
+        window.scrollTo({ top: 0, behavior: 'instant' });
       } else if (
         hash === '#for-parents' ||
         hash === '#parents'
@@ -262,11 +261,13 @@ export function App() {
       onViewChange={(view) => {
         setCurrentView(view);
         window.location.hash = 
+          view === 'how-it-works' ? '#how-it-works' :
           view === 'marketplace' ? '#marketplace' : 
           view === 'about' ? '#about' : 
           view === 'blog' ? '#blog' : 
           view === 'parent-sellers' ? '#parent-sellers' :
           '#universe';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
       }}
       user={user}
       onOpenAuth={() => setAuthModalOpen(true)}
@@ -279,11 +280,27 @@ export function App() {
           user={user}
           onOpenAuth={() => setAuthModalOpen(true)}
         />
+      ) : currentView === 'how-it-works' ? (
+        <HowItWorksView
+          onBackToHome={() => {
+            window.location.hash = '#universe';
+            setCurrentView('home');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          onExploreMarketplace={() => {
+            window.location.hash = '#marketplace';
+            setCurrentView('marketplace');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          onOpenContact={() => setContactModalOpen(true)}
+          onOpenWaitlist={() => setWaitlistModalOpen(true)}
+        />
       ) : currentView === 'parent-sellers' ? (
         <ParentVendorsPage
           onNavigate={(view) => {
             setCurrentView(view);
             window.location.hash = 
+              view === 'how-it-works' ? '#how-it-works' :
               view === 'marketplace' ? '#marketplace' : 
               view === 'about' ? '#about' : 
               view === 'blog' ? '#blog' : 
@@ -331,8 +348,9 @@ export function App() {
           <Hero
             onDownloadClick={() => setWaitlistModalOpen(true)}
             onSeeHowItWorksClick={() => {
-              const el = document.getElementById('how-it-works');
-              el?.scrollIntoView({ behavior: 'smooth' });
+              window.location.hash = '#how-it-works';
+              setCurrentView('how-it-works');
+              window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
           />
 
@@ -342,25 +360,22 @@ export function App() {
           {/* 3. MEET ABTALQUEST */}
           <MeetAbtalQuestSection />
 
-          {/* 4. HOW IT WORKS 6-STEP JOURNEY */}
-          <HowItWorksJourney onExploreClick={() => setWaitlistModalOpen(true)} />
-
-          {/* 5. ONE CONTINUOUS WORLD */}
+          {/* 4. ONE CONTINUOUS WORLD */}
           <OneContinuousWorld onJoinQuestClick={() => setWaitlistModalOpen(true)} />
 
-          {/* 6. FOR PARENTS */}
+          {/* 5. FOR PARENTS */}
           <ForParentsSection onDiscoverClick={() => setWaitlistModalOpen(true)} />
 
-          {/* 7. PARTNERS, BACKERS & RECOGNITION */}
+          {/* 6. PARTNERS, BACKERS & RECOGNITION */}
           <PartnersEcosystemSection id="partners-ecosystem" />
 
           {/* 7. PARENT STORIES */}
           <ParentStoriesSection />
 
-          {/* 5. COMMON QUESTIONS ACCORDIONS */}
+          {/* 8. COMMON QUESTIONS ACCORDIONS */}
           <CommonQuestionsSection />
 
-          {/* 6. BOTTOM STARFIELD CTA BANNER */}
+          {/* 9. BOTTOM STARFIELD CTA BANNER */}
           <CtaBannerSection onDownloadClick={() => setWaitlistModalOpen(true)} />
         </>
       )}
@@ -412,8 +427,9 @@ export function App() {
         isOpen={watchDemoOpen}
         onClose={() => setWatchDemoOpen(false)}
         onExplorePlanets={() => {
-          const el = document.getElementById('how-it-works');
-          el?.scrollIntoView({ behavior: 'smooth' });
+          window.location.hash = '#how-it-works';
+          setCurrentView('how-it-works');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
         }}
       />
 

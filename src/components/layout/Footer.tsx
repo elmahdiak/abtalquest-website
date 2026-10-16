@@ -5,14 +5,14 @@ import { useLanguage } from '../../context/LanguageContext';
 
 export interface FooterProps {
   onOpenContact?: () => void;
-  onNavigate?: (view: 'home' | 'marketplace' | 'about' | 'blog') => void;
+  onNavigate?: (view: 'home' | 'how-it-works' | 'marketplace' | 'about' | 'blog' | 'parent-sellers') => void;
 }
 
 export const Footer: React.FC<FooterProps> = ({ onOpenContact, onNavigate }) => {
   const { theme } = useTheme();
   const { t } = useLanguage();
 
-  const handleNav = (view: 'home' | 'marketplace' | 'about' | 'blog', hash?: string) => (e: React.MouseEvent) => {
+  const handleNav = (view: 'home' | 'how-it-works' | 'marketplace' | 'about' | 'blog' | 'parent-sellers', hash?: string) => (e: React.MouseEvent) => {
     e.preventDefault();
     if (onNavigate) {
       onNavigate(view);
@@ -58,7 +58,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenContact, onNavigate }) => 
               <li>
                 <a
                   href="#how-it-works"
-                  onClick={handleNav('home', '#how-it-works')}
+                  onClick={handleNav('how-it-works', '#how-it-works')}
                   className="hover:text-[#016ba5] dark:hover:text-[#38bdf8] transition-colors"
                 >
                   {t('footer.link_how_it_works')}

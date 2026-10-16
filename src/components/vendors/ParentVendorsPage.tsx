@@ -24,7 +24,7 @@ import {
 } from '../../services/vendorService';
 
 export interface ParentVendorsPageProps {
-  onNavigate?: (view: 'home' | 'marketplace' | 'about' | 'blog' | 'parent-sellers') => void;
+  onNavigate?: (view: 'home' | 'how-it-works' | 'marketplace' | 'about' | 'blog' | 'parent-sellers') => void;
 }
 
 export const ParentVendorsPage: React.FC<ParentVendorsPageProps> = ({ onNavigate }) => {

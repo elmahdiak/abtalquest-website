@@ -29,8 +29,8 @@ export interface NavItem {
 }
 
 export interface NavbarProps {
-  currentView?: 'home' | 'marketplace' | 'admin' | 'safety-standards' | 'about' | 'blog' | 'parent-sellers';
-  onViewChange?: (view: 'home' | 'marketplace' | 'about' | 'blog' | 'parent-sellers') => void;
+  currentView?: 'home' | 'how-it-works' | 'marketplace' | 'admin' | 'safety-standards' | 'about' | 'blog' | 'parent-sellers';
+  onViewChange?: (view: 'home' | 'how-it-works' | 'marketplace' | 'about' | 'blog' | 'parent-sellers') => void;
   user?: SupabaseUser | null;
   onOpenAuth?: () => void;
   onOpenProfile?: () => void;
@@ -104,7 +104,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   ];
 
   // Sync active navigation tab with current view
-  const activeTab = currentView === 'marketplace' ? 'marketplace' : currentView === 'about' ? 'about' : currentView === 'blog' ? 'blog' : currentView === 'parent-sellers' ? 'parent-sellers' : selectedNavTab;
+  const activeTab = currentView === 'marketplace' ? 'marketplace' : currentView === 'how-it-works' ? 'how-it-works' : currentView === 'about' ? 'about' : currentView === 'blog' ? 'blog' : currentView === 'parent-sellers' ? 'parent-sellers' : selectedNavTab;
 
   // Handle scroll detection for frosted glass transition
   useEffect(() => {
@@ -133,11 +133,9 @@ export const Navbar: React.FC<NavbarProps> = ({
 
     if (item.id === 'how-it-works') {
       e.preventDefault();
-      onViewChange?.('home');
-      setTimeout(() => {
-        const el = document.getElementById('how-it-works');
-        if (el) el.scrollIntoView({ behavior: 'smooth' });
-      }, 60);
+      onViewChange?.('how-it-works');
+      window.location.hash = '#how-it-works';
+      window.scrollTo({ top: 0, behavior: 'instant' });
     } else if (item.id === 'marketplace') {
       e.preventDefault();
       onViewChange?.('marketplace');
@@ -475,13 +473,16 @@ export const Navbar: React.FC<NavbarProps> = ({
                 onClick={(e) => {
                   e.preventDefault();
                   setMobileMenuOpen(false);
-                  onViewChange?.('home');
-                  setTimeout(() => {
-                    const el = document.getElementById('how-it-works');
-                    if (el) el.scrollIntoView({ behavior: 'smooth' });
-                  }, 60);
+                  onViewChange?.('how-it-works');
+                  window.location.hash = '#how-it-works';
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
-                className="font-headline text-base font-semibold px-4 py-3 rounded-2xl text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                className={cn(
+                  'font-headline text-base font-semibold px-4 py-3 rounded-2xl flex items-center justify-between transition-colors',
+                  currentView === 'how-it-works'
+                    ? 'text-[#016ba5] dark:text-[#38BDF8] bg-sky-50 dark:bg-sky-950/60 font-bold'
+                    : 'text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800'
+                )}
               >
                 <span>{t('nav.how_it_works')}</span>
               </a>

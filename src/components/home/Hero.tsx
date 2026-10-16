@@ -22,8 +22,8 @@ export const Hero: React.FC<HeroProps> = ({
     if (onSeeHowItWorksClick) {
       onSeeHowItWorksClick();
     } else {
-      const el = document.getElementById('how-it-works');
-      if (el) el.scrollIntoView({ behavior: 'smooth' });
+      window.location.hash = '#how-it-works';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
