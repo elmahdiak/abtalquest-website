@@ -104,7 +104,7 @@ export const Hero: React.FC<HeroProps> = ({
               <div className="absolute -inset-6 sm:-inset-8 bg-gradient-to-tr from-[#016ba5]/25 via-[#38bdf8]/20 to-[#fa8221]/25 rounded-full blur-3xl pointer-events-none -z-10" />
 
               {/* Floating Badge 1: Quests (Top-Left) */}
-              <div className="absolute -top-4 -left-4 sm:-top-5 sm:-left-8 lg:-left-10 z-30 animate-float-slow">
+              <div className="absolute -top-4 -left-4 sm:-top-5 sm:-left-8 lg:-left-10 rtl:-left-auto rtl:-right-4 sm:rtl:-right-8 lg:rtl:-right-10 z-30 animate-float-slow">
                 <div className="relative flex items-center gap-2.5 sm:gap-3 px-3 sm:px-3.5 py-2 sm:py-2.5 rounded-2xl bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-sky-200/90 dark:border-sky-800/80 shadow-[0_10px_25px_rgba(1,107,165,0.18)] dark:shadow-[0_10px_25px_rgba(0,0,0,0.6)] group hover:scale-105 transition-transform duration-200 select-none">
                   <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-br from-sky-400 to-[#016ba5] flex items-center justify-center text-white shadow-sm shadow-sky-500/30 shrink-0">
                     <Compass className="w-4 h-4 sm:w-5 sm:h-5 animate-spin-slow" />
@@ -124,7 +124,7 @@ export const Hero: React.FC<HeroProps> = ({
               </div>
 
               {/* Floating Badge 2: Missions (Middle-Upper Right) */}
-              <div className="absolute top-1/4 -right-4 sm:-right-8 lg:-right-10 z-30 animate-float-alt">
+              <div className="absolute top-1/4 -right-4 sm:-right-8 lg:-right-10 rtl:-right-auto rtl:-left-4 sm:rtl:-left-8 lg:rtl:-left-10 z-30 animate-float-alt">
                 <div className="relative flex items-center gap-2.5 sm:gap-3 px-3 sm:px-3.5 py-2 sm:py-2.5 rounded-2xl bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-amber-200/90 dark:border-amber-800/80 shadow-[0_10px_25px_rgba(250,130,33,0.2)] dark:shadow-[0_10px_25px_rgba(0,0,0,0.6)] group hover:scale-105 transition-transform duration-200 select-none">
                   <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-br from-amber-400 to-[#fa8221] flex items-center justify-center text-white shadow-sm shadow-orange-500/30 shrink-0">
                     <Sparkles className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -143,7 +143,7 @@ export const Hero: React.FC<HeroProps> = ({
               </div>
 
               {/* Floating Badge 3: Rewards (Bottom-Left) */}
-              <div className="absolute -bottom-4 -left-4 sm:-bottom-5 sm:-left-8 lg:-left-8 z-30 animate-float-slow">
+              <div className="absolute -bottom-4 -left-4 sm:-bottom-5 sm:-left-8 lg:-left-8 rtl:-left-auto rtl:-right-4 sm:rtl:-right-8 lg:rtl:-right-8 z-30 animate-float-slow">
                 <div className="relative flex items-center gap-2.5 sm:gap-3 px-3 sm:px-3.5 py-2 sm:py-2.5 rounded-2xl bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-purple-200/90 dark:border-purple-800/80 shadow-[0_10px_25px_rgba(124,58,237,0.2)] dark:shadow-[0_10px_25px_rgba(0,0,0,0.6)] group hover:scale-105 transition-transform duration-200 select-none">
                   <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-br from-purple-400 to-[#7C3AED] flex items-center justify-center text-white shadow-sm shadow-purple-500/30 shrink-0">
                     <Star className="w-4 h-4 sm:w-5 sm:h-5 fill-white" />
